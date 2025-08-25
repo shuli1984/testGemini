@@ -1,0 +1,42 @@
+server:
+  address: ":8080"
+routes:
+  - path: "/"
+    handler: "IndexHandler"
+    methods:
+      - "GET"
+    auth_required: false
+  - path: "/about"
+    handler: "AboutHandler"
+    methods:
+      - "GET"
+    auth_required: false
+  - path: "/page/{name}"
+    handler: "PageHandler"
+    methods:
+      - "GET"
+    auth_required: false
+  - path: "/admin/login"
+    handler: "LoginHandler"
+    methods:
+      - "GET"
+      - "POST"
+    auth_required: false
+  - path: "/admin/dashboard"
+    handler: "DashboardHandler"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin"
+    handler: "AdminRedirectHandler"
+    methods:
+      - "GET"
+    auth_required: true
+database:
+  type: "sqlite"
+  dsn: "./data/gemini.db"
+auth:
+  session_key: "a-very-secret-key" # TODO: Change this in a real application
+static:
+  url_prefix: "/static/"
+  dir: "static"

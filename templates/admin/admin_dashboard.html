@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "admin_header.html" .}}
+<body>
+    {{template "admin_nav.html" .}}
+
+    <div class="dashboard-container">
+        <h1>Admin Dashboard</h1>
+
+        <div class="info-card">
+            <h2>System Overview</h2>
+            <p>Total Pages: {{.PageCount}}</p>
+            <!-- Add more system info here -->
+        </div>
+
+        <div class="nav-links">
+            <a href="/admin/edit/home">Edit Home Page</a>
+            <a href="/admin/edit/about">Edit About Page</a>
+            <a href="/admin/edit/contact">Edit Contact Page</a>
+            <!-- Add more admin links here -->
+        </div>
+    </div>
+
+    {{template "admin_footer.html" .}}
+</body>
+</html>

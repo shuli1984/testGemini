@@ -1,0 +1,12 @@
+{{define "nav.html"}}
+<header>
+    <nav class="container">
+        <a href="/" class="logo">Innovatech<span>.AI</span></a>
+        <ul class="nav-links">
+            {{range .MenuItems}}
+            <li><a href="{{.URL}}">{{.Text}}</a></li>
+            {{end}}
+        </ul>
+    </nav>
+</header>
+{{end}}

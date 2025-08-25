@@ -1,0 +1,33 @@
+# Project Setup and Running Instructions
+
+This project is a Go application. Follow the instructions below to set up and run the application.
+
+## Prerequisites
+
+- **Go:** Go 1.18 or higher. You can download it from [golang.org](https://golang.org/dl/).
+- **Git:** (Optional, for cloning the repository) If you need to clone the project from a version control system, ensure Git is installed.
+
+## Getting Started
+
+1.  **Clone the repository (if applicable):**
+    ```bash
+    git clone <repository_url>
+    cd <project_directory>
+    ```
+
+2.  **Navigate to the project directory:**
+    ```bash
+    cd /path/to/your/project
+    ```
+
+3.  **Download dependencies:**
+    ```bash
+    go mod tidy
+    ```
+
+4.  **Run the application:**
+    ```bash
+    go run ./cmd/web
+    ```
+
+    The application will start and listen on the address specified in `config.yml` (default: `:8080`).

@@ -1,0 +1,19 @@
+{{template "header.html" .}}
+{{template "nav.html" .}}
+
+<main>
+    <section class="hero">
+        <div class="container">
+            <h1>{{.Title}}</h1>
+            <p>{{.Description}}</p>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container">
+            <p>{{.Message}}</p>
+        </div>
+    </section>
+</main>
+
+{{template "footer.html" .}}
