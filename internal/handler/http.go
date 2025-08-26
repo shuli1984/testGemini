@@ -3,22 +3,40 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template" // Keep this import for *template.Template type
+	"html/template"
 	"log"
 	"net/http"
-	"strings" // Keep this import for getTemplateName
+	"strings"
 
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/models"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
+	"github.com/gorilla/csrf" // New import for CSRF
 )
 
 type Handler struct {
 	DB          *gorm.DB
 	AuthService *auth.AuthService
-	Templates   *template.Template // New field for pre-parsed templates
+	Templates   *template.Template
+}
+
+// LoginTemplateData holds data for the login page template.
+type LoginTemplateData struct {
+    CSRFToken string
+}
+
+// DashboardTemplateData holds data for the dashboard page template.
+type DashboardTemplateData struct {
+    *models.DashboardData // Embed existing data
+    CSRFToken string
+}
+
+// PageCombinedData holds data for a page template, combining page and site data.
+type PageCombinedData struct {
+    Page *models.Page
+    Site *models.Site
 }
 
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +69,20 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	siteData, err := models.GetSiteData(h.DB)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		log.Printf("Error getting site data for page: %v", err)
+		return
+	}
+
+	combinedData := PageCombinedData{
+		Page: pageData,
+		Site: siteData,
+	}
+
 	// Use pre-parsed templates
-	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), pageData); err != nil {
+	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), combinedData); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Printf("Error executing template (PageHandler): %v", err)
 		return
@@ -110,8 +140,10 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
-		// Use pre-parsed templates
-		if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), nil); err != nil {
+		data := LoginTemplateData{
+			CSRFToken: csrf.Token(r),
+		}
+		if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
@@ -150,8 +182,11 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use pre-parsed templates
-	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), data); err != nil {
+	templateData := DashboardTemplateData{
+		DashboardData: data,
+		CSRFToken:     csrf.Token(r),
+	}
+	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), templateData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

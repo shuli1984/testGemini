@@ -1,17 +1,17 @@
-{{template "header.html" .}}
-{{template "nav.html" .}}
+{{template "header.html" .Site}}
+{{template "nav.html" .Site}}
 
 <main>
     <section class="hero">
         <div class="container">
-            <h1>{{.Title}}</h1>
-            <p>{{.Description}}</p>
+            <h1>{{.Page.Title}}</h1>
+            <p>{{.Page.Description}}</p>
         </div>
     </section>
 
     <section class="content">
         <div class="container">
-            <p>{{.Message}}</p>
+            <p>{{.Page.Message}}</p>
         </div>
     </section>
 </main>

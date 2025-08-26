@@ -1,11 +1,14 @@
 package server_test
 
 import (
+	"fmt"
+	"html/template"
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
+	"gemini-demo/internal/util"
 	"gemini-demo/tests/testutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +19,34 @@ import (
 
 	"github.com/spf13/viper"
 )
+
+// parseTemplates walks the templates directory and parses all .html files.
+func parseTemplates() (*template.Template, error) {
+	projectRoot := util.ProjectRoot("") // Using util.ProjectRoot
+	var templateFiles []string
+	err := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			templateFiles = append(templateFiles, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error walking templates directory: %w", err)
+	}
+
+	if len(templateFiles) == 0 {
+		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(projectRoot, "templates"))
+	}
+
+	tmpl, err := template.ParseFiles(templateFiles...)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing templates: %w", err)
+	}
+	return tmpl, nil
+}
 
 func TestNew(t *testing.T) {
 	// Set up the database for testing
@@ -47,7 +78,21 @@ func TestNew(t *testing.T) {
 	models.AutoMigrateAndSeed(db)
 	defer os.Remove("./gemini.db")
 
-	srv := server.New(db)
+	// Parse templates for testing
+	tmpl, err := parseTemplates()
+	if err != nil {
+		t.Fatalf("failed to parse templates: %v", err)
+	}
+
+	// Create a mock CSRF middleware that just passes through
+	mockCSRFMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	srv := server.New(db, tmpl, mockCSRFMiddleware)
+
 
 	t.Run("serves the hello handler at the root", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/", nil)
@@ -233,5 +278,5 @@ func TestNew_UnmarshalKeyError(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	server.New(nil) // Pass nil for db as it won't be used before panic
+	server.New(nil, nil, nil) // Pass nil for db, tmpl, and csrfMiddleware
 }

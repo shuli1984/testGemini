@@ -37,6 +37,7 @@ database:
   dsn: "./data/gemini.db"
 auth:
   session_key: "a-very-secret-key" # TODO: Change this in a real application
+  csrf_key: "7f4b6cc6ca4141e293a2e66756b96b85"
 static:
   url_prefix: "/static/"
   dir: "static"

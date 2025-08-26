@@ -4,7 +4,7 @@ import (
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
 	"net/http"
-	"html/template" // New import
+	"html/template"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -19,7 +19,7 @@ type Route struct {
 }
 
 // New creates a new HTTP server with configured routes and handlers.
-func New(db *gorm.DB, tmpl *template.Template) *http.Server { // Added tmpl argument
+func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler) *http.Server { // Added csrfMiddleware argument
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -30,7 +30,7 @@ func New(db *gorm.DB, tmpl *template.Template) *http.Server { // Added tmpl argu
 
 	authService := auth.NewAuthService()
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl} // Pass tmpl
+	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -57,7 +57,8 @@ func New(db *gorm.DB, tmpl *template.Template) *http.Server { // Added tmpl argu
 		}
 	}
 
+	// Apply CSRF middleware to the main router
 	return &http.Server{
-		Handler: r,
+		Handler: csrfMiddleware(r), // Apply CSRF middleware here
 	}
 }

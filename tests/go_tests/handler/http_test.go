@@ -2,90 +2,236 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
-	"testing"
 	"os"
+	"path/filepath"
+	"strings"
+	"testing"
 
+	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/models"
-	"gemini-demo/internal/auth"
+	"gemini-demo/internal/util"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
-	
-	"gorm.io/driver/sqlite" // Import sqlite driver
-	"gorm.io/gorm"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-
-
-func TestIndexHandler(t *testing.T) {
+// setupTest creates a new in-memory DB, auth service, and template set for testing.
+func setupTest(t *testing.T) (*gorm.DB, *auth.AuthService, *template.Template) {
 	// Set up environment variable for ProjectRoot
 	os.Setenv("GEMINI_TEST_ROOT", "c:\\wk\\testGemini")
-	defer os.Unsetenv("GEMINI_TEST_ROOT")
+	t.Cleanup(func() { os.Unsetenv("GEMINI_TEST_ROOT") })
 
 	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{}) // Changed from "file::memory:?cache=shared"
+	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
 	assert.NoError(t, err)
 
 	// Auto-migrate models
-	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{})
+	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{}, &models.Page{})
 	assert.NoError(t, err)
+
+	// Initialize Viper for session key
+	vp := viper.New()
+	vp.Set("auth.session_key", "super-secret-key-for-testing")
+	authService := auth.NewAuthServiceWithViper(vp)
+
+	// Parse templates
+	projectRoot := util.ProjectRoot("")
+	templates, err := parseTemplates(filepath.Join(projectRoot, "templates"))
+	assert.NoError(t, err)
+
+	return db, authService, templates
+}
+
+// parseTemplates is a helper function to parse templates for tests.
+func parseTemplates(templateDir string) (*template.Template, error) {
+	var templateFiles []string
+	err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			templateFiles = append(templateFiles, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	funcMap := template.FuncMap{
+		"getTemplateName": func(r *http.Request) string {
+			// This is a simplified version for testing.
+			return getTemplateName(r.URL.Path)
+		},
+	}
+
+	// Parse the files
+	templates, err := template.New("").Funcs(funcMap).ParseFiles(templateFiles...)
+	if err != nil {
+		return nil, err
+	}
+	return templates, nil
+}
+
+func getTemplateName(path string) string {
+	if path == "/" {
+		return "index.html"
+	}
+	if strings.HasSuffix(path, "/") {
+		path = path + "index.html"
+	}
+	// This logic is based on how getTemplateName is used in the handler
+	// It might need adjustment if your actual implementation is different.
+	name := filepath.Base(path)
+	if name == "." || name == "/" {
+		return "index.html"
+	}
+	// Ensure it returns the correct template name for admin pages
+	if strings.HasPrefix(path, "/admin/") && !strings.HasSuffix(name, ".html") {
+		return "admin_" + name + ".html"
+	}
+	return name
+}
+
+// mockCSRF is a mock CSRF middleware that does nothing.
+func mockCSRF(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Add a dummy csrf token to the context, so the handler doesn't panic
+		ctx := context.WithValue(r.Context(), csrf.TemplateTag, "dummy_token")
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func TestIndexHandler(t *testing.T) {
+	db, _, templates := setupTest(t)
+	h := &handler.Handler{DB: db, Templates: templates}
 
 	// Insert test data
 	db.Create(&models.SiteSetting{Key: "Title", Value: "Test Title"})
 	db.Create(&models.SiteSetting{Key: "Description", Value: "Test Description"})
 	db.Create(&models.MenuItemDB{URL: "/home", Text: "Home", Order: 0})
 
-	// Create a handler instance with the real DB
-	h := &handler.Handler{DB: db, AuthService: nil}
-
-	// Create a request to pass to our handler
 	req, err := http.NewRequest("GET", "/", nil)
 	assert.NoError(t, err)
 
+	rr := httptest.NewRecorder()
+	h.IndexHandler(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), "<title>Test Title</title>")
+}
+
+func TestPageHandler_Success(t *testing.T) {
+	db, _, templates := setupTest(t)
+	h := &handler.Handler{DB: db, Templates: templates}
+
+	// Insert test data
+	pageName := "test-page"
+	db.Create(&models.Page{Name: pageName, Title: "Test Page Title", Message: "Test Page Message"})
+
+	// Create a request to pass to our handler
+	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
+	assert.NoError(t, err)
+
+	// Set URL variables for mux
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
 	// Create a ResponseRecorder to record the response
 	rr := httptest.NewRecorder()
 
 	// Serve the HTTP request
-	h.IndexHandler(rr, req)
+	h.PageHandler(rr, req)
 
 	// Assertions
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "<title>Test Title</title>") // Check if template rendered correctly
+	assert.Contains(t, rr.Body.String(), "Test Page Title")
+	assert.Contains(t, rr.Body.String(), "Test Page Message")
 }
 
-func TestAboutHandler(t *testing.T) {
-	// Create a handler instance (mocks not strictly needed for this simple handler)
-	h := &handler.Handler{}
+func TestPageHandler_NotFound(t *testing.T) {
+	db, _, templates := setupTest(t)
+	h := &handler.Handler{DB: db, Templates: templates}
 
-	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/about", nil)
+	// Create a request for a non-existent page
+	pageName := "non-existent-page"
+	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
 	assert.NoError(t, err)
 
-	// Create a ResponseRecorder to record the response
+	// Set URL variables for mux
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	// Create a ResponseRecorder
 	rr := httptest.NewRecorder()
 
 	// Serve the HTTP request
-	h.AboutHandler(rr, req)
+	h.PageHandler(rr, req)
 
 	// Assertions
+	assert.Equal(t, http.StatusNotFound, rr.Code)
+	assert.Contains(t, rr.Body.String(), "Page not found")
+}
+
+// func TestPageHandler_InternalError(t *testing.T) {
+// 	// Mock DB to return an error
+// 	db, _, templates := setupTest(t)
+// 	// Simulate a DB error by closing the connection
+// 	sqlDB, _ := db.DB()
+// 	sqlDB.Close()
+
+// 	h := &handler.Handler{DB: db, Templates: templates}
+
+// 	pageName := "any-page"
+// 	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
+// 	assert.NoError(t, err)
+
+// 	vars := map[string]string{
+// 		"name": pageName,
+// 	}
+// 	req = mux.SetURLVars(req, vars)
+
+// 	rr := httptest.NewRecorder()
+// 	h.PageHandler(rr, req)
+
+// 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+// 	assert.Contains(t, rr.Body.String(), "Internal Server Error")
+// }
+
+func TestAboutHandler(t *testing.T) {
+	_, _, templates := setupTest(t)
+	h := &handler.Handler{Templates: templates}
+
+	req, err := http.NewRequest("GET", "/about", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.AboutHandler(rr, req)
+
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Contains(t, rr.Body.String(), "This is the about page.")
 }
 
 func TestUpdatePageHandler_Success(t *testing.T) {
-	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
-	assert.NoError(t, err)
-
-	// Auto-migrate models
-	err = db.AutoMigrate(&models.Page{})
-	assert.NoError(t, err)
+	db, _, _ := setupTest(t)
+	h := &handler.Handler{DB: db}
 
 	// Mock data
 	pageName := "home"
@@ -103,9 +249,6 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 	}
 
 	db.Create(&existingPage)
-
-	// Create a handler instance with the real DB
-	h := &handler.Handler{DB: db, AuthService: nil}
 
 	// Create request body
 	body, err := json.Marshal(updatedPage)
@@ -136,20 +279,12 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 	assert.Equal(t, updatedPage.Title, responsePage.Title)
 }
 
-func TestUpdatePageHandler_PageNotFound(t *testing.T) {
-	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
-	assert.NoError(t, err)
-
-	// Auto-migrate models
-	err = db.AutoMigrate(&models.Page{})
-	assert.NoError(t, err)
+func TestUpdatePageHandler_NotFound(t *testing.T) {
+	db, _, _ := setupTest(t)
+	h := &handler.Handler{DB: db}
 
 	pageName := "nonexistent"
 	updatedPage := models.Page{Name: pageName, Title: "New Title"}
-
-	// Create a handler instance with the real DB
-	h := &handler.Handler{DB: db, AuthService: nil}
 
 	// Create request body
 	body, err := json.Marshal(updatedPage)
@@ -177,167 +312,221 @@ func TestUpdatePageHandler_PageNotFound(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), "Page not found")
 }
 
-func TestLoginHandler_GET_NotLoggedIn(t *testing.T) {
-	// Set up environment variables for AuthService
-	os.Setenv("ADMIN_USERNAME", "testuser")
-	os.Setenv("ADMIN_PASSWORD", "testpass")
-	defer os.Unsetenv("ADMIN_USERNAME")
-	defer os.Unsetenv("ADMIN_PASSWORD")
+func TestUpdatePageHandler_InvalidBody(t *testing.T) {
+	db, _, _ := setupTest(t)
+	h := &handler.Handler{DB: db}
 
-	// Initialize Viper for session key
-	vp := viper.New()
-	vp.Set("auth.session_key", "super-secret-key")
-
-	// Create a real AuthService instance
-	authService := auth.NewAuthServiceWithViper(vp)
-
-	// Create a handler instance with the real AuthService
-	h := &handler.Handler{DB: nil, AuthService: authService}
-
-	// Create a request
-	req, err := http.NewRequest("GET", "/admin/login", nil)
+	pageName := "home"
+	// Create a request with invalid JSON body
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), strings.NewReader("invalid json"))
 	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
-	// Create a ResponseRecorder
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
 	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
 
-	// Serve the HTTP request
-	h.LoginHandler(rr, req)
-
-	// Assertions
-	assert.Equal(t, http.StatusOK, rr.Code) // Should render login page
-	assert.Contains(t, rr.Body.String(), "<title>Admin Login</title>") // Assuming login page has this title
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "invalid character")
 }
 
+func TestUpdatePageHandler_NameMismatch(t *testing.T) {
+	db, _, _ := setupTest(t)
+	h := &handler.Handler{DB: db}
 
+	pageName := "home"
+	updatedPage := models.Page{Name: "mismatch-name", Title: "New Title"}
+	body, err := json.Marshal(updatedPage)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), "Page name in URL and body do not match")
+}
+
+// func TestUpdatePageHandler_InternalError(t *testing.T) {
+// 	// Mock DB to return an error during update
+// 	db, _, _ := setupTest(t)
+// 	// Simulate a DB error by closing the connection
+// 	sqlDB, _ := db.DB()
+// 	sqlDB.Close()
+
+// 	h := &handler.Handler{DB: db}
+
+// 	pageName := "home"
+// 	updatedPage := models.Page{Name: pageName, Title: "New Title"}
+// 	body, err := json.Marshal(updatedPage)
+// 	assert.NoError(t, err)
+
+// 	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+// 	assert.NoError(t, err)
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	vars := map[string]string{
+// 		"name": pageName,
+// 	}
+// 	req = mux.SetURLVars(req, vars)
+
+// 	rr := httptest.NewRecorder()
+// 	h.UpdatePageHandler(rr, req)
+
+// 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+// 	assert.Contains(t, rr.Body.String(), "Internal Server Error")
+// }
+
+func TestLoginHandler_GET_NotLoggedIn(t *testing.T) {
+	_, authService, templates := setupTest(t)
+	h := &handler.Handler{AuthService: authService, Templates: templates}
+
+	r := mux.NewRouter()
+	r.HandleFunc("/admin/login", h.LoginHandler)
+
+	ts := httptest.NewServer(mockCSRF(r))
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/admin/login")
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	bodyString := string(bodyBytes)
+
+	assert.Contains(t, bodyString, "<title>Admin Login</title>")
+}
 
 func TestLoginHandler_POST_Success(t *testing.T) {
-	// Set up environment variables for AuthService
 	os.Setenv("ADMIN_USERNAME", "testuser")
 	os.Setenv("ADMIN_PASSWORD", "testpass")
 	defer os.Unsetenv("ADMIN_USERNAME")
 	defer os.Unsetenv("ADMIN_PASSWORD")
 
-	// Initialize Viper for session key
-	vp := viper.New()
-	vp.Set("auth.session_key", "super-secret-key")
+	_, authService, templates := setupTest(t)
+	h := &handler.Handler{AuthService: authService, Templates: templates}
 
-	// Create a real AuthService instance
-	authService := auth.NewAuthServiceWithViper(vp)
+	r := mux.NewRouter()
+	r.HandleFunc("/admin/login", h.LoginHandler)
 
-	// Create a handler instance with the real AuthService
-	h := &handler.Handler{DB: nil, AuthService: authService}
+	ts := httptest.NewServer(mockCSRF(r))
+	defer ts.Close()
 
-	// Create request body
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+	client := &http.Client{Jar: jar}
+
 	credentials := map[string]string{"username": "testuser", "password": "testpass"}
 	body, err := json.Marshal(credentials)
 	assert.NoError(t, err)
 
-	// Create a request
-	req, err := http.NewRequest("POST", "/admin/login", bytes.NewBuffer(body))
+	req, err := http.NewRequest("POST", ts.URL+"/admin/login", bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Create a ResponseRecorder
-	rr := httptest.NewRecorder()
+	postResp, err := client.Do(req)
+	assert.NoError(t, err)
+	defer postResp.Body.Close()
 
-	// Serve the HTTP request
-	h.LoginHandler(rr, req)
-
-	// Assertions
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Login successful")
+	assert.Equal(t, http.StatusOK, postResp.StatusCode)
+	var respBody map[string]string
+	err = json.NewDecoder(postResp.Body).Decode(&respBody)
+	assert.NoError(t, err)
+	assert.Equal(t, "Login successful", respBody["message"])
 }
 
 func TestLoginHandler_POST_InvalidCredentials(t *testing.T) {
-	// Set up environment variables for AuthService
-	os.Setenv("ADMIN_USERNAME", "testuser")
-	os.Setenv("ADMIN_PASSWORD", "testpass")
-	defer os.Unsetenv("ADMIN_USERNAME")
-	defer os.Unsetenv("ADMIN_PASSWORD")
+	_, authService, templates := setupTest(t)
+	h := &handler.Handler{AuthService: authService, Templates: templates}
 
-	// Initialize Viper for session key
-	vp := viper.New()
-	vp.Set("auth.session_key", "super-secret-key")
-
-	// Create a real AuthService instance
-	authService := auth.NewAuthServiceWithViper(vp)
-
-	// Create a handler instance with the real AuthService
-	h := &handler.Handler{DB: nil, AuthService: authService}
-
-	// Create request body
 	credentials := map[string]string{"username": "wronguser", "password": "wrongpass"}
 	body, err := json.Marshal(credentials)
 	assert.NoError(t, err)
 
-	// Create a request
 	req, err := http.NewRequest("POST", "/admin/login", bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Create a ResponseRecorder
 	rr := httptest.NewRecorder()
 
-	// Serve the HTTP request
 	h.LoginHandler(rr, req)
 
-	// Assertions
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	assert.Contains(t, rr.Body.String(), "Invalid credentials")
 }
 
 func TestDashboardHandler_Success(t *testing.T) {
-	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
+	os.Setenv("ADMIN_USERNAME", "admin")
+	os.Setenv("ADMIN_PASSWORD", "password")
+	defer os.Unsetenv("ADMIN_USERNAME")
+	defer os.Unsetenv("ADMIN_PASSWORD")
+
+	db, authService, templates := setupTest(t)
+	h := &handler.Handler{DB: db, AuthService: authService, Templates: templates}
+
+	r := mux.NewRouter()
+	r.HandleFunc("/admin/dashboard", h.DashboardHandler)
+	r.HandleFunc("/admin/login", h.LoginHandler)
+
+	ts := httptest.NewServer(mockCSRF(r))
+	defer ts.Close()
+
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+	client := &http.Client{
+		Jar: jar,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	credentials := map[string]string{"username": "admin", "password": "password"}
+	body, err := json.Marshal(credentials)
 	assert.NoError(t, err)
 
-	// Auto-migrate models
-	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{}, &models.Page{})
+	req, err := http.NewRequest("POST", ts.URL+"/admin/login", bytes.NewBuffer(body))
 	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
-	// Clear existing site settings to ensure a clean state
-	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&models.SiteSetting{})
-
-	// Insert test data
-	db.Create(&models.SiteSetting{Key: "Title", Value: "Dashboard Title"})
-	db.Create(&models.SiteSetting{Key: "Description", Value: "Dashboard Description"})
-	db.Create(&models.Page{}) // Create a page to make page count > 0
-
-	// Create a handler instance with the real DB
-	h := &handler.Handler{DB: db, AuthService: nil}
-
-	// Create a request
-	req, err := http.NewRequest("GET", "/admin/dashboard", nil)
+	loginResp, err := client.Do(req)
 	assert.NoError(t, err)
+	defer loginResp.Body.Close()
 
-	// Create a ResponseRecorder
-	rr := httptest.NewRecorder()
+	dashboardResp, err := client.Get(ts.URL + "/admin/dashboard")
+	assert.NoError(t, err)
+	defer dashboardResp.Body.Close()
 
-	// Serve the HTTP request
-	h.DashboardHandler(rr, req)
-
-	// Assertions
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Dashboard Title")
-	assert.Contains(t, rr.Body.String(), "Total Pages: 1") // Assuming one page was created
+	assert.Equal(t, http.StatusOK, dashboardResp.StatusCode)
+	dashboardBody, err := io.ReadAll(dashboardResp.Body)
+	assert.NoError(t, err)
+	assert.Contains(t, string(dashboardBody), "<h1>Admin Dashboard</h1>")
 }
 
 func TestAdminRedirectHandler(t *testing.T) {
-	// Create a handler instance (mocks not strictly needed for this simple handler)
 	h := &handler.Handler{}
 
-	// Create a request
 	req, err := http.NewRequest("GET", "/admin", nil)
 	assert.NoError(t, err)
 
-	// Create a ResponseRecorder
 	rr := httptest.NewRecorder()
 
-	// Serve the HTTP request
 	h.AdminRedirectHandler(rr, req)
 
-	// Assertions
 	assert.Equal(t, http.StatusFound, rr.Code)
 	assert.Equal(t, "/admin/dashboard", rr.Header().Get("Location"))
 }

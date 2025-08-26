@@ -7,6 +7,7 @@
     <h1>Edit Page Content</h1>
 
     <form id="editPageForm">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
         <div>
             <label for="pageName">Page Name (e.g., home, about, contact):</label>
             <input type="text" id="pageName" value="home" required>

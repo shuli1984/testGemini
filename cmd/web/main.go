@@ -6,18 +6,19 @@ import (
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
 	"log"
-	"html/template" // New import
-	"path/filepath" // New import
-	"os"            // New import
-	"strings"       // New import
-	"gemini-demo/internal/util" // New import for ProjectRoot
+	"html/template"
+	"path/filepath"
+	"os"
+	"strings"
+	"gemini-demo/internal/util"
 
 	"github.com/spf13/viper"
+	"github.com/gorilla/csrf" // New import
 )
 
 // parseTemplates walks the templates directory and parses all .html files.
 func parseTemplates() (*template.Template, error) {
-	projectRoot := util.ProjectRoot("") // Use util.ProjectRoot
+	projectRoot := util.ProjectRoot("")
 	var templateFiles []string
 	err := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -74,8 +75,25 @@ func main() {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
 
+	// CSRF Protection Setup
+	csrfKey := viper.GetString("auth.csrf_key")
+	if csrfKey == "" {
+		log.Fatalf("CSRF key not found in config. Please set csrf.key")
+	}
+	// Ensure the key is 32 bytes long for HMAC-SHA256
+	if len(csrfKey) < 32 {
+		log.Fatalf("CSRF key must be at least 32 bytes long")
+	}
+	csrfMiddleware := csrf.Protect(
+		[]byte(csrfKey),
+		csrf.FieldName("csrf_token"), // Default is "csrf_token"
+		csrf.HttpOnly(true),
+		csrf.Secure(viper.GetBool("server.secure_cookies")), // Set to true in production with HTTPS
+		csrf.SameSite(csrf.SameSiteStrictMode),
+	)
+
 	// Create and start server
-	srv := server.New(db, parsedTemplates) // Pass parsedTemplates
+	srv := server.New(db, parsedTemplates, csrfMiddleware) // Pass csrfMiddleware
 	addr := viper.GetString("server.address")
 	srv.Addr = addr
 

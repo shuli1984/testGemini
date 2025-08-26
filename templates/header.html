@@ -5,7 +5,7 @@
 
     <!-- SEO Meta Tags -->
     <meta name="description" content="{{.Description}}">
-    <meta name="keywords" content="{{.Keywords}}">
+    <meta name="keywords" content="{{if .Keywords}}{{.Keywords}}{{else}}{{end}}">
     <meta name="author" content="Innovatech.AI">
     <meta name="robots" content="{{.Robots}}">
     <link rel="canonical" href="{{.CanonicalURL}}">

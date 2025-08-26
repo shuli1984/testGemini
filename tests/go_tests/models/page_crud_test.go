@@ -2,12 +2,15 @@ package models_test
 
 import (
 	"fmt"
+	"path/filepath" // Added this import
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/models" // Added import for the models package
 	"gemini-demo/tests/testutil"
 	"os"
 	"testing"
 	"time"
+
+	"gemini-demo/internal/util" // New import
 
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
@@ -18,7 +21,7 @@ func TestPageCRUD(t *testing.T) {
 	testutil.SetupViper()
 
 	// Use a unique database file for each test run to avoid conflicts
-	testDBName := fmt.Sprintf("./crud_test_%d.db", time.Now().UnixNano())
+	testDBName := filepath.Join(util.ProjectRoot(""), "tmp", fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
 	viper.Set("database.dsn", testDBName)
 
 	db, sqlDB, err := database.InitDB()
@@ -102,7 +105,7 @@ func TestPageCRUD(t *testing.T) {
 
 func TestAutoMigrateAndSeed_AutoMigrateError(t *testing.T) {
 	// Setup a temporary read-only database to trigger an error in AutoMigrate
-	testDBName := fmt.Sprintf("./crud_test_%d.db", time.Now().UnixNano())
+	testDBName := filepath.Join(util.ProjectRoot(""), "tmp", fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
 	file, err := os.Create(testDBName)
 	if err != nil {
 		t.Fatalf("failed to create temp db file: %v", err)
