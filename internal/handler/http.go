@@ -3,16 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
+	"html/template" // Keep this import for *template.Template type
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
+	"strings" // Keep this import for getTemplateName
 
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/models"
-	"gemini-demo/internal/util"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -21,43 +18,21 @@ import (
 type Handler struct {
 	DB          *gorm.DB
 	AuthService *auth.AuthService
+	Templates   *template.Template // New field for pre-parsed templates
 }
 
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	siteData, err := models.GetSiteData(h.DB) // Use the new GetSiteData
+	siteData, err := models.GetSiteData(h.DB)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Printf("Error getting site data: %v", err)
 		return
 	}
 
-	projectRoot := util.ProjectRoot("")
-	var templateFiles []string
-	err = filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
+	// Use pre-parsed templates
+	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), siteData); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		log.Printf("Error walking templates directory: %v", err)
-		return
-	}
-
-	tmpl, err := template.ParseFiles(templateFiles...)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		log.Printf("Error parsing template (HelloHandler): %v", err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, getTemplateName(r), siteData); err != nil { // Pass siteData
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		log.Printf("Error executing template (HelloHandler): %v", err)
+		log.Printf("Error executing template (IndexHandler): %v", err)
 		return
 	}
 }
@@ -76,31 +51,8 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectRoot := util.ProjectRoot("")
-	var templateFiles []string
-	err = filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		log.Printf("Error walking templates directory: %v", err)
-		return
-	}
-
-	tmpl, err := template.ParseFiles(templateFiles...)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		log.Printf("Error parsing template (PageHandler): %v", err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, getTemplateName(r), pageData); err != nil {
+	// Use pre-parsed templates
+	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), pageData); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Printf("Error executing template (PageHandler): %v", err)
 		return
@@ -152,38 +104,14 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 
 // LoginHandler handles admin login requests.
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	var err error // Declare err at the top of the function
 	if h.AuthService.IsLoggedIn(r) {
 		http.Redirect(w, r, "/admin/dashboard", http.StatusFound)
 		return
 	}
 
 	if r.Method == "GET" {
-		projectRoot := util.ProjectRoot("")
-		var templateFiles []string
-		err = filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-				templateFiles = append(templateFiles, path)
-			}
-			return nil
-		})
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		var tmpl *template.Template // Declare tmpl here
-		tmpl, err = template.ParseFiles(templateFiles...) // Assign to existing err
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		err = tmpl.ExecuteTemplate(w, getTemplateName(r), nil)
-		if err != nil {
+		// Use pre-parsed templates
+		if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), nil); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
@@ -194,7 +122,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&credentials)
+	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -222,30 +150,8 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projectRoot := util.ProjectRoot("")
-	var templateFiles []string
-	walkErr := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if walkErr != nil { // Use walkErr here
-		http.Error(w, walkErr.Error(), http.StatusInternalServerError) // Use walkErr here
-		return
-	}
-
-	tmpl, err := template.ParseFiles(templateFiles...)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = tmpl.ExecuteTemplate(w, getTemplateName(r), data)
-	if err != nil {
+	// Use pre-parsed templates
+	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

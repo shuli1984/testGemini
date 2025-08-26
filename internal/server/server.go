@@ -4,6 +4,7 @@ import (
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
 	"net/http"
+	"html/template" // New import
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -17,7 +18,8 @@ type Route struct {
 	AuthRequired bool     `mapstructure:"auth_required"`
 }
 
-func New(db *gorm.DB) *http.Server {
+// New creates a new HTTP server with configured routes and handlers.
+func New(db *gorm.DB, tmpl *template.Template) *http.Server { // Added tmpl argument
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -27,7 +29,8 @@ func New(db *gorm.DB) *http.Server {
 	r.PathPrefix(staticURLPrefix).Handler(http.StripPrefix(staticURLPrefix, staticFileServer))
 
 	authService := auth.NewAuthService()
-	h := &handler.Handler{DB: db, AuthService: authService} // Create an instance of the handler
+	// Pass the parsed templates to the handler
+	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl} // Pass tmpl
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
