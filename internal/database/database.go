@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time" // New import
 
 	"github.com/spf13/viper"
 	sqliteGorm "gorm.io/driver/sqlite" // Alias to avoid conflict
@@ -36,6 +37,11 @@ func InitDBWithViper(v *viper.Viper) (*gorm.DB, *sql.DB, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get *sql.DB from GORM: %w", err)
 		}
+
+		// Set connection pool settings
+		sqlDB.SetMaxIdleConns(10)  // Maximum number of connections in the idle connection pool.
+		sqlDB.SetMaxOpenConns(100) // Maximum number of open connections to the database.
+		sqlDB.SetConnMaxLifetime(time.Hour) // Maximum amount of time a connection may be reused.
 
 		return gormDB, sqlDB, nil
 	} else {
