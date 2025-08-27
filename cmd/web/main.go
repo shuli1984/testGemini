@@ -14,11 +14,19 @@ import (
 	"net/http"
 	"gemini-demo/internal/util"
 
-	v "github.com/spf13/viper"
-	"github.com/gorilla/csrf"
+	"github.com/spf13/viper"
+	"github.com/gorilla/csrf" // Uncomment this import
 )
 
 var projectRootFlag string
+var debugFlag bool // Declare a global variable for debug status
+
+// debugLog prints messages only if debugFlag is true
+func debugLog(format string, v ...interface{}) {
+	if debugFlag {
+		log.Printf(format, v...)
+	}
+}
 
 func parseTemplates() (*template.Template, error) {
 	var actualProjectRoot string
@@ -55,12 +63,16 @@ func parseTemplates() (*template.Template, error) {
 
 func main() {
 	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
+	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging") // Add debug flag
 	flag.Parse()
 
-	v.SetConfigName("config")
-	v.AddConfigPath(".")
-	v.SetConfigType("yml")
-	if err := v.ReadInConfig(); err != nil {
+	// Initialize server.DebugLog
+	server.DebugLog = debugLog // Use capitalized DebugLog
+
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.SetConfigType("yml")
+	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
 
@@ -84,18 +96,25 @@ func main() {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
 
-	csrfKey := v.GetString("auth.csrf_key")
+	csrfKey := viper.GetString("auth.csrf_key")
 	if csrfKey == "" {
 		log.Fatalf("CSRF key not found in config. Please set csrf.key")
 	}
 	if len(csrfKey) < 32 {
 		log.Fatalf("CSRF key must be at least 32 bytes long")
 	}
-	log.Printf("CSRF Key used: %s", csrfKey)
+	debugLog("CSRF Key used: %s", csrfKey) // Made conditional
+
+	// Read trusted origins from config
+	trustedOrigins := viper.GetStringSlice("auth.trusted_origins")
+	debugLog("Configured Trusted Origins: %v", trustedOrigins) // Add this line
+	if len(trustedOrigins) == 0 {
+		log.Printf("Warning: No CSRF trusted origins configured. This may lead to 'origin invalid' errors.")
+	}
 
 	logRequestMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
+			debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer")) // Made conditional
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -103,21 +122,34 @@ func main() {
 	csrfMiddleware := csrf.Protect(
 		[]byte(csrfKey),
 		csrf.HttpOnly(true),
-		csrf.Secure(false), // Set to true in production with HTTPS
-		csrf.SameSite(csrf.SameSiteLaxMode), // Use Lax for same-site applications
+		csrf.Secure(true), // Set to true for production (HTTPS)
+		csrf.SameSite(csrf.SameSiteLaxMode), // Re-enable SameSite
 		csrf.Path("/"), // Set the cookie path to the root
+		csrf.TrustedOrigins(trustedOrigins), // Use trusted origins from config
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("CSRF Error: Handler triggered for request to %s", r.URL.Path)
-			log.Printf("CSRF Error: Failed Token: %s", r.Header.Get("X-CSRF-Token"))
-			log.Printf("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer"))
+			debugLog("CSRF Error: Handler triggered for request to %s", r.URL.Path) // Made conditional
+			// Log the CSRF failure reason
+			if err := csrf.FailureReason(r); err != nil { // Pass the request directly
+				debugLog("CSRF Error: Failure Reason: %v", err) // Made conditional
+			}
+			// Log the expected CSRF token (optional for production, but useful for debugging if issues arise)
+			debugLog("CSRF Error: Expected Token (from csrf.Token(r)): %s", csrf.Token(r)) // Made conditional
+			debugLog("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer")) // Made conditional
 			http.Error(w, "Forbidden - CSRF token invalid.", http.StatusForbidden)
 		})),
 	)
 
+	addr := viper.GetString("server.address")
 	srv := server.New(db, parsedTemplates, func(h http.Handler) http.Handler {
-		return logRequestMiddleware(csrfMiddleware(h))
+		// Conditionally apply PlaintextHTTPRequest for HTTP connections
+		wrappedHandler := logRequestMiddleware(csrfMiddleware(h))
+		if !strings.HasPrefix(addr, "https://") { // Assuming non-HTTPS is HTTP
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				wrappedHandler.ServeHTTP(w, csrf.PlaintextHTTPRequest(r))
+			})
+		}
+		return wrappedHandler
 	})
-	addr := v.GetString("server.address")
 	srv.Addr = addr
 
 	fmt.Printf("Server is listening on %s\n", addr)

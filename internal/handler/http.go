@@ -20,6 +20,7 @@ type Handler struct {
 	DB          *gorm.DB
 	AuthService *auth.AuthService
 	Templates   *template.Template
+	DebugLog    func(format string, v ...interface{})
 }
 
 // LoginTemplateData holds data for the login page template.
@@ -95,9 +96,9 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	// Log headers for CSRF debugging
-	log.Printf("UpdatePageHandler: Referer: %s", r.Header.Get("Referer"))
-	log.Printf("UpdatePageHandler: Origin: %s", r.Header.Get("Origin"))
-	log.Printf("UpdatePageHandler: X-CSRF-Token header: %s", r.Header.Get("X-CSRF-Token"))
+	h.DebugLog("UpdatePageHandler: Referer: %s", r.Header.Get("Referer"))
+	h.DebugLog("UpdatePageHandler: Origin: %s", r.Header.Get("Origin"))
+	h.DebugLog("UpdatePageHandler: X-CSRF-Token header: %s", r.Header.Get("X-CSRF-Token"))
 
 	vars := mux.Vars(r)
 	pageName := vars["name"]
@@ -146,7 +147,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "GET" {
 		token := csrf.Token(r)
-		log.Printf("LoginHandler(GET): Generated CSRF token: %s", token)
+		h.DebugLog("LoginHandler(GET): Generated CSRF token: %s", token)
 		data := LoginTemplateData{
 			CSRFToken: token,
 		}
@@ -162,8 +163,8 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log CSRF tokens for debugging
-	log.Printf("LoginHandler: X-CSRF-Token header: %s", r.Header.Get("X-CSRF-Token"))
-	log.Printf("LoginHandler: CSRF token from context (for template): %s", csrf.Token(r))
+	h.DebugLog("LoginHandler: X-CSRF-Token header: %s", r.Header.Get("X-CSRF-Token"))
+	h.DebugLog("LoginHandler: CSRF token from context (for template): %s", csrf.Token(r))
 
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {

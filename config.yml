@@ -43,6 +43,9 @@ database:
 auth:
   session_key: "a-very-secret-key" # TODO: Change this in a real application
   csrf_key: "gRj1e8E7oXlQocFkJx1sgdIqvKNKOG22wj4lvHF7AfI="
+  trusted_origins: # New field for CSRF trusted origins
+    - "https://your-production-domain.com" # Placeholder for production
+    - "http://localhost:8080" # For local development
 static:
   url_prefix: "/static/"
   dir: "static"

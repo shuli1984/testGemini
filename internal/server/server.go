@@ -5,6 +5,7 @@ import (
 	"gemini-demo/internal/handler"
 	"net/http"
 	"html/template"
+	// "log" // Remove this import
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -18,6 +19,11 @@ type Route struct {
 	AuthRequired bool     `mapstructure:"auth_required"`
 }
 
+// DebugLog is a placeholder for the debug logging function from main.go
+// In a real application, you would pass a logger instance or use a global logger.
+// For this exercise, we'll assume DebugLog is accessible.
+var DebugLog func(format string, v ...interface{})
+
 // New creates a new HTTP server with configured routes and handlers.
 func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler) *http.Server { // Added csrfMiddleware argument
 	r := mux.NewRouter()
@@ -30,7 +36,7 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 
 	authService := auth.NewAuthService()
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl}
+	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl, DebugLog: DebugLog}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -61,7 +67,29 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 	// Apply CSRF middleware to the main router
 	var finalHandler http.Handler = r
 	if csrfMiddleware != nil {
-		finalHandler = csrfMiddleware(r)
+		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			DebugLog("Server: Before CSRF - Request URL: %s, Method: %s, Headers: %v", req.URL.Path, req.Method, req.Header)
+			// Attempt to get CSRF token from header (common for AJAX)
+			csrfTokenHeader := req.Header.Get("X-CSRF-Token")
+			if csrfTokenHeader != "" {
+				DebugLog("Server: Before CSRF - X-CSRF-Token Header: %s", csrfTokenHeader)
+			}
+			// Attempt to get CSRF token from form (common for form submissions)
+			if req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodDelete {
+				if err := req.ParseForm(); err == nil {
+					csrfTokenForm := req.Form.Get("csrf_token") // Assuming 'csrf_token' is the form field name
+					if csrfTokenForm != "" {
+						DebugLog("Server: Before CSRF - csrf_token Form Field: %s", csrfTokenForm)
+					}
+				}
+			}
+
+			// Pass the request to the actual CSRF middleware
+			csrfMiddleware(r).ServeHTTP(w, req)
+
+			// Log after CSRF (if control returns here, it means CSRF didn't block it immediately)
+			DebugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
+		})
 	}
 
 	return &http.Server{
