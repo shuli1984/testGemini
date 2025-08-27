@@ -1,11 +1,18 @@
 <nav>
     <div class="container">
-        <a href="/admin/dashboard" class="logo">Admin Panel</a>
+        <a href="/admin/dashboard" class="logo">{{T .CurrentLang "admin_panel"}}</a>
         <ul>
-            <li><a href="/admin/dashboard">Dashboard</a></li>
-            <li><a href="/admin/pages">Pages</a></li>
-            <li><a href="/admin/settings">Site Settings</a></li>
-            <li><a href="/admin/logout">Logout</a></li>
+            <li {{if eq .CurrentPath "/admin/dashboard"}}class="active"{{end}}><a href="/admin/dashboard">{{T .CurrentLang "dashboard_menu"}}</a></li>
+            <li {{if eq .CurrentPath "/admin/pages"}}class="active"{{end}}><a href="/admin/pages">{{T .CurrentLang "pages_menu"}}</a></li>
+            <li {{if eq .CurrentPath "/admin/settings"}}class="active"{{end}}><a href="/admin/settings">{{T .CurrentLang "site_settings_menu"}}</a></li>
+            <li><a href="/admin/logout">{{T .CurrentLang "logout_menu"}}</a></li>
         </ul>
+        <div class="language-switcher">
+            <select id="lang-select">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+            </select>
+        </div>
     </div>
 </nav>

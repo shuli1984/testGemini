@@ -1,6 +1,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}}</title>
+    <title>{{T .CurrentLang "admin_panel"}} - {{.Title}}</title>
     <link rel="stylesheet" href="/static/css/admin.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const langSelect = document.getElementById('lang-select');
+            if (langSelect) {
+                langSelect.value = "{{.CurrentLang}}"; // Set initial value
+                langSelect.addEventListener('change', function() {
+                    const selectedLang = this.value;
+                    // Set a cookie or local storage for language preference
+                    document.cookie = "lang=" + selectedLang + "; path=/; max-age=" + (365 * 24 * 60 * 60); // 1 year
+                    window.location.reload(); // Reload page to apply new language
+                });
+            }
+        });
+    </script>
 </head>

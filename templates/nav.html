@@ -1,10 +1,17 @@
 <header>
     <nav class="container">
-        <a href="/" class="logo">Innovatech<span>.AI</span></a>
+        <a href="/" class="logo">{{T .CurrentLang "site_title"}}</a>
         <ul class="nav-links">
             {{range .MenuItems}}
             <li><a href="{{.URL}}">{{.Text}}</a></li>
             {{end}}
         </ul>
+        <div class="language-switcher">
+            <select id="lang-select">
+                <option value="en">English</option>
+                <option value="zh">中文</option>
+                <option value="ja">日本語</option>
+            </select>
+        </div>
     </nav>
 </header>

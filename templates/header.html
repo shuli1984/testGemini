@@ -1,16 +1,9 @@
 <head>
     <meta charset="UTF-8">
-    <title>{{.Title}}</title>
+    <title>{{T .CurrentLang "site_title"}} - {{.Title}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="{{.Description}}">
-    <meta name="keywords" content="{{if .Keywords}}{{.Keywords}}{{else}}{{end}}">
-    <meta name="author" content="Innovatech.AI">
-    <meta name="robots" content="{{.Robots}}">
-    <link rel="canonical" href="{{.CanonicalURL}}">
-
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{.CanonicalURL}}">
     <meta property="og:title" content="{{.Title}}">
@@ -29,4 +22,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const langSelect = document.getElementById('lang-select');
+            if (langSelect) {
+                langSelect.value = "{{.CurrentLang}}"; // Set initial value
+                langSelect.addEventListener('change', function() {
+                    const selectedLang = this.value;
+                    // Set a cookie or local storage for language preference
+                    document.cookie = "lang=" + selectedLang + "; path=/; max-age=" + (365 * 24 * 60 * 60); // 1 year
+                    window.location.reload(); // Reload page to apply new language
+                });
+            }
+        });
+    </script>
 </head>

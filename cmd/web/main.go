@@ -6,6 +6,7 @@ import (
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
+	"gemini-demo/internal/i18n" // New import for i18n
 	"log"
 	"html/template"
 	"path/filepath"
@@ -28,7 +29,7 @@ func debugLog(format string, v ...interface{}) {
 	}
 }
 
-func parseTemplates() (*template.Template, error) {
+func parseTemplates(translator *i18n.Translator) (*template.Template, error) {
 	var actualProjectRoot string
 	if projectRootFlag != "" {
 		actualProjectRoot = projectRootFlag
@@ -54,7 +55,17 @@ func parseTemplates() (*template.Template, error) {
 		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(actualProjectRoot, "templates"))
 	}
 
-	tmpl, err := template.ParseFiles(templateFiles...)
+	// Create a FuncMap for templates
+	funcMap := template.FuncMap{
+		"T": func(lang, key string) string {
+			// This is a placeholder T function for the template parser.
+			// The actual translation will be provided by the T function in the template data.
+			return translator.GetTranslation(lang, key) // Use the provided language for parsing
+		},
+	}
+
+	tmpl := template.New("main").Funcs(funcMap)
+	tmpl, err = tmpl.ParseFiles(templateFiles...)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing templates: %w", err)
 	}
@@ -68,6 +79,13 @@ func main() {
 
 	// Initialize server.DebugLog
 	server.DebugLog = debugLog // Use capitalized DebugLog
+
+	// Initialize i18n translator
+	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
+	translator := i18n.NewTranslator(i18nBasePath, "en") // "en" as default language
+	if err := translator.LoadTranslations(); err != nil {
+		log.Fatalf("Failed to load translations: %v", err)
+	}
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
@@ -91,7 +109,7 @@ func main() {
 		log.Fatalf("failed to auto migrate and seed models: %v", err)
 	}
 
-	parsedTemplates, err := parseTemplates()
+	parsedTemplates, err := parseTemplates(translator)
 	if err != nil {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
@@ -149,7 +167,7 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	})
+	}, translator) // Pass the translator
 	srv.Addr = addr
 
 	fmt.Printf("Server is listening on %s\n", addr)

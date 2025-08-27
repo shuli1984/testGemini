@@ -8,6 +8,7 @@ import (
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
+		"gemini-demo/internal/i18n" // Added for i18n
 	"gemini-demo/internal/util"
 	"gemini-demo/tests/testutil"
 	"net/http"
@@ -21,7 +22,7 @@ import (
 )
 
 // parseTemplates walks the templates directory and parses all .html files.
-func parseTemplates() (*template.Template, error) {
+func parseTemplates(translator *i18n.Translator) (*template.Template, error) {
 	projectRoot := util.ProjectRoot("") // Using util.ProjectRoot
 	var templateFiles []string
 	err := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
@@ -41,15 +42,30 @@ func parseTemplates() (*template.Template, error) {
 		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(projectRoot, "templates"))
 	}
 
-	tmpl, err := template.ParseFiles(templateFiles...)
+	// Create a FuncMap for templates
+	funcMap := template.FuncMap{
+		"T": func(lang, key string) string {
+			return translator.GetTranslation(lang, key)
+		},
+	}
+
+	tmpl := template.New("main").Funcs(funcMap)
+	tmpl, err = tmpl.ParseFiles(templateFiles...)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing templates: %w", err)
 	}
 	return tmpl, nil
 }
 
+// debugLog is a dummy function for testing to prevent nil pointer dereference
+func debugLog(format string, v ...interface{}) {
+	// Do nothing or log to t.Logf for debugging tests
+	// t.Logf(format, v...)
+}
+
 func TestNew(t *testing.T) {
 	// Set up the database for testing
+	server.DebugLog = debugLog // Initialize server.DebugLog for testing
 	testutil.SetupViper()
 	vp := viper.GetViper()
 	vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
@@ -78,8 +94,15 @@ func TestNew(t *testing.T) {
 	models.AutoMigrateAndSeed(db)
 	defer os.Remove("./gemini.db")
 
+	// Initialize i18n translator for testing
+	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
+	translator := i18n.NewTranslator(i18nBasePath, "en") // "en" as default language
+	if err := translator.LoadTranslations(); err != nil {
+		t.Fatalf("Failed to load translations for test: %v", err)
+	}
+
 	// Parse templates for testing
-	tmpl, err := parseTemplates()
+	tmpl, err := parseTemplates(translator)
 	if err != nil {
 		t.Fatalf("failed to parse templates: %v", err)
 	}
@@ -91,7 +114,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := server.New(db, tmpl, mockCSRFMiddleware)
+	srv := server.New(db, tmpl, mockCSRFMiddleware, translator)
 
 
 	t.Run("serves the hello handler at the root", func(t *testing.T) {
@@ -169,11 +192,17 @@ func TestNew(t *testing.T) {
 				status, http.StatusOK)
 	}
 
-		expected := `This is the about page.`
-		if rr.Body.String() != expected {
-			t.Errorf("handler returned unexpected body: got %v want %v",
-			rr.Body.String(), expected)
-	}
+		// Check for key content in the rendered HTML
+		expectedContent := "<h1>About Us</h1>"
+		if !strings.Contains(rr.Body.String(), expectedContent) {
+			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
+				expectedContent, rr.Body.String())
+		}
+		expectedContent = "<p>This is a simple content management system built with Go.</p>"
+		if !strings.Contains(rr.Body.String(), expectedContent) {
+			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
+				expectedContent, rr.Body.String())
+		}
 	})
 
 	// Test unauthenticated access to /admin/dashboard
@@ -200,7 +229,7 @@ func TestNew(t *testing.T) {
 		// Simulate a logged-in session
 		// We need a handler instance to call AuthService.Login
 		authService := auth.NewAuthServiceWithViper(viper.GetViper())
-		h := &handler.Handler{DB: db, AuthService: authService}
+		h := &handler.Handler{DB: db, AuthService: authService, Translator: translator, DebugLog: debugLog} // Pass the translator and debugLog
 
 		// Create a dummy request for Login to set the cookie
 		loginReq, err := http.NewRequest("POST", "/admin/login", strings.NewReader(`{"username":"admin","password":"password"}`))
@@ -278,5 +307,5 @@ func TestNew_UnmarshalKeyError(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	server.New(nil, nil, nil) // Pass nil for db, tmpl, and csrfMiddleware
+	server.New(nil, nil, nil, nil) // Pass nil for db, tmpl, csrfMiddleware, and translator
 }

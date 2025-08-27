@@ -1,8 +1,10 @@
 package server
 
 import (
+	"fmt" // Added for fmt.Sprintf
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
+	"gemini-demo/internal/i18n" // New import for i18n
 	"net/http"
 	"html/template"
 	// "log" // Remove this import
@@ -25,7 +27,7 @@ type Route struct {
 var DebugLog func(format string, v ...interface{})
 
 // New creates a new HTTP server with configured routes and handlers.
-func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler) *http.Server { // Added csrfMiddleware argument
+func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator) *http.Server { // Added translator argument
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -35,8 +37,23 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 	r.PathPrefix(staticURLPrefix).Handler(http.StripPrefix(staticURLPrefix, staticFileServer))
 
 	authService := auth.NewAuthService()
+
+	// Create an empty FuncMap for templates. The 'T' function will be passed directly in the template data.
+	funcMap := template.FuncMap{}
+
+	// Clone the template set and add the FuncMap
+	// This ensures that each handler gets a template set with the correct functions
+	// and avoids modifying the global template set.
+	clonedTemplates, err := tmpl.Clone()
+	if err != nil {
+		// Handle error, perhaps log and panic or return an error
+		panic(fmt.Sprintf("Failed to clone templates: %v", err))
+	}
+	clonedTemplates = clonedTemplates.Funcs(funcMap)
+
+
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{DB: db, AuthService: authService, Templates: tmpl, DebugLog: DebugLog}
+	h := &handler.Handler{DB: db, AuthService: authService, Templates: clonedTemplates, DebugLog: DebugLog, Translator: translator}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,

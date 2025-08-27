@@ -2,23 +2,37 @@
 <html lang="en">
 {{template "admin_header.html" .}}
 <body>
-    {{template "admin_nav.html" .}}
-
-    <div class="dashboard-container">
-        <h1>Admin Dashboard</h1>
-		<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-
-        <div class="info-card">
-            <h2>System Overview</h2>
-            <p>Total Pages: {{.PageCount}}</p>
-            <!-- Add more system info here -->
+    <div class="admin-wrapper">
+        <div class="admin-sidebar">
+            {{template "admin_nav.html" .}}
         </div>
+        <div class="admin-content">
+            <h1>{{T .CurrentLang "dashboard_title"}}</h1>
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-        <div class="nav-links">
-            <a href="/admin/edit/home">Edit Home Page</a>
-            <a href="/admin/edit/about">Edit About Page</a>
-            <a href="/admin/edit/contact">Edit Contact Page</a>
-            <!-- Add more admin links here -->
+            <div class="dashboard-grid">
+                <div class="info-card">
+                    <h2>{{T .CurrentLang "system_overview"}}</h2>
+                    <p>{{T .CurrentLang "total_pages"}}: {{.PageCount}}</p>
+                    <!-- Add more system info here -->
+                </div>
+
+                <div class="info-card">
+                    <h2>{{T .CurrentLang "quick_actions"}}</h2>
+                    <div class="nav-links">
+                        <a href="/admin/edit/home">{{T .CurrentLang "edit_home_page"}}</a>
+                        <a href="/admin/edit/about">{{T .CurrentLang "edit_about_page"}}</a>
+                        <a href="/admin/edit/contact">{{T .CurrentLang "edit_contact_page"}}</a>
+                        <!-- Add more admin links here -->
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h2>{{T .CurrentLang "recent_activity"}}</h2>
+                    <p>{{T .CurrentLang "no_recent_activity"}}</p>
+                    <!-- Placeholder for recent activity -->
+                </div>
+            </div>
         </div>
     </div>
 

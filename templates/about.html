@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "header.html" .}}
+<body>
+    {{template "nav.html" .}}
+    <div class="container">
+        <h1>{{T .CurrentLang "about_page_title"}}</h1>
+        <p>{{T .CurrentLang "about_page_content"}}</p>
+    </div>
+    {{template "footer.html" .}}
+</body>
+</html>
