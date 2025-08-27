@@ -3,12 +3,13 @@ package util
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
-var ( 
+var (
 	projectRootCache string
-	once sync.Once
+	once             sync.Once
 )
 
 // ProjectRoot returns the project's root directory.
@@ -20,20 +21,21 @@ func ProjectRoot(testExecutablePath string) string {
 			return
 		}
 
-		var ex string
+		var startDir string
 		var err error
 
 		if testExecutablePath != "" {
-			ex = testExecutablePath
+			startDir = filepath.Dir(testExecutablePath) // For testing, use the directory of the provided executable path
 		} else {
-			ex, err = os.Executable()
+			// Use current working directory as the starting point
+			startDir, err = os.Getwd()
 			if err != nil {
 				panic(err) // Or handle error more gracefully
 			}
 		}
 
-			// Search upwards from the executable's directory for a known project root marker (e.g., go.mod)
-		currentDir := filepath.Dir(ex)
+		// Search upwards from the starting directory for a known project root marker (e.g., go.mod)
+		currentDir := startDir
 		// Look for go.mod file, if not found, search parent directory
 		for {
 			if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
@@ -42,18 +44,17 @@ func ProjectRoot(testExecutablePath string) string {
 			}
 			parent := filepath.Dir(currentDir)
 			if parent == currentDir {
-				break
+				break // Reached root directory, go.mod not found
 			}
 			currentDir = parent
 		}
 
-		// Fallback if go.mod is not found
-		dir := filepath.Dir(ex)
-		if filepath.Base(dir) == "bin" {
-			projectRootCache = filepath.Dir(dir) // Go up one more level
-			return
+		// Fallback if go.mod is not found, with special handling for 'bin' directory
+		if strings.HasSuffix(filepath.ToSlash(startDir), "/bin") {
+			projectRootCache = filepath.Dir(startDir)
+		} else {
+			projectRootCache = startDir // Fallback to the starting directory
 		}
-		projectRootCache = dir
 	})
 	return projectRootCache
 }

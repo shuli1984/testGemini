@@ -5,11 +5,14 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     const password = document.getElementById('password').value;
     const messageDiv = document.getElementById('message');
 
+    const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]').value;
+
     try {
         const response = await fetch('/admin/login', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
             },
             body: JSON.stringify({ username, password })
         });

@@ -40,6 +40,7 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 		"LoginHandler":         h.LoginHandler,
 		"DashboardHandler":     h.DashboardHandler,
 		"AdminRedirectHandler": h.AdminRedirectHandler,
+		"LogoutHandler":        h.LogoutHandler, // Added LogoutHandler
 	}
 
 	var routes []Route
@@ -58,7 +59,12 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 	}
 
 	// Apply CSRF middleware to the main router
+	var finalHandler http.Handler = r
+	if csrfMiddleware != nil {
+		finalHandler = csrfMiddleware(r)
+	}
+
 	return &http.Server{
-		Handler: csrfMiddleware(r), // Apply CSRF middleware here
+		Handler: finalHandler,
 	}
 }

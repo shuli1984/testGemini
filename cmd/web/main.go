@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/models"
@@ -10,17 +11,25 @@ import (
 	"path/filepath"
 	"os"
 	"strings"
+	"net/http"
 	"gemini-demo/internal/util"
 
-	"github.com/spf13/viper"
-	"github.com/gorilla/csrf" // New import
+	v "github.com/spf13/viper"
+	"github.com/gorilla/csrf"
 )
 
-// parseTemplates walks the templates directory and parses all .html files.
+var projectRootFlag string
+
 func parseTemplates() (*template.Template, error) {
-	projectRoot := util.ProjectRoot("")
+	var actualProjectRoot string
+	if projectRootFlag != "" {
+		actualProjectRoot = projectRootFlag
+	} else {
+		actualProjectRoot = util.ProjectRoot("")
+	}
+
 	var templateFiles []string
-	err := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(filepath.Join(actualProjectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -34,7 +43,7 @@ func parseTemplates() (*template.Template, error) {
 	}
 
 	if len(templateFiles) == 0 {
-		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(projectRoot, "templates"))
+		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(actualProjectRoot, "templates"))
 	}
 
 	tmpl, err := template.ParseFiles(templateFiles...)
@@ -45,15 +54,16 @@ func parseTemplates() (*template.Template, error) {
 }
 
 func main() {
-	// Load configuration
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	viper.SetConfigType("yml")
-	if err := viper.ReadInConfig(); err != nil {
+	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
+	flag.Parse()
+
+	v.SetConfigName("config")
+	v.AddConfigPath(".")
+	v.SetConfigType("yml")
+	if err := v.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
 
-	// Initialize database
 	db, sqlDB, err := database.InitDB()
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
@@ -69,32 +79,45 @@ func main() {
 		log.Fatalf("failed to auto migrate and seed models: %v", err)
 	}
 
-	// Parse templates once at startup
 	parsedTemplates, err := parseTemplates()
 	if err != nil {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
 
-	// CSRF Protection Setup
-	csrfKey := viper.GetString("auth.csrf_key")
+	csrfKey := v.GetString("auth.csrf_key")
 	if csrfKey == "" {
 		log.Fatalf("CSRF key not found in config. Please set csrf.key")
 	}
-	// Ensure the key is 32 bytes long for HMAC-SHA256
 	if len(csrfKey) < 32 {
 		log.Fatalf("CSRF key must be at least 32 bytes long")
 	}
+	log.Printf("CSRF Key used: %s", csrfKey)
+
+	logRequestMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	csrfMiddleware := csrf.Protect(
 		[]byte(csrfKey),
-		csrf.FieldName("csrf_token"), // Default is "csrf_token"
 		csrf.HttpOnly(true),
-		csrf.Secure(viper.GetBool("server.secure_cookies")), // Set to true in production with HTTPS
-		csrf.SameSite(csrf.SameSiteStrictMode),
+		csrf.Secure(false), // Set to true in production with HTTPS
+		csrf.SameSite(csrf.SameSiteLaxMode), // Use Lax for same-site applications
+		csrf.Path("/"), // Set the cookie path to the root
+		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("CSRF Error: Handler triggered for request to %s", r.URL.Path)
+			log.Printf("CSRF Error: Failed Token: %s", r.Header.Get("X-CSRF-Token"))
+			log.Printf("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer"))
+			http.Error(w, "Forbidden - CSRF token invalid.", http.StatusForbidden)
+		})),
 	)
 
-	// Create and start server
-	srv := server.New(db, parsedTemplates, csrfMiddleware) // Pass csrfMiddleware
-	addr := viper.GetString("server.address")
+	srv := server.New(db, parsedTemplates, func(h http.Handler) http.Handler {
+		return logRequestMiddleware(csrfMiddleware(h))
+	})
+	addr := v.GetString("server.address")
 	srv.Addr = addr
 
 	fmt.Printf("Server is listening on %s\n", addr)
