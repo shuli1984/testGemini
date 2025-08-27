@@ -1,6 +1,11 @@
 <header>
     <nav class="container">
         <a href="/" class="logo">{{T .CurrentLang "site_title"}}</a>
+        <div class="menu-toggle" id="mobile-menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
         <ul class="nav-links">
             {{range .MenuItems}}
             <li><a href="{{.URL}}">{{.Text}}</a></li>
