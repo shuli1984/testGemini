@@ -30,5 +30,14 @@
     "forbidden_csrf_invalid": "禁止 - CSRFトークンが無効です。",
     "about_page_title": "私たちについて",
     "about_page_content": "これはGoで構築されたシンプルなコンテンツ管理システムです。",
-    "site_title": "Innovatech.AI - スマートな推進力で未来を築く"
+    "site_title": "Innovatech.AI - スマートな推進力で未来を築く",
+    "carousel_title_1": "AIで未来を築く",
+    "carousel_description_1": "データ駆動型の洞察を活用してインテリジェントなモデルを構築し、ビジネスプロセスを最適化し、自動意思決定を可能にします。",
+    "carousel_button_text_1": "ご相談はこちら",
+    "carousel_title_2": "安全なエンタープライズクラウドサービス",
+    "carousel_description_2": "安全でスケーラブルなハイブリッドおよびマルチクラウドソリューションを提供し、デジタルトランスフォーメーションを加速します。",
+    "carousel_button_text_2": "詳細はこちら",
+    "carousel_title_3": "ITインフラのモダナイゼーション",
+    "carousel_description_3": "ネットワークからデータセンターまで、お客様の企業のために安定した効率的で将来性のあるIT基盤を構築します。",
+    "carousel_button_text_3": "会社概要"
 }

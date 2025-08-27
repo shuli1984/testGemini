@@ -30,18 +30,28 @@ type MenuItem struct {
     Text string
 }
 
+// CarouselItem represents a single item in the hero carousel.
+type CarouselItem struct {
+    Title         template.HTML
+    Description   template.HTML
+    ButtonText    string
+    ButtonLink    string
+    BackgroundImage string
+}
+
 // Site represents the overall site configuration and data.
 type Site struct {
     Title       string
     Description string
     CanonicalURL string
     ImageURL    string
-    HeroTitle   template.HTML
-    HeroDescription template.HTML
+    HeroTitle   template.HTML // Keep for backward compatibility or if still used elsewhere
+    HeroDescription template.HTML // Keep for backward compatibility or if still used elsewhere
     Keywords    string // New SEO field
     Robots      string // New SEO field
 
     MenuItems []MenuItem // Navigation menu items
+    CarouselItems []CarouselItem // New field for hero carousel items
 }
 
 // DashboardData combines Site data and PageCount for the dashboard.

@@ -55,16 +55,40 @@ type IndexTemplateData struct {
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	siteData, err := models.GetSiteData(h.DB)
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting site data: %v", err)
 		return
 	}
 
 	currentLang := h.getLanguage(r)
-	// T is now provided by the FuncMap in main.go, no need to pass it in data
-	// T := func(key string) string {
-	// 	return h.Translator.GetTranslation(currentLang, key)
-	// }
+
+	// Dummy Carousel Items for demonstration
+	carouselItems := []models.CarouselItem{
+		{
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_1")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_1")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_1"),
+			ButtonLink:    "#contact",
+			BackgroundImage: "/static/images/hero-bg-1.jpg", // Placeholder image
+		},
+		{
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_2")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_2")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_2"),
+			ButtonLink:    "#services",
+			BackgroundImage: "/static/images/hero-bg-2.jpg", // Placeholder image
+		},
+		{
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_3")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_3")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_3"),
+			ButtonLink:    "#about",
+			BackgroundImage: "/static/images/hero-bg-3.jpg", // Placeholder image
+		},
+	}
+
+	// Update siteData with carousel items
+	siteData.CarouselItems = carouselItems
 
 	data := IndexTemplateData{
 		Site:        siteData,
@@ -74,7 +98,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Execute the template to a buffer first to catch errors before writing to w
 	var buf bytes.Buffer
 	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error executing template (IndexHandler): %v", err)
 		return
 	}

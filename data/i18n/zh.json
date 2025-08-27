@@ -30,5 +30,14 @@
     "forbidden_csrf_invalid": "禁止访问 - CSRF令牌无效。",
     "about_page_title": "关于我们",
     "about_page_content": "这是一个用Go构建的简单内容管理系统。",
-    "site_title": "Innovatech.AI - 智能驱动，构建未来"
+    "site_title": "Innovatech.AI - 智能驱动，构建未来",
+    "carousel_title_1": "构建未来，智能驱动",
+    "carousel_description_1": "利用数据驱动的洞察力，构建智能模型，优化业务流程，实现自动化决策。",
+    "carousel_button_text_1": "获取咨询",
+    "carousel_title_2": "安全的企业云服务",
+    "carousel_description_2": "提供安全、可扩展的混合云与多云解决方案，加速您的数字化转型之旅。",
+    "carousel_button_text_2": "了解更多",
+    "carousel_title_3": "IT基础设施现代化",
+    "carousel_description_3": "从网络到数据中心，我们为您的企业构建稳定、高效且面向未来的IT基石。",
+    "carousel_button_text_3": "关于我们"
 }

@@ -15,5 +15,74 @@
                 navLinks.classList.toggle('active');
             });
         }
+
+        // Carousel functionality
+        const carouselItems = document.querySelectorAll('.carousel-item');
+        const prevBtn = document.querySelector('.carousel-control.prev');
+        const nextBtn = document.querySelector('.carousel-control.next');
+        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
+        let currentIndex = 0;
+        let autoSlideInterval;
+
+        function showSlide(index) {
+            carouselItems.forEach((item, i) => {
+                item.classList.remove('active');
+                indicators[i].classList.remove('active');
+            });
+
+            carouselItems[index].classList.add('active');
+            indicators[index].classList.add('active');
+            currentIndex = index;
+        }
+
+        function nextSlide() {
+            currentIndex = (currentIndex + 1) % carouselItems.length;
+            showSlide(currentIndex);
+        }
+
+        function prevSlide() {
+            currentIndex = (currentIndex - 1 + carouselItems.length) % carouselItems.length;
+            showSlide(currentIndex);
+        }
+
+        function startAutoSlide() {
+            autoSlideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
+        }
+
+        function stopAutoSlide() {
+            clearInterval(autoSlideInterval);
+        }
+
+        // Event Listeners
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                stopAutoSlide();
+                prevSlide();
+                startAutoSlide();
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                stopAutoSlide();
+                nextSlide();
+                startAutoSlide();
+            });
+        }
+
+        indicators.forEach(indicator => {
+            indicator.addEventListener('click', (event) => {
+                stopAutoSlide();
+                const slideIndex = parseInt(event.target.dataset.slideTo);
+                showSlide(slideIndex);
+                startAutoSlide();
+            });
+        });
+
+        // Initial display and auto-slide start
+        if (carouselItems.length > 0) {
+            showSlide(0);
+            startAutoSlide();
+        }
     });
 </script>

@@ -6,13 +6,26 @@
     {{template "nav.html" .}}
 
 <main>
-    <section class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h1>{{.HeroTitle}}</h1>
-                <p>{{.HeroDescription}}</p>
-                <a href="#contact" class="btn">获取咨询</a>
+    <section class="hero-carousel">
+        <div class="carousel-inner">
+            {{range $index, $item := .CarouselItems}}
+            <div class="carousel-item {{if eq $index 0}}active{{end}}" style="background-image: url('{{$item.BackgroundImage}}');">
+                <div class="container">
+                    <div class="hero-content">
+                        <h1>{{$item.Title}}</h1>
+                        <p>{{$item.Description}}</p>
+                        <a href="{{$item.ButtonLink}}" class="btn">{{$item.ButtonText}}</a>
+                    </div>
+                </div>
             </div>
+            {{end}}
+        </div>
+        <button class="carousel-control prev" aria-label="Previous Slide">&#10094;</button>
+        <button class="carousel-control next" aria-label="Next Slide">&#10095;</button>
+        <div class="carousel-indicators">
+            {{range $index, $item := .CarouselItems}}
+            <span class="indicator {{if eq $index 0}}active{{end}}" data-slide-to="{{$index}}"></span>
+            {{end}}
         </div>
     </section>
 

@@ -30,5 +30,14 @@
     "forbidden_csrf_invalid": "Forbidden - CSRF token invalid.",
     "about_page_title": "About Us",
     "about_page_content": "This is a simple content management system built with Go.",
-    "site_title": "Innovatech.AI"
+    "site_title": "Innovatech.AI",
+    "carousel_title_1": "Building the Future, Driven by AI",
+    "carousel_description_1": "Leverage data-driven insights to build intelligent models, optimize business processes, and enable automated decision-making.",
+    "carousel_button_text_1": "Get a Consultation",
+    "carousel_title_2": "Secure Enterprise Cloud Services",
+    "carousel_description_2": "Provide secure, scalable hybrid and multi-cloud solutions to accelerate your digital transformation journey.",
+    "carousel_button_text_2": "Learn More",
+    "carousel_title_3": "Modernizing IT Infrastructure",
+    "carousel_description_3": "From networks to data centers, we build stable, efficient, and future-proof IT foundations for your enterprise.",
+    "carousel_button_text_3": "About Us"
 }
