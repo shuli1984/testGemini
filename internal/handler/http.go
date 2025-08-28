@@ -9,16 +9,15 @@ import (
 	"strings"
 
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/models"
-	"gemini-demo/internal/i18n" // New import for i18n
 
-	"github.com/gorilla/csrf" // New import for CSRF
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"gorm.io/gorm"
 )
 
 type Handler struct {
-	DB          *gorm.DB
+	Store       models.DataStore
 	AuthService *auth.AuthService
 	Templates   *template.Template
 	DebugLog    func(format string, v ...interface{})
@@ -27,7 +26,7 @@ type Handler struct {
 
 // LoginTemplateData holds data for the login page template.
 type LoginTemplateData struct {
-	CSRFToken string
+	CSRFToken   string
 	CurrentLang string
 }
 
@@ -47,7 +46,6 @@ type AdminPagesTemplateData struct {
 	CurrentLang string
 }
 
-
 // PageCombinedData holds data for a page template, combining page and site data.
 type PageCombinedData struct {
 	Page *models.Page
@@ -62,7 +60,7 @@ type IndexTemplateData struct {
 }
 
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
-	siteData, err := models.GetSiteData(h.DB)
+	siteData, err := h.Store.GetSiteData()
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting site data: %v", err)
@@ -121,14 +119,10 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 	pageName := vars["name"]
 
 	currentLang := h.getLanguage(r)
-	// T is now provided by the FuncMap in main.go, no need to pass it in data
-	// T := func(key string) string {
-	// 	return h.Translator.GetTranslation(currentLang, key)
-	// }
-
-	pageData, err := models.GetPageData(h.DB, pageName)
+	
+	pageData, err := h.Store.GetPageData(pageName)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err.Error() == "record not found" {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
 		} else {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
@@ -136,7 +130,7 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	siteData, err := models.GetSiteData(h.DB)
+	siteData, err := h.Store.GetSiteData()
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
 		log.Printf(h.Translator.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
@@ -160,7 +154,7 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	siteData, err := models.GetSiteData(h.DB)
+	siteData, err := h.Store.GetSiteData()
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		h.DebugLog("Error getting site data for about page: %v", err)
@@ -183,11 +177,7 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
-	// T is now provided by the FuncMap in main.go, no need to pass it in data
-	// T := func(key string) string {
-	// 	return h.Translator.GetTranslation(currentLang, key)
-	// }
-
+	
 	// Log headers for CSRF debugging
 	h.DebugLog("UpdatePageHandler: Referer: %s", r.Header.Get("Referer"))
 	h.DebugLog("UpdatePageHandler: Origin: %s", r.Header.Get("Origin"))
@@ -208,9 +198,9 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existingPage, err := models.GetPageData(h.DB, pageName)
+	existingPage, err := h.Store.GetPageData(pageName)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err.Error() == "record not found" {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
 		} else {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
@@ -222,7 +212,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	existingPage.Description = updatedPage.Description
 	existingPage.Message = updatedPage.Message
 
-	if err := existingPage.UpdatePage(h.DB); err != nil {
+	if err := h.Store.UpdatePage(existingPage); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
 		return
 	}
@@ -234,11 +224,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 // LoginHandler handles admin login requests.
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
-	// T is now provided by the FuncMap in main.go, no need to pass it in data
-	// T := func(key string) string {
-	// 	return h.Translator.GetTranslation(currentLang, key)
-	// }
-
+	
 	if h.AuthService.IsLoggedIn(r) {
 		http.Redirect(w, r, "/admin/dashboard", http.StatusFound)
 		return
@@ -292,7 +278,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	data, err := models.GetDashboardData(h.DB)
+	data, err := h.Store.GetDashboardData()
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
 		log.Printf(h.Translator.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
@@ -316,6 +302,33 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	// If no error, write the buffer's content to the response writer
 	buf.WriteTo(w)
 }
+
+// PagesHandler displays the list of pages in the admin panel.
+func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+	pages, err := h.Store.GetAllPages()
+	if err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error getting all pages: %v", err)
+		return
+	}
+
+	data := AdminPagesTemplateData{
+		Pages:       pages,
+		CSRFToken:   csrf.Token(r),
+		CurrentPath: r.URL.Path,
+		CurrentLang: currentLang,
+	}
+
+	var buf bytes.Buffer
+	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error executing template (PagesHandler): %v", err)
+		return
+	}
+	buf.WriteTo(w)
+}
+
 
 // AdminRedirectHandler redirects /admin to /admin/dashboard
 func (h *Handler) AdminRedirectHandler(w http.ResponseWriter, r *http.Request) {

@@ -3,28 +3,19 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"time" // New import
+	"time"
 
-	"github.com/spf13/viper"
 	sqliteGorm "gorm.io/driver/sqlite" // Alias to avoid conflict
 	"gorm.io/gorm"
 )
 
-// InitDB initializes the database connection using the global Viper instance.
-func InitDB() (*gorm.DB, *sql.DB, error) {
-	return InitDBWithViper(viper.GetViper())
-}
-
-// InitDBWithViper initializes the database connection using a provided Viper instance.
-func InitDBWithViper(v *viper.Viper) (*gorm.DB, *sql.DB, error) {
-	dbType := v.GetString("database.type")
-	dbDSN := v.GetString("database.dsn")
-
+// InitDB initializes the database connection using the provided configuration.
+func InitDB(dbType, dbDSN string) (*gorm.DB, *sql.DB, error) {
 	if dbType == "" {
-		return nil, nil, fmt.Errorf("database type is not specified in config")
+		return nil, nil, fmt.Errorf("database type is not specified")
 	}
 	if dbDSN == "" {
-		return nil, nil, fmt.Errorf("database DSN is not specified in config")
+		return nil, nil, fmt.Errorf("database DSN is not specified")
 	}
 
 	if dbType == "sqlite" {
@@ -39,8 +30,8 @@ func InitDBWithViper(v *viper.Viper) (*gorm.DB, *sql.DB, error) {
 		}
 
 		// Set connection pool settings
-		sqlDB.SetMaxIdleConns(10)  // Maximum number of connections in the idle connection pool.
-		sqlDB.SetMaxOpenConns(100) // Maximum number of open connections to the database.
+		sqlDB.SetMaxIdleConns(10)                  // Maximum number of connections in the idle connection pool.
+		sqlDB.SetMaxOpenConns(100)                 // Maximum number of open connections to the database.
 		sqlDB.SetConnMaxLifetime(time.Hour) // Maximum amount of time a connection may be reused.
 
 		return gormDB, sqlDB, nil

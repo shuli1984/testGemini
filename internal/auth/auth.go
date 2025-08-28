@@ -6,16 +6,12 @@ import (
 	"os"
 
 	"github.com/gorilla/sessions"
-	"github.com/spf13/viper"
 )
 
 const (
 	sessionName = "gemini-session"
 	sessionKey  = "user_logged_in"
 )
-
-// Store will hold the session store
-var Store sessions.Store
 
 // AuthService provides authentication services.
 type AuthService struct {
@@ -25,21 +21,13 @@ type AuthService struct {
 var OsExit = os.Exit
 var FatalLogger = log.Fatal
 
-// NewAuthService creates a new AuthService using the global viper instance.
-func NewAuthService() *AuthService {
-	return NewAuthServiceWithViper(viper.GetViper())
-}
-
-// NewAuthServiceWithViper creates a new AuthService with a specific viper instance.
-func NewAuthServiceWithViper(vp *viper.Viper) *AuthService {
-	// In a production environment, use a more robust key management system.
-	// The key should be stored securely and not hardcoded.
-	key := vp.GetString("auth.session_key")
-	if key == "" {
-		FatalLogger("Session key not found in config. Please set auth.session_key")
+// NewAuthService creates a new AuthService with the given session key.
+func NewAuthService(sessionKey string) *AuthService {
+	if sessionKey == "" {
+		FatalLogger("Session key not provided")
 	}
-	Store = sessions.NewCookieStore([]byte(key))
-	return &AuthService{store: Store}
+	store := sessions.NewCookieStore([]byte(sessionKey))
+	return &AuthService{store: store}
 }
 
 // Authenticate checks user credentials.

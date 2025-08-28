@@ -1,59 +1,46 @@
 package server
 
 import (
-	"fmt" // Added for fmt.Sprintf
+	"fmt"
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/config"
 	"gemini-demo/internal/handler"
-	"gemini-demo/internal/i18n" // New import for i18n
-	"net/http"
+	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/models"
 	"html/template"
-	// "log" // Remove this import
+	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
-type Route struct {
-	Path         string   `mapstructure:"path"`
-	Handler      string   `mapstructure:"handler"`
-	Methods      []string `mapstructure:"methods"`
-	AuthRequired bool     `mapstructure:"auth_required"`
-}
-
 // DebugLog is a placeholder for the debug logging function from main.go
-// In a real application, you would pass a logger instance or use a global logger.
-// For this exercise, we'll assume DebugLog is accessible.
 var DebugLog func(format string, v ...interface{})
 
 // New creates a new HTTP server with configured routes and handlers.
-func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator) *http.Server { // Added translator argument
+func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator) *http.Server {
 	r := mux.NewRouter()
 
 	// Serve static files
-	staticURLPrefix := viper.GetString("static.url_prefix")
-	staticDir := viper.GetString("static.dir")
-	staticFileServer := http.FileServer(http.Dir(staticDir))
-	r.PathPrefix(staticURLPrefix).Handler(http.StripPrefix(staticURLPrefix, staticFileServer))
+	staticFileServer := http.FileServer(http.Dir(cfg.Static.Dir))
+	r.PathPrefix(cfg.Static.URLPrefix).Handler(http.StripPrefix(cfg.Static.URLPrefix, staticFileServer))
 
-	authService := auth.NewAuthService()
+	authService := auth.NewAuthService(cfg.Auth.SessionKey)
 
-	// Create an empty FuncMap for templates. The 'T' function will be passed directly in the template data.
+	// Create the DataStore implementation
+	dbStore := &models.DBStore{DB: db}
+
+	// Create an empty FuncMap for templates.
 	funcMap := template.FuncMap{}
 
-	// Clone the template set and add the FuncMap
-	// This ensures that each handler gets a template set with the correct functions
-	// and avoids modifying the global template set.
 	clonedTemplates, err := tmpl.Clone()
 	if err != nil {
-		// Handle error, perhaps log and panic or return an error
 		panic(fmt.Sprintf("Failed to clone templates: %v", err))
 	}
 	clonedTemplates = clonedTemplates.Funcs(funcMap)
 
-
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{DB: db, AuthService: authService, Templates: clonedTemplates, DebugLog: DebugLog, Translator: translator}
+	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: clonedTemplates, DebugLog: DebugLog, Translator: translator}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -63,15 +50,11 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 		"LoginHandler":         h.LoginHandler,
 		"DashboardHandler":     h.DashboardHandler,
 		"AdminRedirectHandler": h.AdminRedirectHandler,
-		"LogoutHandler":        h.LogoutHandler, // Added LogoutHandler
+		"LogoutHandler":        h.LogoutHandler,
+		"PagesHandler":         h.PagesHandler,
 	}
 
-	var routes []Route
-	if err := viper.UnmarshalKey("routes", &routes); err != nil {
-		panic(err)
-	}
-
-	for _, route := range routes {
+	for _, route := range cfg.Routes {
 		if handlerFunc, ok := handlers[route.Handler]; ok {
 			var finalHandler http.Handler = handlerFunc
 			if route.AuthRequired {
@@ -86,25 +69,7 @@ func New(db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler)
 	if csrfMiddleware != nil {
 		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			DebugLog("Server: Before CSRF - Request URL: %s, Method: %s, Headers: %v", req.URL.Path, req.Method, req.Header)
-			// Attempt to get CSRF token from header (common for AJAX)
-			csrfTokenHeader := req.Header.Get("X-CSRF-Token")
-			if csrfTokenHeader != "" {
-				DebugLog("Server: Before CSRF - X-CSRF-Token Header: %s", csrfTokenHeader)
-			}
-			// Attempt to get CSRF token from form (common for form submissions)
-			if req.Method == http.MethodPost || req.Method == http.MethodPut || req.Method == http.MethodDelete {
-				if err := req.ParseForm(); err == nil {
-					csrfTokenForm := req.Form.Get("csrf_token") // Assuming 'csrf_token' is the form field name
-					if csrfTokenForm != "" {
-						DebugLog("Server: Before CSRF - csrf_token Form Field: %s", csrfTokenForm)
-					}
-				}
-			}
-
-			// Pass the request to the actual CSRF middleware
 			csrfMiddleware(r).ServeHTTP(w, req)
-
-			// Log after CSRF (if control returns here, it means CSRF didn't block it immediately)
 			DebugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
 		})
 	}

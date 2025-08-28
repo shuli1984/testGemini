@@ -76,3 +76,13 @@ func (p *Page) UpdatePage(db *gorm.DB) error {
 	return nil
 }
 
+func GetAllPages(db *gorm.DB) ([]Page, error) {
+	var pages []Page
+	result := db.Find(&pages)
+	if result.Error != nil {
+		log.Printf("Failed to get all pages: %v", result.Error)
+		return nil, result.Error
+	}
+	return pages, nil
+}
+
