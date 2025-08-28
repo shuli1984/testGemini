@@ -17,6 +17,11 @@ type DBStore struct {
 	DB *gorm.DB
 }
 
+// NewDBStore creates a new DBStore.
+func NewDBStore(db *gorm.DB) DataStore {
+	return &DBStore{DB: db}
+}
+
 func (s *DBStore) GetSiteData() (*Site, error) {
 	return GetSiteData(s.DB)
 }

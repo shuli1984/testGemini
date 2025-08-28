@@ -9,14 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"gemini-demo/internal/util"
-
 	"gorm.io/gorm"
 )
 
 func TestPageCRUD(t *testing.T) {
 	// Use a unique database file for each test run to avoid conflicts
-	testDBName := filepath.Join(util.ProjectRoot(""), "tests", "data", fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
+	testDBName := filepath.Join(os.TempDir(), fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
 
 	db, sqlDB, err := database.InitDB("sqlite", testDBName)
 	if err != nil {
@@ -99,7 +97,7 @@ func TestPageCRUD(t *testing.T) {
 
 func TestAutoMigrateAndSeed_AutoMigrateError(t *testing.T) {
 	// Setup a temporary read-only database to trigger an error in AutoMigrate
-	testDBName := filepath.Join(util.ProjectRoot(""), "tests", "data", fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
+	testDBName := filepath.Join(os.TempDir(), fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
 	file, err := os.Create(testDBName)
 	if err != nil {
 		t.Fatalf("failed to create temp db file: %v", err)

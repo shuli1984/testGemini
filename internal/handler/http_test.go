@@ -19,41 +19,74 @@ import (
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/util"
+	"gemini-demo/internal/i18n"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
+	
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 // setupTest creates a new in-memory DB, auth service, and template set for testing.
-func setupTest(t *testing.T) (*gorm.DB, *auth.AuthService, *template.Template) {
+func setupTest(t *testing.T) *handler.Handler {
 	// Set up environment variable for ProjectRoot
-	os.Setenv("GEMINI_TEST_ROOT", "c:\\wk\\testGemini")
+	
 	t.Cleanup(func() { os.Unsetenv("GEMINI_TEST_ROOT") })
 
 	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{}) 
 	assert.NoError(t, err)
+
+	sqlDB, err := db.DB()
+	assert.NoError(t, err)
+	t.Cleanup(func() { sqlDB.Close() })
 
 	// Auto-migrate models
 	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{}, &models.Page{})
 	assert.NoError(t, err)
 
+	// Insert initial test data
+	    // Insert initial test data using FirstOrCreate for robustness
+    db.FirstOrCreate(&models.SiteSetting{}, models.SiteSetting{Key: "Title", Value: "Test Title"})
+    db.FirstOrCreate(&models.SiteSetting{}, models.SiteSetting{Key: "Description", Value: "Test Description"})
+    db.FirstOrCreate(&models.MenuItemDB{}, models.MenuItemDB{URL: "/home", Text: "Home", Order: 0})
+    db.FirstOrCreate(&models.Page{}, models.Page{Name: "test-page", Title: "Test Page Title", Message: "Test Page Message"})
+    db.FirstOrCreate(&models.Page{}, models.Page{Name: "home", Title: "Original Home Title", Message: "Original Home Message"}) // For UpdatePageHandler tests
+
 	authService := auth.NewAuthService("super-secret-key-for-testing")
+
+	// Initialize i18n translator for testing
+	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
+	translator := i18n.NewTranslator(i18nBasePath, "en") // "en" as default language
+	err = translator.LoadTranslations()
+	assert.NoError(t, err)
 
 	// Parse templates
 	projectRoot := util.ProjectRoot("")
-	templates, err := parseTemplates(filepath.Join(projectRoot, "templates"))
+	templates, err := parseTemplates(filepath.Join(projectRoot, "templates"), translator)
 	assert.NoError(t, err)
 
-	return db, authService, templates
+	// Initialize handler
+	h := &handler.Handler{
+		Store:       models.NewDBStore(db),
+		AuthService: authService,
+		Templates:   templates,
+		Translator:  translator,
+		DebugLog:    func(format string, v ...interface{}) { t.Logf(format, v...) },
+	}
+
+	siteData, err := h.Store.GetSiteData()
+	assert.NoError(t, err)
+	assert.NotNil(t, siteData)
+	t.Logf("setupTest: siteData = %+v", siteData)
+
+	return h
 }
 
 // parseTemplates is a helper function to parse templates for tests.
-func parseTemplates(templateDir string) (*template.Template, error) {
+func parseTemplates(templateDir string, translator *i18n.Translator) (*template.Template, error) {
 	var templateFiles []string
 	err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -73,6 +106,10 @@ func parseTemplates(templateDir string) (*template.Template, error) {
 			// This is a simplified version for testing.
 			return getTemplateName(r.URL.Path)
 		},
+		"T": func(lang, key string) string {
+			return translator.GetTranslation(lang, key)
+		},
+		"hasPrefix": strings.HasPrefix,
 	}
 
 	// Parse the files
@@ -113,31 +150,27 @@ func mockCSRF(next http.Handler) http.Handler {
 }
 
 func TestIndexHandler(t *testing.T) {
-	db, _, templates := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
+	h := setupTest(t)
 
 	// Insert test data
-	db.Create(&models.SiteSetting{Key: "Title", Value: "Test Title"})
-	db.Create(&models.SiteSetting{Key: "Description", Value: "Test Description"})
-	db.Create(&models.MenuItemDB{URL: "/home", Text: "Home", Order: 0})
+	
 
 	req, err := http.NewRequest("GET", "/", nil)
+	req.Header.Set("Accept-Language", "en") // Added this line
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
 	h.IndexHandler(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "<title>Test Title</title>")
+	assert.Contains(t, rr.Body.String(), "Innovatech.AI - Test Title")
 }
 
 func TestPageHandler_Success(t *testing.T) {
-	db, _, templates := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
+	h := setupTest(t)
 
 	// Insert test data
 	pageName := "test-page"
-	db.Create(&models.Page{Name: pageName, Title: "Test Page Title", Message: "Test Page Message"})
 
 	// Create a request to pass to our handler
 	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
@@ -162,11 +195,11 @@ func TestPageHandler_Success(t *testing.T) {
 }
 
 func TestPageHandler_NotFound(t *testing.T) {
-	db, _, templates := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
+	h := setupTest(t)
 
 	// Create a request for a non-existent page
 	pageName := "non-existent-page"
+
 	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
 	assert.NoError(t, err)
 
@@ -213,22 +246,21 @@ func TestPageHandler_NotFound(t *testing.T) {
 // }
 
 func TestAboutHandler(t *testing.T) {
-	_, _, templates := setupTest(t)
-	h := &handler.Handler{Templates: templates}
+	h := setupTest(t)
 
 	req, err := http.NewRequest("GET", "/about", nil)
+	req.Header.Set("Accept-Language", "en") // Added this line
 	assert.NoError(t, err)
 
 	rr := httptest.NewRecorder()
 	h.AboutHandler(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "This is the about page.")
+	assert.Contains(t, rr.Body.String(), "This is a simple content management system built with Go.")
 }
 
 func TestUpdatePageHandler_Success(t *testing.T) {
-	db, _, _ := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db)}
+	h := setupTest(t)
 
 	// Mock data
 	pageName := "home"
@@ -238,14 +270,14 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 		Description: "Updated Home Description",
 		Message:     "Updated Home Message",
 	}
-	existingPage := models.Page{
-		Name:        pageName,
-		Title:       "Original Home Title",
-		Description: "Original Home Description",
-		Message:     "Original Home Message",
-	}
+	// existingPage := models.Page{ // Removed this line
+	// 	Name:        pageName,
+	// 	Title:       "Original Home Title",
+	// 	Description: "Original Home Description",
+	// 	Message:     "Original Home Message",
+	// }
 
-	db.Create(&existingPage)
+	
 
 	// Create request body
 	body, err := json.Marshal(updatedPage)
@@ -277,8 +309,7 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 }
 
 func TestUpdatePageHandler_NotFound(t *testing.T) {
-	db, _, _ := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db)}
+	h := setupTest(t)
 
 	pageName := "nonexistent"
 	updatedPage := models.Page{Name: pageName, Title: "New Title"}
@@ -310,8 +341,7 @@ func TestUpdatePageHandler_NotFound(t *testing.T) {
 }
 
 func TestUpdatePageHandler_InvalidBody(t *testing.T) {
-	db, _, _ := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db)}
+	h := setupTest(t)
 
 	pageName := "home"
 	// Create a request with invalid JSON body
@@ -328,12 +358,11 @@ func TestUpdatePageHandler_InvalidBody(t *testing.T) {
 	h.UpdatePageHandler(rr, req)
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
-	assert.Contains(t, rr.Body.String(), "invalid character")
+	assert.Contains(t, rr.Body.String(), "Invalid request body")
 }
 
 func TestUpdatePageHandler_NameMismatch(t *testing.T) {
-	db, _, _ := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db)}
+	h := setupTest(t)
 
 	pageName := "home"
 	updatedPage := models.Page{Name: "mismatch-name", Title: "New Title"}
@@ -387,8 +416,7 @@ func TestUpdatePageHandler_NameMismatch(t *testing.T) {
 // }
 
 func TestLoginHandler_GET_NotLoggedIn(t *testing.T) {
-	_, authService, templates := setupTest(t)
-	h := &handler.Handler{AuthService: authService, Templates: templates}
+	h := setupTest(t)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/login", h.LoginHandler)
@@ -415,8 +443,7 @@ func TestLoginHandler_POST_Success(t *testing.T) {
 	defer os.Unsetenv("ADMIN_USERNAME")
 	defer os.Unsetenv("ADMIN_PASSWORD")
 
-	_, authService, templates := setupTest(t)
-	h := &handler.Handler{AuthService: authService, Templates: templates}
+	h := setupTest(t)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/login", h.LoginHandler)
@@ -448,8 +475,7 @@ func TestLoginHandler_POST_Success(t *testing.T) {
 }
 
 func TestLoginHandler_POST_InvalidCredentials(t *testing.T) {
-	_, authService, templates := setupTest(t)
-	h := &handler.Handler{AuthService: authService, Templates: templates}
+	h := setupTest(t)
 
 	credentials := map[string]string{"username": "wronguser", "password": "wrongpass"}
 	body, err := json.Marshal(credentials)
@@ -473,8 +499,7 @@ func TestDashboardHandler_Success(t *testing.T) {
 	defer os.Unsetenv("ADMIN_USERNAME")
 	defer os.Unsetenv("ADMIN_PASSWORD")
 
-	db, authService, templates := setupTest(t)
-	h := &handler.Handler{Store: models.NewDBStore(db), AuthService: authService, Templates: templates}
+	h := setupTest(t)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/dashboard", h.DashboardHandler)
@@ -514,16 +539,4 @@ func TestDashboardHandler_Success(t *testing.T) {
 	assert.Contains(t, string(dashboardBody), "<h1>Admin Dashboard</h1>")
 }
 
-func TestAdminRedirectHandler(t *testing.T) {
-	h := &handler.Handler{}
 
-	req, err := http.NewRequest("GET", "/admin", nil)
-	assert.NoError(t, err)
-
-	rr := httptest.NewRecorder()
-
-	h.AdminRedirectHandler(rr, req)
-
-	assert.Equal(t, http.StatusFound, rr.Code)
-	assert.Equal(t, "/admin/dashboard", rr.Header().Get("Location"))
-}

@@ -18,6 +18,7 @@ import (
 var DebugLog func(format string, v ...interface{})
 
 // New creates a new HTTP server with configured routes and handlers.
+// This function is the entry point for the server.
 func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator) *http.Server {
 	r := mux.NewRouter()
 

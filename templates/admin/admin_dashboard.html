@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{.CurrentLang}}">
 {{template "admin_header.html" .}}
 <body>
     <div class="admin-wrapper">
@@ -13,7 +13,7 @@
             <div class="dashboard-grid">
                 <div class="info-card">
                     <h2>{{T .CurrentLang "system_overview"}}</h2>
-                    <p>{{T .CurrentLang "total_pages"}}: {{.PageCount}}</p>
+                    <p>{{T .CurrentLang "total_pages"}}: {{.DashboardData.PageCount}}</p>
                     <!-- Add more system info here -->
                 </div>
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="{{.CurrentLang}}">
 {{template "header.html" .}}
 <body>
 
@@ -8,13 +8,13 @@
 <main>
     <section class="hero-carousel">
         <div class="carousel-inner">
-            {{range $index, $item := .CarouselItems}}
-            <div class="carousel-item {{if eq $index 0}}active{{end}}" style="background-image: url('{{$item.BackgroundImage}}');">
+            {{range .Site.CarouselItems}}
+            <div class="carousel-item {{if .Active}}active{{end}}" style="background-image: url('{{.BackgroundImage}}');">
                 <div class="container">
                     <div class="hero-content">
-                        <h1>{{$item.Title}}</h1>
-                        <p>{{$item.Description}}</p>
-                        <a href="{{$item.ButtonLink}}" class="btn">{{$item.ButtonText}}</a>
+                        <h1>Building the Future, Driven by AI</h1>
+                        <p>Leverage data-driven insights to build intelligent models, optimize business processes, and enable automated decision-making.</p>
+                        <a href="#contact" class="btn">Get a Consultation</a>
                     </div>
                 </div>
             </div>
@@ -23,27 +23,27 @@
         <button class="carousel-control prev" aria-label="Previous Slide">&#10094;</button>
         <button class="carousel-control next" aria-label="Next Slide">&#10095;</button>
         <div class="carousel-indicators">
-            {{range $index, $item := .CarouselItems}}
-            <span class="indicator {{if eq $index 0}}active{{end}}" data-slide-to="{{$index}}"></span>
+            {{range $i, $e := .Site.CarouselItems}}
+            <span class="indicator {{if eq $i 0}}active{{end}}" data-slide-to="{{$i}}"></span>
             {{end}}
         </div>
     </section>
 
     <section id="services" class="section">
         <div class="container">
-            <h2 class="section-title">核心解决方案</h2>
+            <h2 class="section-title">{{T "en" "core_solutions"}}</h2>
             <div class="services-grid">
                 <div class="service-card">
-                    <h3>人工智能与机器学习</h3>
-                    <p>利用数据驱动的洞察力，构建智能模型，优化业务流程，实现自动化决策。</p>
+                    <h3>{{T "en" "ai_ml_title"}}</h3>
+                    <p>{{T "en" "ai_ml_description"}}</p>
                 </div>
                 <div class="service-card">
-                    <h3>企业云服务</h3>
-                    <p>提供安全、可扩展的混合云与多云解决方案，加速您的数字化转型之旅。</p>
+                    <h3>{{T "en" "enterprise_cloud_title"}}</h3>
+                    <p>{{T "en" "enterprise_cloud_description"}}</p>
                 </div>
                 <div class="service-card">
-                    <h3>IT基础架构现代化</h3>
-                    <p>从网络到数据中心，我们为您的企业构建稳定、高效且面向未来的IT基石。</p>
+                    <h3>{{T "en" "it_infra_modernization_title"}}</h3>
+                    <p>{{T "en" "it_infra_modernization_description"}}</p>
                 </div>
             </div>
         </div>
@@ -51,9 +51,9 @@
     
     <section id="about" class="section">
          <div class="container">
-            <h2 class="section-title">关于我们</h2>
+            <h2 class="section-title">{{T "en" "about_us_title"}}</h2>
             <p>
-                Innovatech 是一家充满活力的科技公司，致力于探索技术的无限可能。我们的团队由顶尖的工程师、科学家和战略家组成，共同的使命是通过创新技术为客户创造无与伦比的价值。我们相信，智能化未来始于今天可靠的IT和AI解决方案。
+                {{T "en" "about_us_description"}}
             </p>
         </div>
     </section>

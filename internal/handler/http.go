@@ -55,8 +55,8 @@ type PageCombinedData struct {
 
 // IndexTemplateData holds data for the index page template.
 type IndexTemplateData struct {
-	*models.Site // Embed existing site data
-	CurrentLang  string
+	Site        *models.Site // Explicit field
+	CurrentLang string
 }
 
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +68,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currentLang := h.getLanguage(r)
+	h.DebugLog("IndexHandler: currentLang = %s", currentLang) // Add this line
 
 	// Dummy Carousel Items for demonstration
 	carouselItems := []models.CarouselItem{
@@ -102,6 +103,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Execute the template to a buffer first to catch errors before writing to w
 	var buf bytes.Buffer
 	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
@@ -153,6 +155,7 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
+	h.DebugLog("AboutHandler: currentLang = %s", currentLang) // Add this line
 
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
@@ -162,7 +165,7 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		*models.Site // Embed Site data
+		Site *models.Site // Explicit field
 		CurrentLang string
 	}{
 		Site: siteData,
@@ -174,6 +177,9 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 		h.DebugLog("Error executing about.html template: %v", err)
 	}
 }
+
+
+
 
 func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
@@ -218,7 +224,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "login_successful")}) // Translated (using login_successful as a generic success message for now)
+	json.NewEncoder(w).Encode(existingPage)
 }
 
 // LoginHandler handles admin login requests.
@@ -357,12 +363,14 @@ func (h *Handler) getLanguage(r *http.Request) string {
 
 	// Fallback to Accept-Language header
 	acceptLang := r.Header.Get("Accept-Language")
+	h.DebugLog("Accept-Language header: %s", acceptLang)
 	if acceptLang != "" {
 		// Parse Accept-Language header (e.g., "en-US,en;q=0.9,ja;q=0.8")
 		// This is a simplified parsing. A more robust solution would handle q-values.
 		parts := strings.Split(acceptLang, ",")
 		for _, part := range parts {
 			lang := strings.Split(part, ";")[0]
+			h.DebugLog("Parsed language: %s, IsValid: %t", lang, h.Translator.IsValidLanguage(lang))
 			if h.Translator.IsValidLanguage(lang) {
 				return lang
 			}

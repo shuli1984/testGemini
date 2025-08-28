@@ -13,6 +13,7 @@ import (
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/util"
 )
 
 func TestNewAuthService(t *testing.T) {
@@ -211,14 +212,8 @@ func TestMiddleware(t *testing.T) {
 		        // Create a dummy template.Template
         tmpl := template.New("test")
 
-        // Get current working directory
-        wd, err := os.Getwd()
-        if err != nil {
-            t.Fatalf("Failed to get current working directory: %v", err)
-        }
-
         // Construct absolute path to i18n directory
-        i18nPath := filepath.Join(wd, "..", "..", "..", "data", "i18n")
+        i18nPath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
 
         // Create a simple Translator
         translator := i18n.NewTranslator(i18nPath, "en")

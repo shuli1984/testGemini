@@ -1,21 +1,21 @@
 <head>
     <meta charset="UTF-8">
-    <title>{{T .CurrentLang "site_title"}} - {{.Title}}</title>
+    <title>{{T "en" "site_title"}} - {{.Site.Title}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- SEO Meta Tags -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="{{.CanonicalURL}}">
-    <meta property="og:title" content="{{.Title}}">
-    <meta property="og:description" content="{{.Description}}">
-    <meta property="og:image" content="{{.ImageURL}}">
+    <meta property="og:url" content="{{.Site.CanonicalURL}}">
+    <meta property="og:title" content="{{.Site.Title}}">
+    <meta property="og:description" content="{{.Site.Description}}">
+    <meta property="og:image" content="{{.Site.ImageURL}}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{.CanonicalURL}}">
-    <meta property="twitter:title" content="{{.Title}}">
-    <meta property="twitter:description" content="{{.Description}}">
-    <meta property="twitter:image" content="{{.ImageURL}}">
+    <meta property="twitter:url" content="{{.Site.CanonicalURL}}">
+    <meta property="twitter:title" content="{{.Site.Title}}">
+    <meta property="twitter:description" content="{{.Site.Description}}">
+    <meta property="twitter:image" content="{{.Site.ImageURL}}">
 
     <!-- Fonts and Styles -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

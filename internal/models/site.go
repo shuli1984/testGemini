@@ -37,6 +37,7 @@ type CarouselItem struct {
     ButtonText    string
     ButtonLink    string
     BackgroundImage string
+    Active        bool // Add this line
 }
 
 // Site represents the overall site configuration and data.
