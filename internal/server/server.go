@@ -15,11 +15,9 @@ import (
 )
 
 // DebugLog is a placeholder for the debug logging function from main.go
-var DebugLog func(format string, v ...interface{})
-
 // New creates a new HTTP server with configured routes and handlers.
 // This function is the entry point for the server.
-func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator) *http.Server {
+func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator, debugLog func(format string, v ...interface{})) *http.Server {
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -41,7 +39,7 @@ func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddlewar
 	clonedTemplates = clonedTemplates.Funcs(funcMap)
 
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: clonedTemplates, DebugLog: DebugLog, Translator: translator}
+	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: clonedTemplates, DebugLog: debugLog, Translator: translator}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -69,9 +67,9 @@ func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddlewar
 	var finalHandler http.Handler = r
 	if csrfMiddleware != nil {
 		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			DebugLog("Server: Before CSRF - Request URL: %s, Method: %s, Headers: %v", req.URL.Path, req.Method, req.Header)
+			debugLog("Server: Before CSRF - Request URL: %s, Method: %s, Headers: %v", req.URL.Path, req.Method, req.Header)
 			csrfMiddleware(r).ServeHTTP(w, req)
-			DebugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
+			debugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
 		})
 	}
 

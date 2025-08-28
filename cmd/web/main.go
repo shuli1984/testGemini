@@ -74,7 +74,7 @@ func main() {
 	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 	flag.Parse()
 
-	server.DebugLog = debugLog
+	
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -156,7 +156,7 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	}, translator) // Pass the translator
+	}, translator, debugLog) // Pass the translator
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)

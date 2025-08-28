@@ -64,7 +64,7 @@ func debugLog(format string, v ...interface{}) {
 
 func TestNew(t *testing.T) {
 	// Set up the database for testing
-	DebugLog = debugLog // Initialize server.DebugLog for testing
+	
 	cfg := &config.Config{
 		Auth: config.AuthConfig{
 			SessionKey: "test-secret-key-for-sessions-32",
@@ -115,7 +115,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := New(cfg, db, tmpl, mockCSRFMiddleware, translator)
+	srv := New(cfg, db, tmpl, mockCSRFMiddleware, translator, debugLog)
 
 	
 
@@ -273,5 +273,5 @@ func TestNew_UnmarshalKeyError(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	New(nil, nil, nil, nil, nil) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
+	New(nil, nil, nil, nil, nil, nil) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
 }
