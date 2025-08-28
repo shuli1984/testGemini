@@ -202,7 +202,7 @@ button:hover {
 }
 
 .admin-sidebar {
-    width: 250px; /* Slightly wider sidebar */
+    width: 200px; /* Adjusted width */
     background-color: var(--sidebar-bg);
     color: var(--sidebar-text);
     padding: 25px; /* More padding */
@@ -218,17 +218,18 @@ button:hover {
 }
 
 .admin-sidebar nav ul li {
-    margin-bottom: 8px; /* Slightly less margin */
+    margin-bottom: 10px; /* Increased margin for more spacing */
 }
 
 .admin-sidebar nav ul li a {
     color: var(--nav-link-color); /* Use nav link color for consistency */
     text-decoration: none;
     display: block;
-    padding: 12px 15px; /* More padding */
+    padding: 14px 18px; /* Increased padding */
     border-radius: 8px; /* More rounded */
     transition: background-color 0.3s ease, color 0.3s ease;
-    font-weight: 500;
+    font-weight: 600; /* Bolder font */
+    font-size: 17px; /* Slightly larger font size */
 }
 
 .admin-sidebar nav ul li a:hover {
@@ -236,9 +237,9 @@ button:hover {
     color: var(--primary-color);
 }
 
-.admin-sidebar nav ul li a.active {
-    background-color: var(--primary-color);
-    color: white; /* White text for active */
+.admin-sidebar nav ul li.active a {
+    background-color: var(--primary-color) !important;
+    color: white !important; /* White text for active */
     font-weight: 600;
     box-shadow: 0 2px 5px rgba(0,123,255,0.2); /* Subtle shadow for active */
 }
@@ -390,4 +391,83 @@ button:hover {
         text-align: center;
         padding: 10px;
     }
+}
+
+/* Admin Table Styles */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: var(--sidebar-bg); /* Use sidebar background for consistency */
+    border-radius: 8px;
+    overflow: hidden; /* Ensures rounded corners apply to children */
+    box-shadow: 0 2px 8px var(--info-card-shadow);
+}
+
+.admin-table th, .admin-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--header-border);
+    color: var(--text-color);
+}
+
+.admin-table th {
+    background-color: var(--bg-color); /* Lighter background for headers */
+    font-weight: 600;
+    color: var(--logo-color);
+}
+
+.admin-table tbody tr:hover {
+    background-color: var(--sidebar-link-hover-bg); /* Hover effect for rows */
+}
+
+/* Admin Actions (New Page Button) */
+.admin-actions {
+    margin-bottom: 20px;
+    text-align: right; /* Align button to the right */
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-button-bg);
+    color: white;
+    border: none;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-button-hover);
+}
+
+.btn-danger {
+    background-color: #e74c3c; /* Red for danger */
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b; /* Darker red on hover */
 }

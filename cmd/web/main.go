@@ -62,6 +62,7 @@ func parseTemplates(translator *i18n.Translator) (*template.Template, error) {
 			// The actual translation will be provided by the T function in the template data.
 			return translator.GetTranslation(lang, key) // Use the provided language for parsing
 		},
+		"hasPrefix": strings.HasPrefix,
 	}
 
 	tmpl := template.New("main").Funcs(funcMap)

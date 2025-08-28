@@ -27,6 +27,11 @@ routes:
     methods:
       - "GET"
     auth_required: true
+  - path: "/admin/pages"
+    handler: "PagesHandler"
+    methods:
+      - "GET"
+    auth_required: true
   - path: "/admin"
     handler: "AdminRedirectHandler"
     methods:

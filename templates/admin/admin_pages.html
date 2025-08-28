@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "admin_header.html" .}}
+<body>
+    <div class="admin-wrapper">
+        <div class="admin-sidebar">
+            {{template "admin_nav.html" .}}
+        </div>
+        <div class="admin-content">
+            <h1>{{T .CurrentLang "pages_menu"}}</h1>
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+            <div class="admin-actions">
+                <a href="/admin/pages/new" class="btn btn-primary">{{T .CurrentLang "new_page_button"}}</a>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>{{T .CurrentLang "page_title_label"}}</th>
+                        <th>{{T .CurrentLang "page_name_label"}}</th>
+                        <th>{{T .CurrentLang "actions_label"}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Pages}}
+                    <tr>
+                        <td>{{.ID}}</td>
+                        <td>{{.Title}}</td>
+                        <td>{{.Name}}</td>
+                        <td>
+                            <a href="/admin/pages/edit/{{.Name}}" class="btn btn-sm btn-secondary">{{T .CurrentLang "edit_button"}}</a>
+                            <button class="btn btn-sm btn-danger delete-page-btn" data-page-name="{{.Name}}">{{T .CurrentLang "delete_button"}}</button>
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4">{{T .CurrentLang "no_pages_found"}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{template "admin_footer.html" .}}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteButtons = document.querySelectorAll('.delete-page-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const pageName = this.dataset.pageName;
+                    if (confirm('{{T .CurrentLang "confirm_delete_page"}}' + pageName + '?')) {
+                        // Implement actual delete logic here (e.g., fetch API)
+                        alert('Deleting page: ' + pageName); // Placeholder
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

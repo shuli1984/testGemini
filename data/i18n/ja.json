@@ -39,5 +39,13 @@
     "carousel_button_text_2": "詳細はこちら",
     "carousel_title_3": "ITインフラのモダナイゼーション",
     "carousel_description_3": "ネットワークからデータセンターまで、お客様の企業のために安定した効率的で将来性のあるIT基盤を構築します。",
-    "carousel_button_text_3": "会社概要"
+    "carousel_button_text_3": "会社概要",
+    "new_page_button": "新規ページ",
+    "page_title_label": "タイトル",
+    "page_name_label": "名前",
+    "actions_label": "アクション",
+    "edit_button": "編集",
+    "delete_button": "削除",
+    "no_pages_found": "ページが見つかりません。",
+    "confirm_delete_page": "このページを削除してもよろしいですか？: "
 }

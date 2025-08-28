@@ -39,5 +39,13 @@
     "carousel_button_text_2": "Learn More",
     "carousel_title_3": "Modernizing IT Infrastructure",
     "carousel_description_3": "From networks to data centers, we build stable, efficient, and future-proof IT foundations for your enterprise.",
-    "carousel_button_text_3": "About Us"
+    "carousel_button_text_3": "About Us",
+    "new_page_button": "New Page",
+    "page_title_label": "Title",
+    "page_name_label": "Name",
+    "actions_label": "Actions",
+    "edit_button": "Edit",
+    "delete_button": "Delete",
+    "no_pages_found": "No pages found.",
+    "confirm_delete_page": "Are you sure you want to delete page: "
 }

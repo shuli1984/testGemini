@@ -39,5 +39,13 @@
     "carousel_button_text_2": "了解更多",
     "carousel_title_3": "IT基础设施现代化",
     "carousel_description_3": "从网络到数据中心，我们为您的企业构建稳定、高效且面向未来的IT基石。",
-    "carousel_button_text_3": "关于我们"
+    "carousel_button_text_3": "关于我们",
+    "new_page_button": "新建页面",
+    "page_title_label": "标题",
+    "page_name_label": "名称",
+    "actions_label": "操作",
+    "edit_button": "编辑",
+    "delete_button": "删除",
+    "no_pages_found": "未找到页面。",
+    "confirm_delete_page": "您确定要删除页面: "
 }

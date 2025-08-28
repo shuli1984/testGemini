@@ -39,6 +39,15 @@ type DashboardTemplateData struct {
 	CurrentLang           string
 }
 
+// AdminPagesTemplateData holds data for the admin pages list template.
+type AdminPagesTemplateData struct {
+	Pages       []models.Page
+	CSRFToken   string
+	CurrentPath string
+	CurrentLang string
+}
+
+
 // PageCombinedData holds data for a page template, combining page and site data.
 type PageCombinedData struct {
 	Page *models.Page
