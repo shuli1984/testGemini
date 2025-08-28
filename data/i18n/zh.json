@@ -47,5 +47,14 @@
     "edit_button": "编辑",
     "delete_button": "删除",
     "no_pages_found": "未找到页面。",
-    "confirm_delete_page": "您确定要删除页面: "
+    "confirm_delete_page": "您确定要删除页面: ",
+    "core_solutions": "核心解决方案",
+    "ai_ml_title": "人工智能与机器学习",
+    "ai_ml_description": "利用人工智能和机器学习推动创新和提高效率。",
+    "enterprise_cloud_title": "企业云解决方案",
+    "enterprise_cloud_description": "为您的业务提供可扩展且安全的云基础设施。",
+    "it_infra_modernization_title": "IT基础设施现代化",
+    "it_infra_modernization_description": "改造您的IT环境，以增强性能和敏捷性。",
+    "about_us_title": "关于我们",
+    "about_us_description": "Innovatech 是一家充满活力的科技公司，致力于探索技术的无限可能。我们的团队由顶尖的工程师、科学家和战略家组成，共同的使命是通过创新技术为客户创造无与伦比的价值。我们相信，智能化未来始于今天可靠的IT和AI解决方案。"
 }

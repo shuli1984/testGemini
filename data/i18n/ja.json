@@ -47,5 +47,14 @@
     "edit_button": "編集",
     "delete_button": "削除",
     "no_pages_found": "ページが見つかりません。",
-    "confirm_delete_page": "このページを削除してもよろしいですか？: "
+    "confirm_delete_page": "このページを削除してもよろしいですか？: ",
+    "core_solutions": "コアソリューション",
+    "ai_ml_title": "AIと機械学習",
+    "ai_ml_description": "AIと機械学習を活用してイノベーションと効率を向上させます。",
+    "enterprise_cloud_title": "エンタープライズクラウドソリューション",
+    "enterprise_cloud_description": "ビジネス向けの拡張性と安全性を備えたクラウドインフラストラクチャ。",
+    "it_infra_modernization_title": "ITインフラのモダナイゼーション",
+    "it_infra_modernization_description": "パフォーマンスと俊敏性を向上させるためにIT環境を変革します。",
+    "about_us_title": "私たちについて",
+    "about_us_description": "Innovatechは、テクノロジーの無限の可能性を探求することに専念する活気あるテクノロジー企業です。私たちのチームは、最高のエンジニア、科学者、戦略家で構成されており、革新的なテクノロジーを通じてお客様に比類のない価値を創造するという共通の使命を持っています。私たちは、インテリジェントな未来は、信頼性の高いITおよびAIソリューションから今日始まると信じています。"
 }

@@ -12,9 +12,9 @@
             <div class="carousel-item {{if .Active}}active{{end}}" style="background-image: url('{{.BackgroundImage}}');">
                 <div class="container">
                     <div class="hero-content">
-                        <h1>Building the Future, Driven by AI</h1>
-                        <p>Leverage data-driven insights to build intelligent models, optimize business processes, and enable automated decision-making.</p>
-                        <a href="#contact" class="btn">Get a Consultation</a>
+                        <h1>{{.Title}}</h1>
+                        <p>{{.Description}}</p>
+                        <a href="{{.ButtonLink}}" class="btn">{{.ButtonText}}</a>
                     </div>
                 </div>
             </div>
@@ -31,19 +31,19 @@
 
     <section id="services" class="section">
         <div class="container">
-            <h2 class="section-title">{{T "en" "core_solutions"}}</h2>
+            <h2 class="section-title">{{T .CurrentLang "core_solutions"}}</h2>
             <div class="services-grid">
                 <div class="service-card">
-                    <h3>{{T "en" "ai_ml_title"}}</h3>
-                    <p>{{T "en" "ai_ml_description"}}</p>
+                    <h3>{{T .CurrentLang "ai_ml_title"}}</h3>
+                    <p>{{T .CurrentLang "ai_ml_description"}}</p>
                 </div>
                 <div class="service-card">
-                    <h3>{{T "en" "enterprise_cloud_title"}}</h3>
-                    <p>{{T "en" "enterprise_cloud_description"}}</p>
+                    <h3>{{T .CurrentLang "enterprise_cloud_title"}}</h3>
+                    <p>{{T .CurrentLang "enterprise_cloud_description"}}</p>
                 </div>
                 <div class="service-card">
-                    <h3>{{T "en" "it_infra_modernization_title"}}</h3>
-                    <p>{{T "en" "it_infra_modernization_description"}}</p>
+                    <h3>{{T .CurrentLang "it_infra_modernization_title"}}</h3>
+                    <p>{{T .CurrentLang "it_infra_modernization_description"}}</p>
                 </div>
             </div>
         </div>
@@ -51,9 +51,9 @@
     
     <section id="about" class="section">
          <div class="container">
-            <h2 class="section-title">{{T "en" "about_us_title"}}</h2>
+            <h2 class="section-title">{{T .CurrentLang "about_us_title"}}</h2>
             <p>
-                {{T "en" "about_us_description"}}
+                {{T .CurrentLang "about_us_description"}}
             </p>
         </div>
     </section>

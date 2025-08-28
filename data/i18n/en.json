@@ -47,5 +47,14 @@
     "edit_button": "Edit",
     "delete_button": "Delete",
     "no_pages_found": "No pages found.",
-    "confirm_delete_page": "Are you sure you want to delete page: "
+    "confirm_delete_page": "Are you sure you want to delete page: ",
+    "core_solutions": "Core Solutions",
+    "ai_ml_title": "AI & Machine Learning",
+    "ai_ml_description": "Leverage AI and ML to drive innovation and efficiency.",
+    "enterprise_cloud_title": "Enterprise Cloud Solutions",
+    "enterprise_cloud_description": "Scalable and secure cloud infrastructure for your business.",
+    "it_infra_modernization_title": "IT Infrastructure Modernization",
+    "it_infra_modernization_description": "Transform your IT landscape for enhanced performance and agility.",
+    "about_us_title": "About Us",
+    "about_us_description": "Innovatech is a dynamic technology company dedicated to exploring the infinite possibilities of technology. Our team consists of top engineers, scientists, and strategists, united by the mission to create unparalleled value for customers through innovative technology. We believe that an intelligent future begins today with reliable IT and AI solutions."
 }
