@@ -2,26 +2,24 @@ package auth_test
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/handler"
-	
-
-	"github.com/spf13/viper"
+	"gemini-demo/internal/i18n"
 )
 
-func TestNewAuthServiceWithViper(t *testing.T) {
+func TestNewAuthService(t *testing.T) {
 	t.Run("successful creation with valid key", func(t *testing.T) {
-		vp := viper.New()
-		vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
-		authService := auth.NewAuthServiceWithViper(vp)
+		authService := auth.NewAuthService("test-secret-key-for-sessions-32")
 		if authService == nil {
-			t.Error("NewAuthServiceWithViper returned nil")
+			t.Error("auth.NewAuthService returned nil")
 		}
 	})
 
@@ -31,13 +29,12 @@ func TestNewAuthServiceWithViper(t *testing.T) {
 		auth.FatalLogger = func(v ...interface{}) {
 			fatalLogged = true
 		}
-		defer func() { auth.FatalLogger = oldFatalLogger }() // Restore original FatalLogger
+		defer func() { auth.FatalLogger = oldFatalLogger }() // Restore original auth.FatalLogger
 
-		vp := viper.New() // No session key set
-		auth.NewAuthServiceWithViper(vp)
+		auth.NewAuthService("")
 
 		if !fatalLogged {
-			t.Error("expected NewAuthServiceWithViper to log fatal, but it did not")
+			t.Error("expected auth.NewAuthService to log fatal, but it did not")
 		}
 	})
 }
@@ -51,9 +48,7 @@ func TestAuthenticate(t *testing.T) {
 		os.Setenv("ADMIN_PASSWORD", originalAdminPassword)
 	}()
 
-	vp := viper.New()
-	vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
-	authService := auth.NewAuthServiceWithViper(vp)
+	authService := auth.NewAuthService("test-secret-key-for-sessions-32")
 
 	t.Run("successful authentication with env vars", func(t *testing.T) {
 		os.Setenv("ADMIN_USERNAME", "testuser")
@@ -89,9 +84,7 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestLoginLogoutIsLoggedIn(t *testing.T) {
-	vp := viper.New()
-	vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
-	authService := auth.NewAuthServiceWithViper(vp)
+	authService := auth.NewAuthService("test-secret-key-for-sessions-32")
 
 	// Test Login
 	t.Run("successful login", func(t *testing.T) {
@@ -188,9 +181,7 @@ func TestMiddleware(t *testing.T) {
 		fmt.Fprint(w, "Protected content")
 	})
 
-	vp := viper.New()
-	vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
-	authService := auth.NewAuthServiceWithViper(vp)
+	authService := auth.NewAuthService("test-secret-key-for-sessions-32")
 
 	// Test Middleware - Not logged in (should redirect)
 	t.Run("middleware redirects if not logged in", func(t *testing.T) {
@@ -217,8 +208,38 @@ func TestMiddleware(t *testing.T) {
 		defer os.Unsetenv("ADMIN_USERNAME")
 		defer os.Unsetenv("ADMIN_PASSWORD")
 
-		h := &handler.Handler{AuthService: authService} // Need a handler instance to call LoginHandler
-		h.LoginHandler(loginRr, loginReq)
+		        // Create a dummy template.Template
+        tmpl := template.New("test")
+
+        // Get current working directory
+        wd, err := os.Getwd()
+        if err != nil {
+            t.Fatalf("Failed to get current working directory: %v", err)
+        }
+
+        // Construct absolute path to i18n directory
+        i18nPath := filepath.Join(wd, "..", "..", "..", "data", "i18n")
+
+        // Create a simple Translator
+        translator := i18n.NewTranslator(i18nPath, "en")
+        // Load translations (handle error if necessary)
+        if err := translator.LoadTranslations(); err != nil {
+            t.Fatalf("Failed to load translations: %v", err)
+        }
+
+        // Create a dummy DebugLog function
+        debugLog := func(format string, v ...interface{}) {
+            // Do nothing or print to console for debugging
+            // fmt.Printf(format+"\n", v...)
+        }
+
+        h := &handler.Handler{
+            AuthService: authService,
+            Templates:   tmpl,
+            Translator:  translator,
+            DebugLog:    debugLog,
+        }
+        h.LoginHandler(loginRr, loginReq)
 
 		var sessionCookie *http.Cookie
 		for _, cookie := range loginRr.Result().Cookies() {

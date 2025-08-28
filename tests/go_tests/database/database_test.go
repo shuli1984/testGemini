@@ -2,24 +2,16 @@ package database_test
 
 import (
 	"gemini-demo/internal/database" // Added import for the database package
-	"gemini-demo/tests/testutil"
 	"os"
-	"testing"
 	"strings" // Added for strings.Contains
-
-	"github.com/spf13/viper"
+	"testing"
 )
-
-func TestMain(m *testing.M) {
-	testutil.SetupViper()
-	os.Exit(m.Run())
-}
 
 func TestInitDB(t *testing.T) {
 	// Remove the database file if it exists
 	os.Remove("./gemini.db")
 
-	db, sqlDB, err := database.InitDB() // Updated call to database.InitDB()
+	db, sqlDB, err := database.InitDB("sqlite", "./gemini.db")
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
@@ -44,76 +36,43 @@ func TestInitDB(t *testing.T) {
 }
 
 func TestInitDB_UnsupportedDBType(t *testing.T) {
-	// Save current viper settings and restore them after the test
-	originalDBType := viper.GetString("database.type")
-	originalDBDSN := viper.GetString("database.dsn")
-	defer func() {
-		viper.Set("database.type", originalDBType)
-		viper.Set("database.dsn", originalDBDSN)
-	}()
-
-	viper.Set("database.type", "unsupported")
-	viper.Set("database.dsn", "file::memory:?cache=shared") // DSN doesn't matter for unsupported type
-
-	_, _, err := database.InitDB() // Updated call to database.InitDB()
+	_, _, err := database.InitDB("unsupported", "file::memory:?cache=shared") // DSN doesn't matter for unsupported type
 	if err == nil {
 		t.Fatal("expected an error for unsupported database type, got nil")
 	}
 
 	expectedErrorMsg := "unsupported database type: unsupported"
 	if err.Error() != expectedErrorMsg {
-			t.Fatalf("expected error message \"%s\", got \"%s\"", expectedErrorMsg, err.Error())
-		}
+		t.Fatalf("expected error message \"%s\", got \"%s\"", expectedErrorMsg, err.Error())
+	}
+}
+
+func TestInitDB_NoDBType(t *testing.T) {
+	_, _, err := database.InitDB("", "file::memory:?cache=shared")
+	if err == nil {
+		t.Fatal("expected an error for no database type, got nil")
 	}
 
-	func TestInitDB_NoDBType(t *testing.T) {
-		originalDBType := viper.GetString("database.type")
-		defer func() {
-			viper.Set("database.type", originalDBType)
-		}()
+	expectedErrorMsg := "database type is not specified"
+	if err.Error() != expectedErrorMsg {
+		t.Fatalf("expected error message %q, got %q", expectedErrorMsg, err.Error())
+	}
+}
 
-		viper.Set("database.type", "") // Set empty database type
-
-		_, _, err := database.InitDB()
-		if err == nil {
-			t.Fatal("expected an error for no database type, got nil")
-		}
-
-		expectedErrorMsg := "database type is not specified in config"
-		if err.Error() != expectedErrorMsg {
-			t.Fatalf("expected error message %q, got %q", expectedErrorMsg, err.Error())
-		}
+func TestInitDB_NoDBDSN(t *testing.T) {
+	_, _, err := database.InitDB("sqlite", "")
+	if err == nil {
+		t.Fatal("expected an error for no database DSN, got nil")
 	}
 
-	func TestInitDB_NoDBDSN(t *testing.T) {
-		originalDBDSN := viper.GetString("database.dsn")
-		defer func() {
-			viper.Set("database.dsn", originalDBDSN)
-		}()
-
-		viper.Set("database.dsn", "") // Set empty database DSN
-
-		_, _, err := database.InitDB()
-		if err == nil {
-			t.Fatal("expected an error for no database DSN, got nil")
-		}
-
-		expectedErrorMsg := "database DSN is not specified in config"
-		if err.Error() != expectedErrorMsg {
-			t.Fatalf("expected error message %q, got %q", expectedErrorMsg, err.Error())
-		}
+	expectedErrorMsg := "database DSN is not specified"
+	if err.Error() != expectedErrorMsg {
+		t.Fatalf("expected error message %q, got %q", expectedErrorMsg, err.Error())
 	}
+}
 
 func TestInitDB_InvalidDSN(t *testing.T) {
-	originalDBDSN := viper.GetString("database.dsn")
-	defer func() {
-		viper.Set("database.dsn", originalDBDSN)
-	}()
-
-	// Set an invalid DSN for SQLite
-	viper.Set("database.dsn", "/non/existent/path/to/db.db")
-
-	_, _, err := database.InitDB()
+	_, _, err := database.InitDB("sqlite", "/non/existent/path/to/db.db")
 	if err == nil {
 		t.Fatal("expected an error for invalid DSN, got nil")
 	}

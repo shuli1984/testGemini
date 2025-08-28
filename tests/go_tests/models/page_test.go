@@ -3,7 +3,6 @@ package models_test
 import (
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/models" // Added import for the models package
-	"gemini-demo/tests/testutil"
 	"os"
 	"testing"
 
@@ -12,8 +11,7 @@ import (
 
 func TestGetPageData(t *testing.T) {
 	// Set up the database for testing
-	testutil.SetupViper()
-	db, sqlDB, err := database.InitDB()
+	db, sqlDB, err := database.InitDB("sqlite", "./gemini.db")
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}

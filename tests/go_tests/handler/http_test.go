@@ -42,10 +42,7 @@ func setupTest(t *testing.T) (*gorm.DB, *auth.AuthService, *template.Template) {
 	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{}, &models.Page{})
 	assert.NoError(t, err)
 
-	// Initialize Viper for session key
-	vp := viper.New()
-	vp.Set("auth.session_key", "super-secret-key-for-testing")
-	authService := auth.NewAuthServiceWithViper(vp)
+	authService := auth.NewAuthService("super-secret-key-for-testing")
 
 	// Parse templates
 	projectRoot := util.ProjectRoot("")
@@ -117,7 +114,7 @@ func mockCSRF(next http.Handler) http.Handler {
 
 func TestIndexHandler(t *testing.T) {
 	db, _, templates := setupTest(t)
-	h := &handler.Handler{DB: db, Templates: templates}
+	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
 
 	// Insert test data
 	db.Create(&models.SiteSetting{Key: "Title", Value: "Test Title"})
@@ -136,7 +133,7 @@ func TestIndexHandler(t *testing.T) {
 
 func TestPageHandler_Success(t *testing.T) {
 	db, _, templates := setupTest(t)
-	h := &handler.Handler{DB: db, Templates: templates}
+	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
 
 	// Insert test data
 	pageName := "test-page"
@@ -166,7 +163,7 @@ func TestPageHandler_Success(t *testing.T) {
 
 func TestPageHandler_NotFound(t *testing.T) {
 	db, _, templates := setupTest(t)
-	h := &handler.Handler{DB: db, Templates: templates}
+	h := &handler.Handler{Store: models.NewDBStore(db), Templates: templates}
 
 	// Create a request for a non-existent page
 	pageName := "non-existent-page"
@@ -231,7 +228,7 @@ func TestAboutHandler(t *testing.T) {
 
 func TestUpdatePageHandler_Success(t *testing.T) {
 	db, _, _ := setupTest(t)
-	h := &handler.Handler{DB: db}
+	h := &handler.Handler{Store: models.NewDBStore(db)}
 
 	// Mock data
 	pageName := "home"
@@ -281,7 +278,7 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 
 func TestUpdatePageHandler_NotFound(t *testing.T) {
 	db, _, _ := setupTest(t)
-	h := &handler.Handler{DB: db}
+	h := &handler.Handler{Store: models.NewDBStore(db)}
 
 	pageName := "nonexistent"
 	updatedPage := models.Page{Name: pageName, Title: "New Title"}
@@ -314,7 +311,7 @@ func TestUpdatePageHandler_NotFound(t *testing.T) {
 
 func TestUpdatePageHandler_InvalidBody(t *testing.T) {
 	db, _, _ := setupTest(t)
-	h := &handler.Handler{DB: db}
+	h := &handler.Handler{Store: models.NewDBStore(db)}
 
 	pageName := "home"
 	// Create a request with invalid JSON body
@@ -336,7 +333,7 @@ func TestUpdatePageHandler_InvalidBody(t *testing.T) {
 
 func TestUpdatePageHandler_NameMismatch(t *testing.T) {
 	db, _, _ := setupTest(t)
-	h := &handler.Handler{DB: db}
+	h := &handler.Handler{Store: models.NewDBStore(db)}
 
 	pageName := "home"
 	updatedPage := models.Page{Name: "mismatch-name", Title: "New Title"}
@@ -477,7 +474,7 @@ func TestDashboardHandler_Success(t *testing.T) {
 	defer os.Unsetenv("ADMIN_PASSWORD")
 
 	db, authService, templates := setupTest(t)
-	h := &handler.Handler{DB: db, AuthService: authService, Templates: templates}
+	h := &handler.Handler{Store: models.NewDBStore(db), AuthService: authService, Templates: templates}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/dashboard", h.DashboardHandler)

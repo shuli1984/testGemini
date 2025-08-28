@@ -2,3 +2,5 @@ tmp/
 bin/
 data/gemini.db
 cover.out
+tests/data/
+*.db

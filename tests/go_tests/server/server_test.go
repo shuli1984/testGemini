@@ -4,21 +4,19 @@ import (
 	"fmt"
 	"html/template"
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/config"
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/handler"
+	"gemini-demo/internal/i18n" // Added for i18n
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
-		"gemini-demo/internal/i18n" // Added for i18n
 	"gemini-demo/internal/util"
-	"gemini-demo/tests/testutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/spf13/viper"
 )
 
 // parseTemplates walks the templates directory and parses all .html files.
@@ -66,23 +64,25 @@ func debugLog(format string, v ...interface{}) {
 func TestNew(t *testing.T) {
 	// Set up the database for testing
 	server.DebugLog = debugLog // Initialize server.DebugLog for testing
-	testutil.SetupViper()
-	vp := viper.GetViper()
-	vp.Set("auth.session_key", "test-secret-key-for-sessions-32")
-	vp.Set("static.url_prefix", "/static/")
-	vp.Set("static.dir", "static")
+	cfg := &config.Config{
+		Auth: config.Auth{
+			SessionKey: "test-secret-key-for-sessions-32",
+		},
+		Static: config.Static{
+			URLPrefix: "/static/",
+			Dir:       "static",
+		},
+		Routes: []config.Route{
+			{Path: "/", Handler: "IndexHandler", Methods: []string{"GET"}, AuthRequired: false},
+			{Path: "/about", Handler: "AboutHandler", Methods: []string{"GET"}, AuthRequired: false},
+			{Path: "/admin/dashboard", Handler: "DashboardHandler", Methods: []string{"GET"}, AuthRequired: true},
+			{Path: "/admin/login", Handler: "LoginHandler", Methods: []string{"GET"}, AuthRequired: false},
+			{Path: "/admin/redirect", Handler: "AdminRedirectHandler", Methods: []string{"GET"}, AuthRequired: true},
+			{Path: "/nonexistent", Handler: "NonExistentHandler", Methods: []string{"GET"}, AuthRequired: false},
+		},
+	}
 
-	// Configure routes for testing
-	vp.Set("routes", []map[string]interface{}{
-		{"path": "/", "handler": "IndexHandler", "methods": []string{"GET"}, "auth_required": false},
-		{"path": "/about", "handler": "AboutHandler", "methods": []string{"GET"}, "auth_required": false},
-		{"path": "/admin/dashboard", "handler": "DashboardHandler", "methods": []string{"GET"}, "auth_required": true},
-		{"path": "/admin/login", "handler": "LoginHandler", "methods": []string{"GET"}, "auth_required": false},
-		{"path": "/admin/redirect", "handler": "AdminRedirectHandler", "methods": []string{"GET"}, "auth_required": true},
-		{"path": "/nonexistent", "handler": "NonExistentHandler", "methods": []string{"GET"}, "auth_required": false},
-	})
-
-	db, sqlDB, err := database.InitDB()
+	db, sqlDB, err := database.InitDB("sqlite", "./gemini.db")
 	if err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
@@ -114,8 +114,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := server.New(db, tmpl, mockCSRFMiddleware, translator)
-
+	srv := server.New(cfg, db, tmpl, mockCSRFMiddleware, translator)
 
 	t.Run("serves the hello handler at the root", func(t *testing.T) {
 		req, err := http.NewRequest("GET", "/", nil)
@@ -147,7 +146,7 @@ func TestNew(t *testing.T) {
 
 	t.Run("serves static files", func(t *testing.T) {
 		// Create a dummy static file
-		staticDir := viper.GetString("static.dir")
+		staticDir := cfg.Static.Dir
 		if err := os.MkdirAll(staticDir, 0755); err != nil {
 			t.Fatalf("failed to create static dir: %v", err)
 		}
@@ -190,7 +189,7 @@ func TestNew(t *testing.T) {
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v",
 				status, http.StatusOK)
-	}
+		}
 
 		// Check for key content in the rendered HTML
 		expectedContent := "<h1>About Us</h1>"
@@ -228,8 +227,8 @@ func TestNew(t *testing.T) {
 	t.Run("allows authenticated access to /admin/dashboard", func(t *testing.T) {
 		// Simulate a logged-in session
 		// We need a handler instance to call AuthService.Login
-		authService := auth.NewAuthServiceWithViper(viper.GetViper())
-		h := &handler.Handler{DB: db, AuthService: authService, Translator: translator, DebugLog: debugLog} // Pass the translator and debugLog
+		authService := auth.NewAuthService(cfg.Auth.SessionKey)
+		h := &handler.Handler{Store: &models.DBStore{DB: db}, AuthService: authService, Translator: translator, DebugLog: debugLog}
 
 		// Create a dummy request for Login to set the cookie
 		loginReq, err := http.NewRequest("POST", "/admin/login", strings.NewReader(`{"username":"admin","password":"password"}`))
@@ -290,15 +289,6 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_UnmarshalKeyError(t *testing.T) {
-	// Save current viper settings and restore them after the test
-	originalRoutes := viper.Get("routes")
-	defer func() {
-		viper.Set("routes", originalRoutes)
-	}()
-
-	// Intentionally set an invalid value for "routes" to cause UnmarshalKey to fail
-	viper.Set("routes", "invalid_routes_value")
-
 	// Expect a panic
 	defer func() {
 		if r := recover(); r == nil {
@@ -307,5 +297,5 @@ func TestNew_UnmarshalKeyError(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	server.New(nil, nil, nil, nil) // Pass nil for db, tmpl, csrfMiddleware, and translator
+	server.New(nil, nil, nil, nil, nil) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
 }
