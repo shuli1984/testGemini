@@ -2,11 +2,65 @@
 <html lang="{{.CurrentLang}}">
 {{template "header.html" .}}
 <body>
+
     {{template "nav.html" .}}
-    <div class="container">
-        <h1>{{T "en" "about_page_title"}}</h1>
-        <p>{{T "en" "about_page_content"}}</p>
-    </div>
+
+    <main>
+        <section class="section about-hero">
+            <div class="container">
+                <h1 class="section-title">{{T .CurrentLang "about_us_title"}}</h1>
+                <p class="section-description">{{T .CurrentLang "about_us_description"}}</p>
+            </div>
+        </section>
+
+        <section class="section company-intro">
+            <div class="container">
+                <div class="intro-content">
+                    <h2>{{T .CurrentLang "our_story_title"}}</h2>
+                    <p>{{T .CurrentLang "our_story_description"}}</p>
+                    <p>{{T .CurrentLang "our_mission_description"}}</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section clients">
+            <div class="container">
+                <h2 class="section-title">{{T .CurrentLang "our_clients_title"}}</h2>
+                <div class="clients-grid">
+                    <div class="client-logo">Client A</div>
+                    <div class="client-logo">Client B</div>
+                    <div class="client-logo">Client C</div>
+                    <div class="client-logo">Client D</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section contact-info">
+            <div class="container">
+                <h2 class="section-title">{{T .CurrentLang "contact_us_title"}}</h2>
+                <div class="contact-grid">
+                    <div class="address-info">
+                        <h3>{{T .CurrentLang "our_location_title"}}</h3>
+                        <p>{{T .CurrentLang "company_address_line1"}}</p>
+                        <p>{{T .CurrentLang "company_address_line2"}}</p>
+                        <p>{{T .CurrentLang "company_address_line3"}}</p>
+                        <p>{{T .CurrentLang "company_phone"}}</p>
+                        <p>{{T .CurrentLang "company_email"}}</p>
+                    </div>
+                    <div class="map-container">
+                        <iframe
+                            width="100%"
+                            height="400"
+                            frameborder="0" style="border:0"
+                            src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=Google+Plex" allowfullscreen>
+                        </iframe>
+                        <p class="map-note">{{T .CurrentLang "map_api_key_note"}}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
     {{template "footer.html" .}}
 </body>
 </html>

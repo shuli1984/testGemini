@@ -3,7 +3,7 @@
         <ul>
             <li {{if or (eq .CurrentPath "/admin/dashboard") (hasPrefix .CurrentPath "/admin/dashboard/")}}class="active"{{end}}><a href="/admin/dashboard">{{T .CurrentLang "dashboard_menu"}}</a></li>
             <li {{if or (eq .CurrentPath "/admin/pages") (hasPrefix .CurrentPath "/admin/pages/")}}class="active"{{end}}><a href="/admin/pages">{{T .CurrentLang "pages_menu"}}</a></li>
-            <li {{if or (eq .CurrentPath "/admin/pages") (hasPrefix .CurrentPath "/admin/pages/")}}class="active"{{end}}><a href="/admin/pages">{{T .CurrentLang "pages_menu"}}</a></li>
+            <li {{if or (eq .CurrentPath "/admin/templates") (hasPrefix .CurrentPath "/admin/templates/")}}class="active"{{end}}><a href="/admin/templates">{{T .CurrentLang "templates_menu"}}</a></li>
             <li {{if or (eq .CurrentPath "/admin/settings") (hasPrefix .CurrentPath "/admin/settings/")}}class="active"{{end}}><a href="/admin/settings">{{T .CurrentLang "site_settings_menu"}}</a></li>
             <li><a href="/admin/logout">{{T .CurrentLang "logout_menu"}}</a></li>
         </ul>

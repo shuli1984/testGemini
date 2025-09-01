@@ -31,7 +31,7 @@
   ],
   "MenuItems": [
     {"URL": "/#services", "Text": "解决方案", "Order": 1},
-    {"URL": "/#about", "Text": "关于我们", "Order": 2},
+    {"URL": "/about", "Text": "关于我们", "Order": 2},
     {"URL": "/#contact", "Text": "联系我们", "Order": 3}
   ]
 }
