@@ -51,6 +51,8 @@ func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddlewar
 		"AdminRedirectHandler": h.AdminRedirectHandler,
 		"LogoutHandler":        h.LogoutHandler,
 		"PagesHandler":         h.PagesHandler,
+		"AdminEditPageHandler": h.AdminEditPageHandler,
+		"ImageUploadHandler":   h.ImageUploadHandler,
 	}
 
 	for _, route := range cfg.Routes {

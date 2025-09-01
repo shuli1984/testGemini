@@ -69,5 +69,6 @@
     "company_phone": "+1 (123) 456-7890",
     "company_email": "info@innovatech.ai",
     "map_api_key_note": "Note: A valid Google Maps API key is required for full functionality.",
-    "templates_menu": "Templates"
+    "templates_menu": "Templates",
+    "edit_page_title": "Edit Page"
 }

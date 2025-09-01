@@ -32,6 +32,21 @@ routes:
     methods:
       - "GET"
     auth_required: true
+  - path: "/admin/pages/edit/{name}"
+    handler: "AdminEditPageHandler"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin/pages/{name}"
+    handler: "UpdatePageHandler"
+    methods:
+      - "PUT"
+    auth_required: true
+  - path: "/admin/upload"
+    handler: "ImageUploadHandler"
+    methods:
+      - "POST"
+    auth_required: true
   - path: "/admin"
     handler: "AdminRedirectHandler"
     methods:

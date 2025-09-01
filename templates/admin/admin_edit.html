@@ -1,35 +1,156 @@
 <!DOCTYPE html>
-<html lang="en">
-{{template "admin_header.html" .}}
+<html lang="{{.CurrentLang}}">
+<head>
+    {{template "admin_header.html" .}}
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
+</head>
 <body>
-    {{template "admin_nav.html" .}}
+    <div class="admin-wrapper">
+        <div class="admin-sidebar">
+            {{template "admin_nav.html" .}}
+        </div>
+        <div class="admin-content">
+            <h1>{{.Title}}</h1>
 
-    <h1>Edit Page Content</h1>
+            <form id="editPageForm">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <div>
+                    <label for="pageName">Page Name (e.g., home, about, contact):</label>
+                    <input type="text" id="pageName" value="{{.Page.Name}}" required readonly>
+                </div>
+                <div>
+                    <label for="title">Title:</label>
+                    <input type="text" id="title" value="{{.Page.Title}}" required>
+                </div>
+                <div>
+                    <label for="description">Description:</label>
+                    <textarea id="description">{{.Page.Description}}</textarea>
+                </div>
+                <div>
+                    <label for="message">Message:</label>
+                    <div id="message">{{.Message}}</div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" id="previewButton" class="btn btn-secondary">Preview</button>
+                    <button type="button" id="imageUploadButton" class="btn btn-secondary">Upload Image</button>
+                    <button type="button" id="toggleHtmlButton" class="btn btn-secondary">Toggle HTML</button>
+                </div>
+            </form>
 
-    <form id="editPageForm">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-        <div>
-            <label for="pageName">Page Name (e.g., home, about, contact):</label>
-            <input type="text" id="pageName" value="home" required>
+            <div id="response"></div>
         </div>
-        <div>
-            <label for="title">Title:</label>
-            <input type="text" id="title" required>
-        </div>
-        <div>
-            <label for="description">Description:</label>
-            <textarea id="description"></textarea>
-        </div>
-        <div>
-            <label for="message">Message:</label>
-            <textarea id="message"></textarea>
-        </div>
-        <button type="submit">Save Changes</button>
-    </form>
+    </div>
 
-    <div id="response"></div>
+    <!-- Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="previewModalLabel">Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="previewContent">
+            <!-- Preview content will be injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="/static/js/admin_edit.js"></script>
+
+    <!-- Initialize CKEditor 5 and add preview listener -->
+    <script>
+      let editor;
+
+      ClassicEditor
+        .create( document.querySelector( '#message' ) )
+        .then( newEditor => {
+            editor = newEditor;
+        } )
+        .catch( error => {
+            console.error( error );
+        } );
+
+      document.getElementById('previewButton').addEventListener('click', () => {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        const message = editor.getData();
+
+        const previewContentDiv = document.getElementById('previewContent');
+        previewContentDiv.innerHTML = ''; // Clear previous content
+
+        const titleEl = document.createElement('h1');
+        titleEl.textContent = title;
+
+        const descriptionEl = document.createElement('p');
+        descriptionEl.textContent = description;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.innerHTML = message; // Set the HTML content here
+
+        previewContentDiv.appendChild(titleEl);
+        previewContentDiv.appendChild(descriptionEl);
+        previewContentDiv.appendChild(messageDiv);
+
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        previewModal.show();
+      });
+
+      document.getElementById('imageUploadButton').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = async () => {
+          const file = input.files[0];
+          const formData = new FormData();
+          formData.append('image', file);
+
+          // Get CSRF token
+          const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+          const response = await fetch('/admin/upload', {
+            method: 'POST',
+            headers: {
+              'X-CSRF-Token': csrfToken
+            },
+            body: formData
+          });
+
+          const result = await response.json();
+          if (response.ok) {
+            const imageUrl = result.url;
+            editor.execute('insertImage', { source: imageUrl });
+          } else {
+            console.error('Upload failed:', result);
+          }
+        };
+      });
+
+      document.getElementById('toggleHtmlButton').addEventListener('click', () => {
+        const messageContainer = document.getElementById('message');
+        const editorElement = editor.ui.view.element; // Get the CKEditor's main element
+
+        if (isHtmlMode) {
+          // Switch to visual mode
+          editor.setData(htmlTextarea.value);
+          messageContainer.style.display = 'block'; // Show CKEditor
+          htmlTextarea.style.display = 'none'; // Hide textarea
+          isHtmlMode = false;
+        } else {
+          // Switch to HTML mode
+          htmlTextarea = document.createElement('textarea');
+          htmlTextarea.style.width = '100%';
+          htmlTextarea.style.height = '300px';
+          htmlTextarea.value = editor.getData(); // Get HTML from CKEditor
+          messageContainer.style.display = 'none'; // Hide CKEditor
+          messageContainer.parentNode.insertBefore(htmlTextarea, messageContainer.nextSibling); // Insert textarea after CKEditor
+          isHtmlMode = true;
+        }
+      });
+    </script>
 
     {{template "admin_footer.html" .}}
 </body>

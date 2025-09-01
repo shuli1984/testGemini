@@ -49,6 +49,27 @@
         --info-card-bg: #2c2c2c;
         --info-card-shadow: rgba(0,0,0,0.2);
     }
+
+    /* Quill Dark Mode Styles */
+    .ql-toolbar {
+        background-color: var(--header-bg) !important;
+        border-color: var(--header-border) !important;
+    }
+    .ql-container {
+        background-color: var(--bg-color) !important;
+        border-color: var(--header-border) !important;
+        color: var(--text-color) !important;
+    }
+    .ql-editor {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+    }
+    .ql-snow .ql-stroke {
+        stroke: var(--text-color) !important;
+    }
+    .ql-snow .ql-picker-label {
+        color: var(--text-color) !important;
+    }
 }
 
 /* General Body and Container */
@@ -447,6 +468,7 @@ button:hover {
     padding: 6px 12px;
     font-size: 14px;
     border-radius: 4px;
+    line-height: 1.5;
 }
 
 .btn-secondary {
@@ -470,4 +492,22 @@ button:hover {
 
 .btn-danger:hover {
     background-color: #c0392b; /* Darker red on hover */
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.button-group > * {
+    flex: 1;
+    text-align: center;
+    margin: 0;
+}
+
+.button-group a.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

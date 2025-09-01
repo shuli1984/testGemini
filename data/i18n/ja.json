@@ -69,5 +69,6 @@
     "company_phone": "+1 (123) 456-7890",
     "company_email": "info@innovatech.ai",
     "map_api_key_note": "注：完全な機能には有効なGoogleマップAPIキーが必要です。",
-    "templates_menu": "テンプレート"
+    "templates_menu": "テンプレート",
+    "edit_page_title": "ページを編集"
 }

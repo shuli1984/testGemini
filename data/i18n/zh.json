@@ -69,5 +69,6 @@
     "company_phone": "+86 (123) 456-7890",
     "company_email": "info@innovatech.ai",
     "map_api_key_note": "注意：完整功能需要有效的Google地图API密钥。",
-    "templates_menu": "模板"
+    "templates_menu": "模板",
+    "edit_page_title": "编辑页面"
 }

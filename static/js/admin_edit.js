@@ -6,7 +6,7 @@ document.getElementById('editPageForm').addEventListener('submit', async functio
     const pageName = document.getElementById('pageName').value;
     const title = document.getElementById('title').value;
     const description = document.getElementById('description').value;
-    const message = document.getElementById('message').value;
+    const message = editor.getData();
 
     const pageData = {
         Name: pageName,
@@ -31,10 +31,10 @@ document.getElementById('editPageForm').addEventListener('submit', async functio
         const result = await response.json();
 
         if (response.ok) {
-            responseDiv.textContent = 'Success: ' + JSON.stringify(result, null, 2);
+            responseDiv.textContent = 'Page updated successfully!';
             responseDiv.style.color = 'green';
         } else {
-            responseDiv.textContent = 'Error: ' + (result.error || JSON.stringify(result, null, 2));
+            responseDiv.textContent = 'Error: ' + (result.error || 'An unknown error occurred.');
             responseDiv.style.color = 'red';
         }
     } catch (error) {

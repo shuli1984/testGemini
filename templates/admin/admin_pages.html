@@ -29,14 +29,14 @@
                         <td>{{.ID}}</td>
                         <td>{{.Title}}</td>
                         <td>{{.Name}}</td>
-                        <td>
-                            <a href="/admin/pages/edit/{{.Name}}" class="btn btn-sm btn-secondary">{{T .CurrentLang "edit_button"}}</a>
-                            <button class="btn btn-sm btn-danger delete-page-btn" data-page-name="{{.Name}}">{{T .CurrentLang "delete_button"}}</button>
+                        <td class="button-group">
+                            <a href="/admin/pages/edit/{{.Name}}" class="btn btn-sm btn-secondary">{{T $.CurrentLang "edit_button"}}</a>
+                            <button class="btn btn-sm btn-danger delete-page-btn" data-page-name="{{.Name}}">{{T $.CurrentLang "delete_button"}}</button>
                         </td>
                     </tr>
                     {{else}}
                     <tr>
-                        <td colspan="4">{{T .CurrentLang "no_pages_found"}}</td>
+                        <td colspan="4">{{T $.CurrentLang "no_pages_found"}}</td>
                     </tr>
                     {{end}}
                 </tbody>
@@ -52,7 +52,7 @@
             deleteButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const pageName = this.dataset.pageName;
-                    if (confirm('{{T .CurrentLang "confirm_delete_page"}}' + pageName + '?')) {
+                    if (confirm('{{T $.CurrentLang "confirm_delete_page"}}' + pageName + '?')) {
                         // Implement actual delete logic here (e.g., fetch API)
                         alert('Deleting page: ' + pageName); // Placeholder
                     }

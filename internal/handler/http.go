@@ -2,10 +2,15 @@ package handler
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"gemini-demo/internal/auth"
@@ -38,12 +43,23 @@ type DashboardTemplateData struct {
 	CurrentLang           string
 }
 
+// AdminEditPageTemplateData holds data for the admin edit page template.
+type AdminEditPageTemplateData struct {
+	Page        *models.Page
+	CSRFToken   string
+	CurrentPath string
+	CurrentLang string
+	Title       string
+	Message     template.HTML // Add this
+}
+
 // AdminPagesTemplateData holds data for the admin pages list template.
 type AdminPagesTemplateData struct {
 	Pages       []models.Page
 	CSRFToken   string
 	CurrentPath string
 	CurrentLang string
+	Title       string
 }
 
 // PageCombinedData holds data for a page template, combining page and site data.
@@ -320,6 +336,7 @@ func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := AdminPagesTemplateData{
+		Title:       h.Translator.GetTranslation(currentLang, "pages_menu"),
 		Pages:       pages,
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
@@ -330,6 +347,40 @@ func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error executing template (PagesHandler): %v", err)
+		return
+	}
+	buf.WriteTo(w)
+}
+
+// AdminEditPageHandler handles the display of the admin page edit form.
+func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pageName := vars["name"]
+	currentLang := h.getLanguage(r)
+
+	page, err := h.Store.GetPageData(pageName)
+	if err != nil {
+		if err.Error() == "record not found" {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	data := AdminEditPageTemplateData{
+		Title:       h.Translator.GetTranslation(currentLang, "edit_page_title"),
+		Page:        page,
+		CSRFToken:   csrf.Token(r),
+		CurrentPath: r.URL.Path,
+		CurrentLang: currentLang,
+		Message:     template.HTML(page.Message),
+	}
+
+	var buf bytes.Buffer
+	if err := h.Templates.ExecuteTemplate(&buf, "admin_edit.html", data); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error executing template (AdminEditPageHandler): %v", err)
 		return
 	}
 	buf.WriteTo(w)
@@ -350,6 +401,48 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/admin/login", http.StatusFound) // Redirect to login page
+}
+
+// ImageUploadHandler handles image uploads for the editor.
+func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	file, handler, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Unable to get image from form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Generate a random filename
+	randomBytes := make([]byte, 8)
+	if _, err := rand.Read(randomBytes); err != nil {
+		http.Error(w, "Failed to generate random filename", http.StatusInternalServerError)
+		return
+	}
+	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
+
+	// Create the file
+	dst, err := os.Create(filepath.Join("static", "images", filename))
+	if err != nil {
+		http.Error(w, "Unable to create the file for writing", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// Copy the uploaded file to the destination file
+	if _, err := io.Copy(dst, file); err != nil {
+		http.Error(w, "Unable to save the file", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the URL of the uploaded file
+	json.NewEncoder(w).Encode(map[string]string{
+		"url": "/static/images/" + filename,
+	})
 }
 
 // getLanguage determines the language based on Accept-Language header or a cookie.
