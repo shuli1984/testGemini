@@ -17,7 +17,7 @@ import (
 // DebugLog is a placeholder for the debug logging function from main.go
 // New creates a new HTTP server with configured routes and handlers.
 // This function is the entry point for the server.
-func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator, debugLog func(format string, v ...interface{})) *http.Server {
+func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator, debugLog func(format string, v ...interface{}), debugMode bool) *http.Server {
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -39,7 +39,7 @@ func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddlewar
 	clonedTemplates = clonedTemplates.Funcs(funcMap)
 
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: clonedTemplates, DebugLog: debugLog, Translator: translator}
+	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: clonedTemplates, DebugLog: debugLog, Translator: translator, DebugMode: debugMode}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -52,6 +52,8 @@ func New(cfg *config.Config, db *gorm.DB, tmpl *template.Template, csrfMiddlewar
 		"LogoutHandler":        h.LogoutHandler,
 		"PagesHandler":         h.PagesHandler,
 		"AdminEditPageHandler": h.AdminEditPageHandler,
+		"AdminNewPageHandler":  h.AdminNewPageHandler,
+		"DeletePageHandler":    h.DeletePageHandler,
 		"ImageUploadHandler":   h.ImageUploadHandler,
 	}
 

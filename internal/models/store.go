@@ -9,6 +9,8 @@ type DataStore interface {
 	GetPageData(name string) (*Page, error)
 	GetAllPages() ([]Page, error)
 	UpdatePage(page *Page) error
+	CreatePage(page *Page) error
+	DeletePage(name string) error
 	GetDashboardData() (*DashboardData, error)
 }
 
@@ -36,6 +38,14 @@ func (s *DBStore) GetAllPages() ([]Page, error) {
 
 func (s *DBStore) UpdatePage(page *Page) error {
 	return page.UpdatePage(s.DB)
+}
+
+func (s *DBStore) CreatePage(page *Page) error {
+	return page.CreatePage(s.DB)
+}
+
+func (s *DBStore) DeletePage(name string) error {
+	return DeletePage(s.DB, name)
 }
 
 func (s *DBStore) GetDashboardData() (*DashboardData, error) {

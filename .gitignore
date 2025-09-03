@@ -4,3 +4,4 @@ data/gemini.db
 cover.out
 tests/data/
 *.db
+static/images/

@@ -76,6 +76,27 @@ func (p *Page) UpdatePage(db *gorm.DB) error {
 	return nil
 }
 
+func (p *Page) CreatePage(db *gorm.DB) error {
+	result := db.Create(p)
+	if result.Error != nil {
+		log.Printf("Failed to create page %s: %v", p.Name, result.Error)
+		return result.Error
+	}
+	return nil
+}
+
+func DeletePage(db *gorm.DB, name string) error {
+	result := db.Unscoped().Where("name = ?", name).Delete(&Page{})
+	if result.Error != nil {
+		log.Printf("Failed to delete page %s: %v", name, result.Error)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
 func GetAllPages(db *gorm.DB) ([]Page, error) {
 	var pages []Page
 	result := db.Find(&pages)

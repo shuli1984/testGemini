@@ -1,60 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{.CurrentLang}}">
 {{template "admin_header.html" .}}
 <body>
-    <div class="admin-wrapper">
-        <div class="admin-sidebar">
+    <div class="d-flex flex-column flex-md-row min-vh-100">
+        <div class="border-end">
             {{template "admin_nav.html" .}}
         </div>
-        <div class="admin-content">
-            <h1>{{T .CurrentLang "pages_menu"}}</h1>
+        <div class="p-4 shadow-sm flex-grow-1">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <h1 class="mb-4">{{T .CurrentLang "pages_menu"}}</h1>
 
-            <div class="admin-actions">
+            <div class="d-flex justify-content-end mb-3">
                 <a href="/admin/pages/new" class="btn btn-primary">{{T .CurrentLang "new_page_button"}}</a>
             </div>
 
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>{{T .CurrentLang "page_title_label"}}</th>
-                        <th>{{T .CurrentLang "page_name_label"}}</th>
-                        <th>{{T .CurrentLang "actions_label"}}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Pages}}
-                    <tr>
-                        <td>{{.ID}}</td>
-                        <td>{{.Title}}</td>
-                        <td>{{.Name}}</td>
-                        <td class="button-group">
-                            <a href="/admin/pages/edit/{{.Name}}" class="btn btn-sm btn-secondary">{{T $.CurrentLang "edit_button"}}</a>
-                            <button class="btn btn-sm btn-danger delete-page-btn" data-page-name="{{.Name}}">{{T $.CurrentLang "delete_button"}}</button>
-                        </td>
-                    </tr>
-                    {{else}}
-                    <tr>
-                        <td colspan="4">{{T $.CurrentLang "no_pages_found"}}</td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>{{T .CurrentLang "id_header"}}</th>
+                            <th>{{T .CurrentLang "title_header"}}</th>
+                            <th>{{T .CurrentLang "name_header"}}</th>
+                            <th>{{T .CurrentLang "actions_label"}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Pages}}
+                        <tr>
+                            <td>{{.ID}}</td>
+                            <td>{{.Title}}</td>
+                            <td>{{.Name}}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/admin/pages/edit/{{.Name}}" class="btn btn-sm btn-secondary">{{T $.CurrentLang "edit_button"}}</a>
+                                    <button class="btn btn-sm btn-danger delete-page-btn" data-page-name="{{.Name}}">{{T $.CurrentLang "delete_button"}}</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="4" class="text-center">{{T $.CurrentLang "no_pages_found"}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     {{template "admin_footer.html" .}}
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const deleteButtons = document.querySelectorAll('.delete-page-btn');
             deleteButtons.forEach(button => {
-                button.addEventListener('click', function() {
+                button.addEventListener('click', function () {
                     const pageName = this.dataset.pageName;
                     if (confirm('{{T $.CurrentLang "confirm_delete_page"}}' + pageName + '?')) {
-                        // Implement actual delete logic here (e.g., fetch API)
-                        alert('Deleting page: ' + pageName); // Placeholder
+                        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                        fetch(`/admin/pages/delete/${pageName}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-Token': csrfToken
+                            }
+                        }).then(response => {
+                            if (response.ok) {
+                                window.location.reload();
+                            } else {
+                                alert('{{T $.CurrentLang "error_deleting_page"}}');
+                            }
+                        });
                     }
                 });
             });

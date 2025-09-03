@@ -9,10 +9,8 @@ import (
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
 	"gemini-demo/internal/util"
-	"html/template"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -28,53 +26,10 @@ func debugLog(format string, v ...interface{}) {
 	}
 }
 
-func parseTemplates(translator *i18n.Translator) (*template.Template, error) {
-	var actualProjectRoot string
-	if projectRootFlag != "" {
-		actualProjectRoot = projectRootFlag
-	} else {
-		actualProjectRoot = util.ProjectRoot("")
-	}
-
-	var templateFiles []string
-	err := filepath.Walk(filepath.Join(actualProjectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error walking templates directory: %w", err)
-	}
-
-	if len(templateFiles) == 0 {
-		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(actualProjectRoot, "templates"))
-	}
-
-	funcMap := template.FuncMap{
-		"T": func(lang, key string) string {
-			return translator.GetTranslation(lang, key)
-		},
-		"hasPrefix": strings.HasPrefix,
-	}
-
-	tmpl := template.New("main").Funcs(funcMap)
-	tmpl, err = tmpl.ParseFiles(templateFiles...)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing templates: %w", err)
-	}
-	return tmpl, nil
-}
-
 func main() {
 	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
 	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 	flag.Parse()
-
-	
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -102,7 +57,7 @@ func main() {
 		log.Fatalf("failed to auto migrate and seed models: %v", err)
 	}
 
-	parsedTemplates, err := parseTemplates(translator)
+	parsedTemplates, err := util.ParseTemplates(translator, projectRootFlag)
 	if err != nil {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
@@ -156,7 +111,7 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	}, translator, debugLog) // Pass the translator
+	}, translator, debugLog, debugFlag) // Pass the translator and debug flag
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)

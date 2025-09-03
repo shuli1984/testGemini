@@ -2,16 +2,18 @@
 {{template "nav.html" .}}
 
 <main>
-    <section class="hero">
+    <section class="hero text-center py-5 bg-light">
         <div class="container">
-            <h1>{{.Page.Title}}</h1>
-            <p>{{.Page.Description}}</p>
+            <h1 class="display-4 mb-3">{{.Page.Title}}</h1>
+            <p class="lead">{{.Page.Description}}</p>
         </div>
     </section>
 
-    <section class="content">
+    <section class="content py-5">
         <div class="container">
-            <p>{{.Page.Message}}</p>
+            <div class="lead">
+                {{.Page.Message}}
+            </div>
         </div>
     </section>
 </main>

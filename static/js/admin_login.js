@@ -7,6 +7,14 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
     const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]').value;
 
+    const requestBody = { username, password };
+
+    console.log('Sending login request with the following data:');
+    console.log('Username:', username);
+    console.log('Password:', password);
+    console.log('CSRF Token:', csrfToken);
+    console.log('Request Body:', JSON.stringify(requestBody));
+
     try {
         const response = await fetch('/admin/login', {
             method: 'POST',
@@ -14,7 +22,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();

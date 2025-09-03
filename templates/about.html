@@ -1,66 +1,45 @@
-<!DOCTYPE html>
-<html lang="{{.CurrentLang}}">
 {{template "header.html" .}}
-<body>
+{{template "nav.html" .}}
 
-    {{template "nav.html" .}}
+<main>
+    <section class="hero text-center py-5 bg-primary text-white">
+        <div class="container">
+            <h1 class="display-4 mb-3">{{T .CurrentLang "about_hero_title"}}</h1>
+            <p class="lead">{{T .CurrentLang "about_hero_description"}}</p>
+        </div>
+    </section>
 
-    <main>
-        <section class="section about-hero">
-            <div class="container">
-                <h1 class="section-title">{{T .CurrentLang "about_us_title"}}</h1>
-                <p class="section-description">{{T .CurrentLang "about_us_description"}}</p>
-            </div>
-        </section>
+    <section class="content py-5">
+        <div class="container">
+            <h2 class="mb-4">{{T .CurrentLang "our_story_title"}}</h2>
+            <p class="lead mb-5">{{T .CurrentLang "our_story_content"}}</p>
 
-        <section class="section company-intro">
-            <div class="container">
-                <div class="intro-content">
-                    <h2>{{T .CurrentLang "our_story_title"}}</h2>
-                    <p>{{T .CurrentLang "our_story_description"}}</p>
-                    <p>{{T .CurrentLang "our_mission_description"}}</p>
-                </div>
-            </div>
-        </section>
+            <h2 class="mb-4">{{T .CurrentLang "our_mission_title"}}</h2>
+            <p class="lead mb-5">{{T .CurrentLang "our_mission_content"}}</p>
 
-        <section class="section clients">
-            <div class="container">
-                <h2 class="section-title">{{T .CurrentLang "our_clients_title"}}</h2>
-                <div class="clients-grid">
-                    <div class="client-logo">Client A</div>
-                    <div class="client-logo">Client B</div>
-                    <div class="client-logo">Client C</div>
-                    <div class="client-logo">Client D</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="section contact-info">
-            <div class="container">
-                <h2 class="section-title">{{T .CurrentLang "contact_us_title"}}</h2>
-                <div class="contact-grid">
-                    <div class="address-info">
-                        <h3>{{T .CurrentLang "our_location_title"}}</h3>
-                        <p>{{T .CurrentLang "company_address_line1"}}</p>
-                        <p>{{T .CurrentLang "company_address_line2"}}</p>
-                        <p>{{T .CurrentLang "company_address_line3"}}</p>
-                        <p>{{T .CurrentLang "company_phone"}}</p>
-                        <p>{{T .CurrentLang "company_email"}}</p>
+            <h2 class="mb-4">{{T .CurrentLang "our_team_title"}}</h2>
+            <div class="row row-cols-1 row-cols-md-3 g-4"> <!-- team-grid -->
+                <div class="col">
+                    <div class="team-member text-center p-4 border rounded shadow-sm">
+                        <h3 class="h5 mb-2">{{T .CurrentLang "team_member_1_name"}}</h3>
+                        <p class="text-muted">{{T .CurrentLang "team_member_1_role"}}</p>
                     </div>
-                    <div class="map-container">
-                        <iframe
-                            width="100%"
-                            height="400"
-                            frameborder="0" style="border:0"
-                            src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=Google+Plex" allowfullscreen>
-                        </iframe>
-                        <p class="map-note">{{T .CurrentLang "map_api_key_note"}}</p>
+                </div>
+                <div class="col">
+                    <div class="team-member text-center p-4 border rounded shadow-sm">
+                        <h3 class="h5 mb-2">{{T .CurrentLang "team_member_2_name"}}</h3>
+                        <p class="text-muted">{{T .CurrentLang "team_member_2_role"}}</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="team-member text-center p-4 border rounded shadow-sm">
+                        <h3 class="h5 mb-2">{{T .CurrentLang "team_member_3_name"}}</h3>
+                        <p class="text-muted">{{T .CurrentLang "team_member_3_role"}}</p>
                     </div>
                 </div>
             </div>
-        </section>
-    </main>
+        </div>
+    </section>
+</main>
 
-    {{template "footer.html" .}}
-</body>
-</html>
+{{template "footer.html" .}}

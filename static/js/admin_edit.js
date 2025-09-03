@@ -6,7 +6,7 @@ document.getElementById('editPageForm').addEventListener('submit', async functio
     const pageName = document.getElementById('pageName').value;
     const title = document.getElementById('title').value;
     const description = document.getElementById('description').value;
-    const message = editor.getData();
+    const message = quill.root.innerHTML; // Get content from Quill
 
     const pageData = {
         Name: pageName,

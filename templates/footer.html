@@ -1,88 +1,9 @@
-    <footer id="contact">
-    <div class="container">
-        <p>&copy; 2025 Innovatech.AI. All Rights Reserved.</p>
-        <p>联系邮箱: contact@innovatech.ai</p>
-    </div>
-</footer>
+    <footer id="contact" class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p>&copy; 2025 Innovatech.AI. All Rights Reserved.</p>
+            <p>{{T .CurrentLang "contact_email"}}: contact@innovatech.ai</p>
+        </div>
+    </footer>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenu = document.getElementById('mobile-menu');
-        const navLinks = document.querySelector('.nav-links');
-
-        if (mobileMenu && navLinks) {
-            mobileMenu.addEventListener('click', function() {
-                navLinks.classList.toggle('active');
-            });
-        }
-
-        // Carousel functionality
-        const carouselItems = document.querySelectorAll('.carousel-item');
-        const prevBtn = document.querySelector('.carousel-control.prev');
-        const nextBtn = document.querySelector('.carousel-control.next');
-        const indicators = document.querySelectorAll('.carousel-indicators .indicator');
-        let currentIndex = 0;
-        let autoSlideInterval;
-
-        function showSlide(index) {
-            carouselItems.forEach((item, i) => {
-                item.classList.remove('active');
-                indicators[i].classList.remove('active');
-            });
-
-            carouselItems[index].classList.add('active');
-            indicators[index].classList.add('active');
-            currentIndex = index;
-        }
-
-        function nextSlide() {
-            currentIndex = (currentIndex + 1) % carouselItems.length;
-            showSlide(currentIndex);
-        }
-
-        function prevSlide() {
-            currentIndex = (currentIndex - 1 + carouselItems.length) % carouselItems.length;
-            showSlide(currentIndex);
-        }
-
-        function startAutoSlide() {
-            autoSlideInterval = setInterval(nextSlide, 5000); // Change slide every 5 seconds
-        }
-
-        function stopAutoSlide() {
-            clearInterval(autoSlideInterval);
-        }
-
-        // Event Listeners
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => {
-                stopAutoSlide();
-                prevSlide();
-                startAutoSlide();
-            });
-        }
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => {
-                stopAutoSlide();
-                nextSlide();
-                startAutoSlide();
-            });
-        }
-
-        indicators.forEach(indicator => {
-            indicator.addEventListener('click', (event) => {
-                stopAutoSlide();
-                const slideIndex = parseInt(event.target.dataset.slideTo);
-                showSlide(slideIndex);
-                startAutoSlide();
-            });
-        });
-
-        // Initial display and auto-slide start
-        if (carouselItems.length > 0) {
-            showSlide(0);
-            startAutoSlide();
-        }
-    });
-</script>
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>

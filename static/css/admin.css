@@ -25,100 +25,52 @@
 }
 
 /* Dark Mode Colors */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #1a1a1a; /* Dark background */
-        --text-color: #e0e0e0; /* Light text */
-        --header-bg: #2c2c2c;
-        --header-text: #e0e0e0;
-        --header-border: #444;
-        --logo-color: #e0e0e0;
-        --nav-link-color: #bbb;
-        --primary-color: #66b3ff; /* Lighter blue for dark mode */
-        --primary-hover: #4da6ff;
-        --secondary-button-bg: #555;
-        --secondary-button-hover: #666;
-        --login-bg: #2c2c2c;
-        --login-shadow: rgba(0,0,0,0.3);
-        --input-border: #555;
-        --error-color: #ff6b6b;
-        --sidebar-bg: #2c2c2c;
-        --sidebar-text: #e0e0e0;
-        --sidebar-shadow: rgba(0,0,0,0.3);
-        --sidebar-link-hover-bg: #3a3a3a;
-        --info-card-bg: #2c2c2c;
-        --info-card-shadow: rgba(0,0,0,0.2);
-    }
-
-    /* Quill Dark Mode Styles */
-    .ql-toolbar {
-        background-color: var(--header-bg) !important;
-        border-color: var(--header-border) !important;
-    }
-    .ql-container {
-        background-color: var(--bg-color) !important;
-        border-color: var(--header-border) !important;
-        color: var(--text-color) !important;
-    }
-    .ql-editor {
-        background-color: var(--bg-color) !important;
-        color: var(--text-color) !important;
-    }
-    .ql-snow .ql-stroke {
-        stroke: var(--text-color) !important;
-    }
-    .ql-snow .ql-picker-label {
-        color: var(--text-color) !important;
-    }
+html[data-theme='dark'] {
+    --bg-color: #1a1a1a; /* Dark background */
+    --text-color: #e0e0e0; /* Light text */
+    --header-bg: #2c2c2c;
+    --header-text: #e0e0e0;
+    --header-border: #444;
+    --logo-color: #e0e0e0;
+    --nav-link-color: #bbb;
+    --primary-color: #66b3ff; /* Lighter blue for dark mode */
+    --primary-hover: #4da6ff;
+    --secondary-button-bg: #555;
+    --secondary-button-hover: #666;
+    --login-bg: #2c2c2c;
+    --login-shadow: rgba(0,0,0,0.3);
+    --input-border: #555;
+    --error-color: #ff6b6b;
+    --sidebar-bg: #2c2c2c;
+    --sidebar-text: #e0e0e0;
+    --sidebar-shadow: rgba(0,0,0,0.3);
+    --sidebar-link-hover-bg: #3a3a3a;
+    --info-card-bg: #2c2c2c;
+    --info-card-shadow: rgba(0,0,0,0.2);
 }
 
-/* General Body and Container */
+/* General Body */
 body {
-    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; /* Modern font stack */
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     margin: 0;
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
 }
 
-.container {
-    width: 90%;
-    max-width: 1400px; /* Slightly wider container */
-    margin: 0 auto;
-    padding: 20px 0;
-}
-
 /* Admin Header */
 .admin-header {
     background-color: var(--header-bg);
     color: var(--header-text);
-    padding: 15px 0; /* More padding */
-    box-shadow: 0 2px 4px var(--login-shadow); /* Subtle shadow */
-    border-bottom: 1px solid var(--header-border); /* Light border */
-}
-
-.admin-header nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    box-shadow: 0 2px 4px var(--login-shadow);
+    border-bottom: 1px solid var(--header-border);
 }
 
 .admin-header .logo {
     color: var(--logo-color);
     text-decoration: none;
-    font-size: 26px; /* Slightly larger */
-    font-weight: 700; /* Bolder */
-}
-
-.admin-header ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-}
-
-.admin-header ul li {
-    margin-left: 25px; /* More spacing */
+    font-size: 26px;
+    font-weight: 700;
 }
 
 .admin-header ul li a {
@@ -134,324 +86,139 @@ body {
 
 /* Admin Main Content Area */
 .admin-main {
-    padding: 30px 0;
     min-height: calc(100vh - 150px); /* Adjust based on header/footer height */
 }
 
 /* Admin Footer */
 .admin-footer {
-    background-color: var(--header-bg); /* Use header background for consistency */
+    background-color: var(--header-bg);
     color: var(--header-text);
     text-align: center;
-    padding: 20px 0;
     width: 100%;
-    box-shadow: 0 -2px 4px var(--login-shadow); /* Subtle shadow */
+    box-shadow: 0 -2px 4px var(--login-shadow);
+}
+
+/* Admin Sidebar */
+.admin-sidebar {
+    background-color: var(--sidebar-bg);
+    box-shadow: 0 0 15px var(--sidebar-shadow);
+}
+
+.admin-sidebar .nav-link {
+    color: var(--sidebar-text);
+    font-weight: 500;
+}
+
+.admin-sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.admin-sidebar .nav-link:not(.active):hover {
+    background-color: var(--sidebar-link-hover-bg);
+}
+
+/* Ensure the title and logout link also use the correct colors */
+.admin-sidebar .link-dark {
+    color: var(--sidebar-text) !important;
+}
+
+.admin-sidebar .fs-4 {
+    color: var(--logo-color);
 }
 
 /* Login Form Specific Styles */
 .login-container {
     background-color: var(--login-bg);
-    padding: 40px; /* More padding */
-    border-radius: 10px; /* More rounded corners */
-    box-shadow: 0 5px 15px var(--login-shadow); /* More pronounced shadow */
+    border-radius: 10px;
+    box-shadow: 0 5px 15px var(--login-shadow);
     width: 100%;
-    max-width: 450px; /* Slightly wider */
+    max-width: 450px;
     margin: 80px auto;
     text-align: center;
 }
 
 .login-container h1 {
-    color: var(--logo-color); /* Use logo color for consistency */
-    margin-bottom: 30px;
+    color: var(--logo-color);
     font-size: 28px;
 }
 
-.form-group {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
 label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--nav-link-color); /* Use nav link color for consistency */
+    color: var(--nav-link-color);
     font-weight: 600;
 }
 
 input[type="text"],
 input[type="password"] {
-    width: 100%;
-    padding: 12px; /* More padding */
     border: 1px solid var(--input-border);
-    border-radius: 6px; /* More rounded */
-    box-sizing: border-box;
-    font-size: 16px;
-    background-color: var(--header-bg); /* Input background */
-    color: var(--text-color); /* Input text color */
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
     border-radius: 6px;
-    cursor: pointer;
-    font-size: 18px;
-    margin-top: 20px;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    background-color: var(--header-bg);
+    color: var(--text-color);
 }
 
-button:hover {
-    background-color: var(--primary-hover);
-    transform: translateY(-2px); /* Subtle lift effect */
-}
 
-#message {
-    margin-top: 20px;
-    color: var(--error-color);
-    font-weight: 600;
-}
-
-/* Dashboard Layout */
-.admin-wrapper {
-    display: flex;
-    min-height: calc(100vh - 100px); /* Adjust for header/footer */
-    padding: 20px; /* Padding around the whole wrapper */
-    gap: 20px; /* Space between sidebar and content */
-}
-
-.admin-sidebar {
-    width: 200px; /* Adjusted width */
-    background-color: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    padding: 25px; /* More padding */
-    border-radius: 10px; /* Rounded corners */
-    box-shadow: 0 5px 15px var(--sidebar-shadow); /* More pronounced shadow */
-    flex-shrink: 0; /* Prevent shrinking */
-}
-
-.admin-sidebar nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.admin-sidebar nav ul li {
-    margin-bottom: 10px; /* Increased margin for more spacing */
-}
-
-.admin-sidebar nav ul li a {
-    color: var(--nav-link-color); /* Use nav link color for consistency */
-    text-decoration: none;
-    display: block;
-    padding: 14px 18px; /* Increased padding */
-    border-radius: 8px; /* More rounded */
-    transition: background-color 0.3s ease, color 0.3s ease;
-    font-weight: 600; /* Bolder font */
-    font-size: 17px; /* Slightly larger font size */
-}
-
-.admin-sidebar nav ul li a:hover {
-    background-color: var(--sidebar-link-hover-bg);
-    color: var(--primary-color);
-}
-
-.admin-sidebar nav ul li.active a {
-    background-color: var(--primary-color) !important;
-    color: white !important; /* White text for active */
-    font-weight: 600;
-    box-shadow: 0 2px 5px rgba(0,123,255,0.2); /* Subtle shadow for active */
-}
-
-.admin-content {
-    flex-grow: 1;
-    padding: 30px; /* More padding */
-    background-color: var(--sidebar-bg); /* Use sidebar background for consistency */
-    border-radius: 10px; /* Rounded corners */
-    box-shadow: 0 5px 15px var(--sidebar-shadow); /* More pronounced shadow */
-}
-
-/* Adjust existing dashboard-container if it's still used */
-.dashboard-container {
-    padding: 0; /* Remove inner padding as admin-content has it */
-}
 
 .info-card {
     background-color: var(--info-card-bg);
     border-left: 5px solid var(--primary-color);
-    padding: 20px; /* More padding */
-    margin-bottom: 25px; /* More margin */
-    border-radius: 8px; /* Rounded corners */
-    box-shadow: 0 2px 8px var(--info-card-shadow); /* Subtle shadow */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--info-card-shadow);
 }
 
 .info-card h2 {
-    margin-top: 0;
     color: var(--primary-color);
     font-size: 22px;
-    margin-bottom: 15px;
 }
 
 .info-card p {
     font-size: 16px;
-    color: var(--nav-link-color); /* Use nav link color for consistency */
-}
-
-.nav-links {
-    display: flex; /* Use flex for better layout */
-    flex-wrap: wrap; /* Allow wrapping */
-    gap: 15px; /* Space between links */
-    margin-top: 30px;
+    color: var(--nav-link-color);
 }
 
 .nav-links a {
-    display: inline-block;
     background-color: var(--secondary-button-bg);
     color: white;
-    padding: 12px 20px; /* More padding */
     text-decoration: none;
-    border-radius: 6px; /* More rounded */
+    border-radius: 6px;
     transition: background-color 0.3s ease, transform 0.2s ease;
     font-weight: 600;
 }
 
 .nav-links a:hover {
     background-color: var(--secondary-button-hover);
-    transform: translateY(-2px); /* Subtle lift effect */
-}
-
-/* Dashboard Grid Layout */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive columns */
-    gap: 20px; /* Space between grid items */
-    margin-top: 20px; /* Space below dashboard title */
-}
-
-/* Adjust info-card within the grid */
-.dashboard-grid .info-card {
-    margin-bottom: 0; /* Remove bottom margin as gap handles spacing */
-}
-
-/* Responsive adjustments for dashboard grid */
-@media (max-width: 768px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr; /* Single column on small screens */
-    }
-}
-
-@media (max-width: 768px) {
-    .admin-wrapper {
-        flex-direction: column; /* Stack sidebar and content vertically */
-        padding: 10px;
-        gap: 10px;
-    }
-
-    .admin-sidebar {
-        width: 100%; /* Full width sidebar */
-        padding: 15px;
-        border-radius: 0; /* Remove rounded corners for full width */
-        box-shadow: none; /* Remove shadow */
-    }
-
-    .admin-sidebar nav ul {
-        display: flex; /* Make sidebar links horizontal */
-        flex-wrap: wrap;
-        justify-content: center; /* Center the links */
-        gap: 10px; /* Space between horizontal links */
-    }
-
-    .admin-sidebar nav ul li {
-        margin-bottom: 0; /* Remove vertical margin */
-    }
-
-    .admin-sidebar nav ul li a {
-        padding: 8px 12px; /* Smaller padding for horizontal links */
-        font-size: 14px;
-    }
-
-    .admin-content {
-        margin-left: 0; /* Remove left margin */
-        padding: 15px;
-        border-radius: 0; /* Remove rounded corners */
-        box-shadow: none; /* Remove shadow */
-    }
-
-    .login-container {
-        margin: 40px auto;
-        padding: 25px;
-    }
-
-    .login-container h1 {
-        font-size: 24px;
-    }
-
-    button {
-        font-size: 16px;
-        padding: 10px;
-    }
-
-    .info-card {
-        padding: 15px;
-        margin-bottom: 15px;
-    }
-
-    .info-card h2 {
-        font-size: 20px;
-    }
-
-    .nav-links {
-        flex-direction: column; /* Stack nav links vertically */
-        gap: 10px;
-    }
-
-    .nav-links a {
-        width: 100%; /* Full width buttons */
-        text-align: center;
-        padding: 10px;
-    }
+    transform: translateY(-2px);
 }
 
 /* Admin Table Styles */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
-    background-color: var(--sidebar-bg); /* Use sidebar background for consistency */
+    background-color: var(--sidebar-bg);
     border-radius: 8px;
-    overflow: hidden; /* Ensures rounded corners apply to children */
+    overflow: hidden;
     box-shadow: 0 2px 8px var(--info-card-shadow);
 }
 
 .admin-table th, .admin-table td {
-    padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid var(--header-border);
     color: var(--text-color);
 }
 
 .admin-table th {
-    background-color: var(--bg-color); /* Lighter background for headers */
+    background-color: var(--bg-color);
     font-weight: 600;
     color: var(--logo-color);
 }
 
 .admin-table tbody tr:hover {
-    background-color: var(--sidebar-link-hover-bg); /* Hover effect for rows */
+    background-color: var(--sidebar-link-hover-bg);
 }
 
 /* Admin Actions (New Page Button) */
-.admin-actions {
-    margin-bottom: 20px;
-    text-align: right; /* Align button to the right */
-}
-
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
-    padding: 10px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
@@ -465,7 +232,6 @@ button:hover {
 }
 
 .btn-sm {
-    padding: 6px 12px;
     font-size: 14px;
     border-radius: 4px;
     line-height: 1.5;
@@ -484,30 +250,63 @@ button:hover {
 }
 
 .btn-danger {
-    background-color: #e74c3c; /* Red for danger */
+    background-color: #e74c3c;
     color: white;
     border: none;
     transition: background-color 0.3s ease;
 }
 
 .btn-danger:hover {
-    background-color: #c0392b; /* Darker red on hover */
+    background-color: #c0392b;
 }
 
-.button-group {
-    display: flex;
-    gap: 8px;
-    align-items: stretch;
+/* Quill Styles (re-evaluate after refactoring) */
+.ql-toolbar.ql-snow {
+    border: 1px solid var(--header-border);
+    background-color: var(--header-bg);
 }
 
-.button-group > * {
-    flex: 1;
-    text-align: center;
-    margin: 0;
+.ql-container.ql-snow {
+    border: 1px solid var(--header-border);
+    background-color: var(--bg-color);
+    color: var(--text-color);
 }
 
-.button-group a.btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.ql-editor {
+    color: var(--text-color);
+}
+
+/* Quill Dark Mode Styles */
+html[data-theme='dark'] .ql-toolbar.ql-snow {
+    background-color: var(--header-bg) !important;
+    border-color: var(--header-border) !important;
+}
+html[data-theme='dark'] .ql-container.ql-snow {
+    background-color: var(--bg-color) !important;
+    border-color: var(--header-border) !important;
+}
+html[data-theme='dark'] .ql-editor {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+}
+html[data-theme='dark'] .ql-snow .ql-stroke {
+    stroke: var(--text-color) !important;
+}
+html[data-theme='dark'] .ql-snow .ql-picker-label {
+    color: var(--text-color) !important;
+}
+
+/* Bootstrap Table Overrides for Dark Mode */
+html[data-theme='dark'] .table {
+    --bs-table-color: var(--text-color);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--header-border);
+    --bs-table-striped-color: var(--text-color);
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-color: var(--text-color);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+}
+
+html[data-theme='dark'] .table thead th {
+    background-color: rgba(255, 255, 255, 0.02);
 }

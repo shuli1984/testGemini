@@ -1,22 +1,24 @@
-<header>
-    <nav class="container">
-        <a href="/" class="logo">{{T .CurrentLang "site_title"}}</a>
-        <div class="menu-toggle" id="mobile-menu">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">{{T .CurrentLang "site_title"}}</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                {{range .Site.MenuItems}}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{.URL}}">{{.Text}}</a>
+                </li>
+                {{end}}
+            </ul>
+            <div class="language-switcher">
+                <select id="lang-select" class="form-select form-select-sm">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                </select>
+            </div>
         </div>
-        <ul class="nav-links">
-            {{range .Site.MenuItems}}
-            <li><a href="{{.URL}}">{{.Text}}</a></li>
-            {{end}}
-        </ul>
-        <div class="language-switcher">
-            <select id="lang-select">
-                <option value="en">English</option>
-                <option value="zh">中文</option>
-                <option value="ja">日本語</option>
-            </select>
-        </div>
-    </nav>
-</header>
+    </div>
+</nav>

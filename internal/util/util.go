@@ -1,6 +1,9 @@
 package util
 
 import (
+	"fmt"
+	"gemini-demo/internal/i18n"
+	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,4 +67,45 @@ func ProjectRoot(testExecutablePath string) string {
 func ResetProjectRootCacheForTesting() {
 	once = sync.Once{}
 	projectRootCache = ""
+}
+
+func ParseTemplates(translator *i18n.Translator, projectRoot ...string) (*template.Template, error) {
+	var actualProjectRoot string
+	if len(projectRoot) > 0 && projectRoot[0] != "" {
+		actualProjectRoot = projectRoot[0]
+	} else {
+		actualProjectRoot = ProjectRoot("")
+	}
+
+	var templateFiles []string
+	err := filepath.Walk(filepath.Join(actualProjectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+			templateFiles = append(templateFiles, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error walking templates directory: %w", err)
+	}
+
+	if len(templateFiles) == 0 {
+		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(actualProjectRoot, "templates"))
+	}
+
+	funcMap := template.FuncMap{
+		"T": func(lang, key string) string {
+			return translator.GetTranslation(lang, key)
+		},
+		"hasPrefix": strings.HasPrefix,
+	}
+
+	tmpl := template.New("main").Funcs(funcMap)
+	tmpl, err = tmpl.ParseFiles(templateFiles...)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing templates: %w", err)
+	}
+	return tmpl, nil
 }

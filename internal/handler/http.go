@@ -5,6 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"gemini-demo/internal/auth"
+	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/models"
+	"gemini-demo/internal/util"
 	"html/template"
 	"io"
 	"log"
@@ -13,12 +17,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gemini-demo/internal/auth"
-	"gemini-demo/internal/i18n"
-	"gemini-demo/internal/models"
-
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -26,7 +27,30 @@ type Handler struct {
 	AuthService *auth.AuthService
 	Templates   *template.Template
 	DebugLog    func(format string, v ...interface{})
-	Translator  *i18n.Translator // Add Translator field
+	Translator  *i18n.Translator
+	DebugMode   bool
+}
+
+func (h *Handler) renderTemplate(w http.ResponseWriter, r *http.Request, templateName string, data interface{}) {
+	templates := h.Templates
+	var err error
+
+	if h.DebugMode {
+		templates, err = util.ParseTemplates(h.Translator)
+		if err != nil {
+			log.Printf("Error parsing templates in debug mode: %v", err)
+			http.Error(w, "Error processing template", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	var buf bytes.Buffer
+	if err := templates.ExecuteTemplate(&buf, templateName, data); err != nil {
+		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error executing template (%s): %v", templateName, err)
+		return
+	}
+	buf.WriteTo(w)
 }
 
 // LoginTemplateData holds data for the login page template.
@@ -50,7 +74,8 @@ type AdminEditPageTemplateData struct {
 	CurrentPath string
 	CurrentLang string
 	Title       string
-	Message     template.HTML // Add this
+	Message     template.HTML
+	IsNew       bool // Flag for new page creation
 }
 
 // AdminPagesTemplateData holds data for the admin pages list template.
@@ -120,16 +145,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// Execute the template to a buffer first to catch errors before writing to w
-	var buf bytes.Buffer
-	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf("Error executing template (IndexHandler): %v", err)
-		return
-	}
-
-	// If no error, write the buffer's content to the response writer
-	buf.WriteTo(w)
+	h.renderTemplate(w, r, getTemplateName(r), data)
 }
 
 func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
@@ -161,12 +177,7 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 	}
 
-	// Use pre-parsed templates
-	if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), combinedData); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
-		log.Printf(h.Translator.GetTranslation(currentLang, "error_executing_template")+ ": %v", err) // Translated
-		return
-	}
+	h.renderTemplate(w, r, getTemplateName(r), combinedData)
 }
 
 func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
@@ -188,10 +199,7 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 	}
 
-	if err := h.Templates.ExecuteTemplate(w, "about.html", data); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		h.DebugLog("Error executing about.html template: %v", err)
-	}
+	h.renderTemplate(w, r, "about.html", data)
 }
 
 
@@ -259,9 +267,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 			CSRFToken: token,
 			CurrentLang: currentLang,
 		}
-		if err := h.Templates.ExecuteTemplate(w, getTemplateName(r), data); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		h.renderTemplate(w, r, getTemplateName(r), data)
 		return
 	}
 
@@ -313,16 +319,7 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentPath:   r.URL.Path, // Pass the current request path
 		CurrentLang:   currentLang,
 	}
-	// Execute the template to a buffer first to catch errors before writing to w
-	var buf bytes.Buffer
-	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), templateData); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf(h.Translator.GetTranslation(currentLang, "error_executing_template")+ ": %v", err) // Add logging for template execution error
-		return
-	}
-
-	// If no error, write the buffer's content to the response writer
-	buf.WriteTo(w)
+	h.renderTemplate(w, r, getTemplateName(r), templateData)
 }
 
 // PagesHandler displays the list of pages in the admin panel.
@@ -343,13 +340,7 @@ func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 	}
 
-	var buf bytes.Buffer
-	if err := h.Templates.ExecuteTemplate(&buf, getTemplateName(r), data); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf("Error executing template (PagesHandler): %v", err)
-		return
-	}
-	buf.WriteTo(w)
+	h.renderTemplate(w, r, getTemplateName(r), data)
 }
 
 // AdminEditPageHandler handles the display of the admin page edit form.
@@ -377,13 +368,7 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		Message:     template.HTML(page.Message),
 	}
 
-	var buf bytes.Buffer
-	if err := h.Templates.ExecuteTemplate(&buf, "admin_edit.html", data); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf("Error executing template (AdminEditPageHandler): %v", err)
-		return
-	}
-	buf.WriteTo(w)
+	h.renderTemplate(w, r, "admin_edit.html", data)
 }
 
 
@@ -443,6 +428,80 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"url": "/static/images/" + filename,
 	})
+}
+
+// AdminNewPageHandler handles both displaying the form and creating a new page.
+func (h *Handler) AdminNewPageHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost {
+		h.createPagePost(w, r)
+		return
+	}
+	h.showNewPageForm(w, r)
+}
+
+func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+	data := AdminEditPageTemplateData{
+		Title:       h.Translator.GetTranslation(currentLang, "new_page_title"),
+		Page:        &models.Page{},
+		CSRFToken:   csrf.Token(r),
+		CurrentPath: r.URL.Path,
+		CurrentLang: currentLang,
+		Message:     "",
+		IsNew:       true,
+	}
+
+	h.renderTemplate(w, r, "admin_edit.html", data)
+}
+
+func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+	var newPage models.Page
+	if err := json.NewDecoder(r.Body).Decode(&newPage); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(newPage.Name) == "" || strings.TrimSpace(newPage.Title) == "" {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "page_name_title_required"), http.StatusBadRequest)
+		return
+	}
+
+	_, err := h.Store.GetPageData(newPage.Name)
+	if err == nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "page_exists"), http.StatusConflict)
+		return
+	}
+
+	if err := h.Store.CreatePage(&newPage); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error creating page: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(newPage)
+}
+
+// DeletePageHandler handles the deletion of a page.
+func (h *Handler) DeletePageHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	pageName := vars["name"]
+	currentLang := h.getLanguage(r)
+
+	err := h.Store.DeletePage(pageName)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
+		} else {
+			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		}
+		log.Printf("Error deleting page %s: %v", pageName, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // getLanguage determines the language based on Accept-Language header or a cookie.

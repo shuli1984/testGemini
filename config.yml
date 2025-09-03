@@ -32,6 +32,12 @@ routes:
     methods:
       - "GET"
     auth_required: true
+  - path: /admin/pages/new
+    handler: AdminNewPageHandler
+    methods: 
+      - GET
+      - POST
+    auth_required: true
   - path: "/admin/pages/edit/{name}"
     handler: "AdminEditPageHandler"
     methods:
@@ -41,6 +47,10 @@ routes:
     handler: "UpdatePageHandler"
     methods:
       - "PUT"
+    auth_required: true
+  - path: /admin/pages/delete/{name}
+    handler: DeletePageHandler
+    methods: [DELETE]
     auth_required: true
   - path: "/admin/upload"
     handler: "ImageUploadHandler"
