@@ -115,7 +115,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := New(cfg, db, tmpl, mockCSRFMiddleware, translator, debugLog)
+	srv := New(cfg, db, tmpl, mockCSRFMiddleware, translator, debugLog, false)
 
 	
 
@@ -167,12 +167,12 @@ func TestNew(t *testing.T) {
 		}
 
 		// Check for key content in the rendered HTML
-		expectedContent := "<h1>About Us</h1>"
+		expectedContent := "about_hero_title"
 		if !strings.Contains(rr.Body.String(), expectedContent) {
 			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
 				expectedContent, rr.Body.String())
 		}
-		expectedContent = "<p>This is a simple content management system built with Go.</p>"
+		expectedContent = "our_story_content"
 		if !strings.Contains(rr.Body.String(), expectedContent) {
 			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
 				expectedContent, rr.Body.String())
@@ -264,7 +264,7 @@ func TestNew(t *testing.T) {
 	})
 }
 
-func TestNew_UnmarshalKeyError(t *testing.T) {
+func TestNew_PanicOnNilConfig(t *testing.T) {
 	// Expect a panic
 	defer func() {
 		if r := recover(); r == nil {
@@ -273,5 +273,5 @@ func TestNew_UnmarshalKeyError(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	New(nil, nil, nil, nil, nil, nil) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
+	New(nil, nil, nil, nil, nil, nil, false) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
 }
