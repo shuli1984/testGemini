@@ -76,8 +76,12 @@ database:
   type: "sqlite"
   dsn: "./data/gemini.db"
 auth:
-  session_key: "a-very-secret-key" # TODO: Change this in a real application
-  csrf_key: "gRj1e8E7oXlQocFkJx1sgdIqvKNKOG22wj4lvHF7AfI="
+  # SessionKey and CSRFKey should be loaded from environment variables for security.
+  # Example: SESSION_KEY: os.Getenv("SESSION_KEY")
+  # Example: CSRF_KEY: os.Getenv("CSRF_KEY")
+  # Do NOT hardcode sensitive keys in version control.
+  session_key: "" # Placeholder, will be overridden by env var
+  csrf_key: ""    # Placeholder, will be overridden by env var
   trusted_origins: # New field for CSRF trusted origins
     - "https://your-production-domain.com" # Placeholder for production
     - "http://localhost:8080" # For local development

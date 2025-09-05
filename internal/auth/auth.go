@@ -34,16 +34,10 @@ func NewAuthService(sessionKey string) *AuthService {
 // In a real application, this would check against a database.
 func (s *AuthService) Authenticate(username, password string) bool {
 	expectedUsername := os.Getenv("ADMIN_USERNAME")
-	if expectedUsername == "" {
-		expectedUsername = "admin" // Fallback for demonstration
-		log.Println("Warning: ADMIN_USERNAME environment variable not set. Using default 'admin'.")
-	}
+	// No fallback. If not set, authentication will fail.
 
 	expectedPassword := os.Getenv("ADMIN_PASSWORD")
-	if expectedPassword == "" {
-		expectedPassword = "password" // Fallback for demonstration
-		log.Println("Warning: ADMIN_PASSWORD environment variable not set. Using default 'password'.")
-	}
+	// No fallback. If not set, authentication will fail.
 
 	return username == expectedUsername && password == expectedPassword
 }
