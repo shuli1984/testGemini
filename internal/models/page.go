@@ -5,6 +5,7 @@ import (
 	"io/ioutil"     // Added
 	"log"
 	"path/filepath" // Added
+	"html/template" // Added
 	"gemini-demo/internal/util" // Added
 
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ type Page struct {
 	Name        string `gorm:"uniqueIndex"`
 	Title       string
 	Description string
-	Message     string
+	Message     template.HTML
 }
 
 func AutoMigrateAndSeed(db *gorm.DB) error {

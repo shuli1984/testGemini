@@ -1,0 +1,17 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="{{.CurrentLang}}">
+<head>
+    {{template "header.html" .}}
+</head>
+<body>
+    {{template "nav.html" .}}
+
+    <main>
+                {{block "content" .}}{{end}}
+    </main>
+
+    {{template "footer.html" .}}
+</body>
+</html>
+{{end}}

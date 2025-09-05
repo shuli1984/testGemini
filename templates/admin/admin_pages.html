@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="{{.CurrentLang}}">
-{{template "admin_header.html" .}}
+{{template "admin/admin_header.html" .}}
 <body>
     <div class="d-flex flex-column flex-md-row min-vh-100">
         <div class="border-end">
-            {{template "admin_nav.html" .}}
+            {{template "admin/admin_nav.html" .}}
         </div>
         <div class="p-4 shadow-sm flex-grow-1">
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -48,7 +48,7 @@
         </div>
     </div>
 
-    {{template "admin_footer.html" .}}
+        {{template "admin/admin_footer.html" .}}
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

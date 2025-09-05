@@ -1,11 +1,9 @@
-{{template "header.html" .}}
-{{template "nav.html" .}}
+{{template "base" .}}
 
-<main>
-    <section class="hero text-center py-5 bg-light">
+{{define "content"}}
+    <section class="page-hero text-center py-5">
         <div class="container">
             <h1 class="display-4 mb-3">{{.Page.Title}}</h1>
-            <p class="lead">{{.Page.Description}}</p>
         </div>
     </section>
 
@@ -16,6 +14,4 @@
             </div>
         </div>
     </section>
-</main>
-
-{{template "footer.html" .}}
+{{end}}

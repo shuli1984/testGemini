@@ -1,68 +1,61 @@
-{{template "header.html" .}}
-{{template "nav.html" .}}
+{{template "base" .}}
 
-<main>
-    <section class="hero text-center py-5" style="background: url('/static/images/hero-bg-1.jpg') no-repeat center center/cover;">
-        <div class="container">
-            <h1 class="display-4 text-white mb-3">{{T .CurrentLang "hero_title"}}</h1>
-            <p class="lead text-white-50 mb-4">{{T .CurrentLang "hero_description"}}</p>
-            <a href="#about" class="btn btn-primary btn-lg">{{T .CurrentLang "learn_more"}}</a>
+{{define "content"}}
+    <section id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
+        <div class="carousel-indicators">
+            {{range $i, $e := .Site.CarouselItems}}
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{$i}}" class="{{if eq $i 0}}active{{end}}" aria-current="{{if eq $i 0}}true{{end}}" aria-label="Slide {{$i}}"></button>
+            {{end}}
         </div>
+        <div class="carousel-inner">
+            {{range .Site.CarouselItems}}
+            <div class="carousel-item {{if .Active}}active{{end}}" style="background-image: url('{{.BackgroundImage}}');">
+                <div class="container">
+                    <div class="hero-content text-center">
+                        <h1 class="display-4">{{.Title}}</h1>
+                        <p class="lead">{{.Description}}</p>
+                        <a href="{{.ButtonLink}}" class="btn btn-primary btn-lg">{{.ButtonText}}</a>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
     </section>
 
-    <section class="features py-5">
+    <section id="services" class="section py-5">
         <div class="container">
-            <h2 class="text-center mb-5">{{T .CurrentLang "features_title"}}</h2>
-            <div class="row row-cols-1 row-cols-md-3 g-4"> <!-- feature-grid -->
-                <div class="col">
-                    <div class="feature-item text-center p-4 border rounded shadow-sm">
-                        <h3 class="h5 mb-3">{{T .CurrentLang "feature_1_title"}}</h3>
-                        <p class="text-muted">{{T .CurrentLang "feature_1_description"}}</p>
-                    </div>
+            <h2 class="section-title text-center mb-5">{{T .CurrentLang "core_solutions"}}</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <h3>{{T .CurrentLang "ai_ml_title"}}</h3>
+                    <p>{{T .CurrentLang "ai_ml_description"}}</p>
                 </div>
-                <div class="col">
-                    <div class="feature-item text-center p-4 border rounded shadow-sm">
-                        <h3 class="h5 mb-3">{{T .CurrentLang "feature_2_title"}}</h3>
-                        <p class="text-muted">{{T .CurrentLang "feature_2_description"}}</p>
-                    </div>
+                <div class="service-card">
+                    <h3>{{T .CurrentLang "enterprise_cloud_title"}}</h3>
+                    <p>{{T .CurrentLang "enterprise_cloud_description"}}</p>
                 </div>
-                <div class="col">
-                    <div class="feature-item text-center p-4 border rounded shadow-sm">
-                        <h3 class="h5 mb-3">{{T .CurrentLang "feature_3_title"}}</h3>
-                        <p class="text-muted">{{T .CurrentLang "feature_3_description"}}</p>
-                    </div>
+                <div class="service-card">
+                    <h3>{{T .CurrentLang "it_infra_modernization_title"}}</h3>
+                    <p>{{T .CurrentLang "it_infra_modernization_description"}}</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="about py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-4">{{T .CurrentLang "about_title"}}</h2>
-            <p class="lead text-center">{{T .CurrentLang "about_description"}}</p>
+    <section id="about" class="section py-5 bg-light">
+         <div class="container">
+            <h2 class="section-title text-center mb-4">{{T .CurrentLang "about_us_title"}}</h2>
+            <p class="text-center">
+                {{T .CurrentLang "about_us_description"}}
+            </p>
         </div>
     </section>
-
-    <section class="contact py-5">
-        <div class="container">
-            <h2 class="text-center mb-4">{{T .CurrentLang "contact_title"}}</h2>
-            <p class="lead text-center mb-5">{{T .CurrentLang "contact_description"}}</p>
-            <form class="row g-3 justify-content-center">
-                <div class="col-md-6">
-                    <input type="text" class="form-control" placeholder="{{T .CurrentLang "name_placeholder"}}">
-                </div>
-                <div class="col-md-6">
-                    <input type="email" class="form-control" placeholder="{{T .CurrentLang "email_placeholder"}}">
-                </div>
-                <div class="col-12">
-                    <textarea class="form-control" rows="5" placeholder="{{T .CurrentLang "message_placeholder"}}"></textarea>
-                </div>
-                <div class="col-12 text-center">
-                    <button type="submit" class="btn btn-primary btn-lg">{{T .CurrentLang "send_message"}}</button>
-                </div>
-            </form>
-        </div>
-    </section>
-</main>
-
-{{template "footer.html" .}}
+{{end}}

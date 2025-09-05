@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="{{.CurrentLang}}">
-{{template "admin_header.html" .}}
+{{template "admin/admin_header.html" .}}
 <body>
     <div class="d-flex flex-column flex-md-row min-vh-100">
         <div class="border-end">
-            {{template "admin_nav.html" .}}
+            {{template "admin/admin_nav.html" .}}
         </div>
         <div class="p-4 shadow-sm flex-grow-1">
             <h1 class="mb-4">{{T .CurrentLang "dashboard_title"}}</h1>
@@ -14,7 +14,7 @@
                 <div class="col">
                     <div class="p-4 border-start border-primary border-5 rounded shadow-sm">
                         <h2 class="mb-3">{{T .CurrentLang "system_overview"}}</h2>
-                        <p class="text-muted">{{T .CurrentLang "total_pages"}}: {{.DashboardData.PageCount}}</p>
+                        <p class="text-muted">{{T .CurrentLang "total_pages"}}: {{.PageCount}}</p>
                         <!-- Add more system info here -->
                     </div>
                 </div>
@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="col">
-                    <div class.="p-4 border-start border-primary border-5 rounded shadow-sm">
+                    <div class="p-4 border-start border-primary border-5 rounded shadow-sm">
                         <h2 class="mb-3">{{T .CurrentLang "recent_activity"}}</h2>
                         <p class="text-muted">{{T .CurrentLang "no_recent_activity"}}</p>
                         <!-- Placeholder for recent activity -->
@@ -42,6 +42,6 @@
         </div>
     </div>
 
-    {{template "admin_footer.html" .}}
+    {{template "admin/admin_footer.html" .}}
 </body>
 </html>

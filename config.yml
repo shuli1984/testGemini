@@ -16,6 +16,11 @@ routes:
     methods:
       - "GET"
     auth_required: false
+  - path: "/pages"
+    handler: "PagesListHandler"
+    methods:
+      - "GET"
+    auth_required: false
   - path: "/admin/login"
     handler: "LoginHandler"
     methods:

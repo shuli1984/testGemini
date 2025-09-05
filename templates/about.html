@@ -1,7 +1,6 @@
-{{template "header.html" .}}
-{{template "nav.html" .}}
+{{template "base" .}}
 
-<main>
+{{define "content"}}
     <section class="hero text-center py-5 bg-primary text-white">
         <div class="container">
             <h1 class="display-4 mb-3">{{T .CurrentLang "about_hero_title"}}</h1>
@@ -40,6 +39,4 @@
             </div>
         </div>
     </section>
-</main>
-
-{{template "footer.html" .}}
+{{end}}
