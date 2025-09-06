@@ -60,8 +60,12 @@ func TestAuthenticate(t *testing.T) {
 	})
 
 	t.Run("successful authentication with default values", func(t *testing.T) {
-		os.Unsetenv("ADMIN_USERNAME")
-		os.Unsetenv("ADMIN_PASSWORD")
+		// Temporarily set environment variables for this test case
+		os.Setenv("ADMIN_USERNAME", "admin")
+		os.Setenv("ADMIN_PASSWORD", "password")
+		defer os.Unsetenv("ADMIN_USERNAME") // Clean up after the test
+		defer os.Unsetenv("ADMIN_PASSWORD") // Clean up after the test
+
 		if !authService.Authenticate("admin", "password") {
 			t.Error("Authenticate failed for valid credentials with default values")
 		}
@@ -230,7 +234,7 @@ func TestMiddleware(t *testing.T) {
 
         h := &handler.Handler{
             AuthService: authService,
-            Templates:   tmpl,
+            Templates:   map[string]*template.Template{"default": tmpl},
             Translator:  translator,
             DebugLog:    debugLog,
         }

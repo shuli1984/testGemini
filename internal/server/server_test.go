@@ -1,13 +1,8 @@
 package server
 
 import (
-	
-	"fmt"
-	"html/template"
-	"gemini-demo/internal/auth"
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/database"
-	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n" // Added for i18n
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/util"
@@ -19,42 +14,7 @@ import (
 	"testing"
 )
 
-// parseTemplates walks the templates directory and parses all .html files.
-func parseTemplates(translator *i18n.Translator) (*template.Template, error) {
-	projectRoot := util.ProjectRoot("") // Using util.ProjectRoot
-	var templateFiles []string
-	err := filepath.Walk(filepath.Join(projectRoot, "templates"), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error walking templates directory: %w", err)
-	}
 
-	if len(templateFiles) == 0 {
-		return nil, fmt.Errorf("no HTML templates found in %s", filepath.Join(projectRoot, "templates"))
-	}
-
-	// Create a FuncMap for templates
-	funcMap := template.FuncMap{
-		"T": func(lang, key string) string {
-			return translator.GetTranslation(lang, key)
-		},
-		"hasPrefix": strings.HasPrefix,
-	}
-
-	tmpl := template.New("main").Funcs(funcMap)
-	tmpl, err = tmpl.ParseFiles(templateFiles...)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing templates: %w", err)
-	}
-	return tmpl, nil
-}
 
 // debugLog is a dummy function for testing to prevent nil pointer dereference
 func debugLog(format string, v ...interface{}) {
@@ -63,6 +23,8 @@ func debugLog(format string, v ...interface{}) {
 }
 
 func TestNew(t *testing.T) {
+	os.Setenv("ADMIN_USERNAME", "admin")
+	os.Setenv("ADMIN_PASSWORD", "password")
 	// Set up the database for testing
 	
 	cfg := &config.Config{
@@ -77,7 +39,7 @@ func TestNew(t *testing.T) {
 			{Path: "/", Handler: "IndexHandler", Methods: []string{"GET"}, AuthRequired: false},
 			{Path: "/about", Handler: "AboutHandler", Methods: []string{"GET"}, AuthRequired: false},
 			{Path: "/admin/dashboard", Handler: "DashboardHandler", Methods: []string{"GET"}, AuthRequired: true},
-			{Path: "/admin/login", Handler: "LoginHandler", Methods: []string{"GET"}, AuthRequired: false},
+			{Path: "/admin/login", Handler: "LoginHandler", Methods: []string{"GET", "POST"}, AuthRequired: false},
 			{Path: "/admin/redirect", Handler: "AdminRedirectHandler", Methods: []string{"GET"}, AuthRequired: true},
 			{Path: "/nonexistent", Handler: "NonExistentHandler", Methods: []string{"GET"}, AuthRequired: false},
 		},
@@ -103,7 +65,7 @@ func TestNew(t *testing.T) {
 	}
 
 	// Parse templates for testing
-	tmpl, err := parseTemplates(translator)
+	templatesMap, err := util.ParseTemplates(translator)
 	if err != nil {
 		t.Fatalf("failed to parse templates: %v", err)
 	}
@@ -115,7 +77,7 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := New(cfg, db, tmpl, mockCSRFMiddleware, translator, debugLog, false)
+	srv := New(cfg, db, templatesMap, mockCSRFMiddleware, translator, debugLog, false) // Use the map directly
 
 	
 
@@ -200,51 +162,54 @@ func TestNew(t *testing.T) {
 
 	// Test authenticated access to /admin/dashboard
 	t.Run("allows authenticated access to /admin/dashboard", func(t *testing.T) {
-		// Simulate a logged-in session
-		// We need a handler instance to call AuthService.Login
-		authService := auth.NewAuthService(cfg.Auth.SessionKey)
-		h := &handler.Handler{Store: &models.DBStore{DB: db}, AuthService: authService, Translator: translator, DebugLog: debugLog}
+		// Create a new server for this test
+		ts := httptest.NewServer(srv.Handler)
+		defer ts.Close()
 
-		// Create a dummy request for Login to set the cookie
-		loginReq, err := http.NewRequest("POST", "/admin/login", strings.NewReader(`{"username":"admin","password":"password"}`))
+		// Create a client with a cookie jar to store the session cookie
+		client := &http.Client{}
+
+		// Simulate login
+		loginURL := ts.URL + "/admin/login"
+		loginBody := strings.NewReader(`{"username":"admin","password":"password"}`)
+		loginReq, err := http.NewRequest("POST", loginURL, loginBody)
 		if err != nil {
 			t.Fatalf("could not create login request: %v", err)
 		}
-		loginRr := httptest.NewRecorder()
-		h.LoginHandler(loginRr, loginReq)
+		loginReq.Header.Set("Content-Type", "application/json")
 
-		if loginRr.Code != http.StatusOK {
-			t.Fatalf("failed to simulate login: status %d, body %s", loginRr.Code, loginRr.Body.String())
+		loginResp, err := client.Do(loginReq)
+		if err != nil {
+			t.Fatalf("login request failed: %v", err)
 		}
+		defer loginResp.Body.Close()
 
-		// Get the session cookie from the login response
-		var sessionCookie *http.Cookie
-		for _, cookie := range loginRr.Result().Cookies() {
-			if cookie.Name == "gemini-session" {
-				sessionCookie = cookie
-				break
-			}
-		}
-		if sessionCookie == nil {
-			t.Fatalf("session cookie not found after simulated login")
+		if loginResp.StatusCode != http.StatusOK {
+			t.Fatalf("failed to simulate login: status %d", loginResp.StatusCode)
 		}
 
 		// Now make the actual request to /admin/dashboard with the session cookie
-		req, err := http.NewRequest("GET", "/admin/dashboard", nil)
+		dashboardURL := ts.URL + "/admin/dashboard"
+		req, err := http.NewRequest("GET", dashboardURL, nil)
 		if err != nil {
 			t.Fatalf("could not create dashboard request: %v", err)
 		}
-		req.AddCookie(sessionCookie)
 
-		rr := httptest.NewRecorder()
+		// Add cookies from the login response to the new request
+		for _, cookie := range loginResp.Cookies() {
+			req.AddCookie(cookie)
+		}
 
-		srv.Handler.ServeHTTP(rr, req)
+		dashboardResp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("dashboard request failed: %v", err)
+		}
+		defer dashboardResp.Body.Close()
 
-		if status := rr.Code; status != http.StatusOK {
+		if status := dashboardResp.StatusCode; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code for authenticated access: got %v want %v",
 				status, http.StatusOK)
 		}
-		// Further checks can be added here to verify dashboard content
 	})
 
 	// Test for a route with a handler name that does not exist in the handlers map

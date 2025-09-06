@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
+	
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -64,15 +64,16 @@ func setupTest(t *testing.T) *handler.Handler {
 	assert.NoError(t, err)
 
 	// Parse templates
+	// Parse templates
 	projectRoot := util.ProjectRoot("")
-	templates, err := parseTemplates(filepath.Join(projectRoot, "templates"), translator)
+	templatesMap, err := util.ParseTemplates(translator, projectRoot)
 	assert.NoError(t, err)
 
 	// Initialize handler
 	h := &handler.Handler{
 		Store:       models.NewDBStore(db),
 		AuthService: authService,
-		Templates:   templates,
+		Templates:   templatesMap, // Use the map here
 		Translator:  translator,
 		DebugLog:    func(format string, v ...interface{}) { t.Logf(format, v...) },
 	}
@@ -85,60 +86,7 @@ func setupTest(t *testing.T) *handler.Handler {
 	return h
 }
 
-// parseTemplates is a helper function to parse templates for tests.
-func parseTemplates(templateDir string, translator *i18n.Translator) (*template.Template, error) {
-	var templateFiles []string
-	err := filepath.Walk(templateDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
-			templateFiles = append(templateFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
 
-	funcMap := template.FuncMap{
-		"getTemplateName": func(r *http.Request) string {
-			// This is a simplified version for testing.
-			return getTemplateName(r.URL.Path)
-		},
-		"T": func(lang, key string) string {
-			return translator.GetTranslation(lang, key)
-		},
-		"hasPrefix": strings.HasPrefix,
-	}
-
-	// Parse the files
-	templates, err := template.New("").Funcs(funcMap).ParseFiles(templateFiles...)
-	if err != nil {
-		return nil, err
-	}
-	return templates, nil
-}
-
-func getTemplateName(path string) string {
-	if path == "/" {
-		return "index.html"
-	}
-	if strings.HasSuffix(path, "/") {
-		path = path + "index.html"
-	}
-	// This logic is based on how getTemplateName is used in the handler
-	// It might need adjustment if your actual implementation is different.
-	name := filepath.Base(path)
-	if name == "." || name == "/" {
-		return "index.html"
-	}
-	// Ensure it returns the correct template name for admin pages
-	if strings.HasPrefix(path, "/admin/") && !strings.HasSuffix(name, ".html") {
-		return "admin_" + name + ".html"
-	}
-	return name
-}
 
 // mockCSRF is a mock CSRF middleware that does nothing.
 func mockCSRF(next http.Handler) http.Handler {

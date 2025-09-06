@@ -100,12 +100,6 @@ func (h *Handler) renderTemplate(w http.ResponseWriter, r *http.Request, templat
 type LoginTemplateData struct {
 	CSRFToken   string
 	CurrentLang string
-	ContentTemplateName string // Add ContentTemplateName field
-}
-
-// GetContentTemplateName implements ContentTemplater for LoginTemplateData.
-func (d LoginTemplateData) GetContentTemplateName() string {
-	return d.ContentTemplateName
 }
 
 // DashboardTemplateData holds data for the dashboard page template.
@@ -356,7 +350,6 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		data := LoginTemplateData{
 			CSRFToken: token,
 			CurrentLang: currentLang,
-			ContentTemplateName: "admin_login_content", // Assign content template name
 		}
 		h.renderTemplate(w, r, getTemplateName(r), data)
 		return
