@@ -500,8 +500,17 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
 
+	uploadDir := filepath.Join("data", "uploads")
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		err = os.MkdirAll(uploadDir, 0755) // Create directory with read/write/execute permissions for owner, read/execute for others
+		if err != nil {
+			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	// Create the file
-	dst, err := os.Create(filepath.Join("static", "images", filename))
+	dst, err := os.Create(filepath.Join(uploadDir, filename))
 	if err != nil {
 					http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
 		return
@@ -516,7 +525,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return the URL of the uploaded file
 	json.NewEncoder(w).Encode(map[string]string{
-		"url": "/static/images/" + filename,
+		"url": "/uploads/" + filename,
 	})
 }
 
