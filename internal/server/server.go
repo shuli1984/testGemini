@@ -23,6 +23,10 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 	staticFileServer := http.FileServer(http.Dir(cfg.Static.Dir))
 	r.PathPrefix(cfg.Static.URLPrefix).Handler(http.StripPrefix(cfg.Static.URLPrefix, staticFileServer))
 
+	// Serve uploaded files from data/uploads
+	uploadFileServer := http.FileServer(http.Dir("data/uploads"))
+	r.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", uploadFileServer))
+
 	authService := auth.NewAuthService(cfg.Auth.SessionKey)
 
 	// Create the DataStore implementation

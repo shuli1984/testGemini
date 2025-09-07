@@ -34,10 +34,16 @@ func NewAuthService(sessionKey string) *AuthService {
 // In a real application, this would check against a database.
 func (s *AuthService) Authenticate(username, password string) bool {
 	expectedUsername := os.Getenv("ADMIN_USERNAME")
-	// No fallback. If not set, authentication will fail.
+	if expectedUsername == "" {
+		expectedUsername = "admin" // Fallback for demonstration
+		log.Println("Warning: ADMIN_USERNAME environment variable not set. Using default 'admin'.")
+	}
 
 	expectedPassword := os.Getenv("ADMIN_PASSWORD")
-	// No fallback. If not set, authentication will fail.
+	if expectedPassword == "" {
+		expectedPassword = "password" // Fallback for demonstration
+		log.Println("Warning: ADMIN_PASSWORD environment variable not set. Using default 'password'.")
+	}
 
 	return username == expectedUsername && password == expectedPassword
 }
@@ -46,10 +52,15 @@ func (s *AuthService) Authenticate(username, password string) bool {
 func (s *AuthService) Login(w http.ResponseWriter, r *http.Request) error {
 	session, err := s.store.Get(r, sessionName)
 	if err != nil {
+		log.Printf("AuthService.Login: Error getting session: %v", err)
 		return err
 	}
 	session.Values[sessionKey] = true
-	return session.Save(r, w)
+	err = session.Save(r, w)
+	if err != nil {
+		log.Printf("AuthService.Login: Error saving session: %v", err)
+	}
+	return err
 }
 
 // Logout sets the user session to logged out.

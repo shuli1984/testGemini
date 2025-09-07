@@ -366,7 +366,9 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest) // Translated
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "invalid_request_body")})
 		return
 	}
 
@@ -374,15 +376,19 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if h.AuthService.Authenticate(credentials.Username, credentials.Password) {
 		err := h.AuthService.Login(w, r)
 		if err != nil {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "failed_to_login"), http.StatusInternalServerError) // Translated
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "failed_to_login")})
 			return
 		}
 		log.Printf("Login successful for user: %s", credentials.Username)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "login_successful")}) // Translated
+		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "login_successful")})
 	} else {
 		log.Printf("Login failed for user: %s", credentials.Username)
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_credentials"), http.StatusUnauthorized) // Translated
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "invalid_credentials")})
 	}
 }
 
@@ -494,8 +500,17 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
 
+	uploadDir := filepath.Join("data", "uploads")
+	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+		err = os.MkdirAll(uploadDir, 0755) // Create directory with read/write/execute permissions for owner, read/execute for others
+		if err != nil {
+			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	// Create the file
-	dst, err := os.Create(filepath.Join("static", "images", filename))
+	dst, err := os.Create(filepath.Join(uploadDir, filename))
 	if err != nil {
 					http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
 		return
@@ -510,7 +525,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return the URL of the uploaded file
 	json.NewEncoder(w).Encode(map[string]string{
-		"url": "/static/images/" + filename,
+		"url": "/uploads/" + filename,
 	})
 }
 

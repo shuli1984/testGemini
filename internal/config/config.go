@@ -1,6 +1,10 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"strings"
+
+	"github.com/spf13/viper"
+)
 
 // Route defines the structure for a single route in the config.
 type Route struct {
@@ -10,6 +14,7 @@ type Route struct {
 	AuthRequired bool     `mapstructure:"auth_required"`
 }
 
+// AuthConfig defines the structure for authentication configuration.
 // AuthConfig defines the structure for authentication configuration.
 type AuthConfig struct {
 	SessionKey     string   `mapstructure:"session_key"`
@@ -42,6 +47,17 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	viper.SetConfigType("yml")
+
+	// Enable Viper to read environment variables
+	viper.AutomaticEnv()
+	// Replace . with _ in environment variable names (e.g., auth.session_key -> AUTH_SESSION_KEY)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Explicitly bind environment variables to config keys
+	viper.BindEnv("auth.session_key", "SESSION_KEY")
+	viper.BindEnv("auth.csrf_key", "CSRF_KEY")
+	viper.BindEnv("auth.username", "ADMIN_USERNAME") // Bind username/password too for consistency
+	viper.BindEnv("auth.password", "ADMIN_PASSWORD")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err

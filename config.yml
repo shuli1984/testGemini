@@ -80,8 +80,8 @@ auth:
   # Example: SESSION_KEY: os.Getenv("SESSION_KEY")
   # Example: CSRF_KEY: os.Getenv("CSRF_KEY")
   # Do NOT hardcode sensitive keys in version control.
-  session_key: "" # Placeholder, will be overridden by env var
-  csrf_key: ""    # Placeholder, will be overridden by env var
+  session_key:
+  csrf_key:
   trusted_origins: # New field for CSRF trusted origins
     - "https://your-production-domain.com" # Placeholder for production
     - "http://localhost:8080" # For local development

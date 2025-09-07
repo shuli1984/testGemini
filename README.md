@@ -37,3 +37,28 @@ This project is a Go application. Follow the instructions below to set up and ru
     ```
 
     The application will start and listen on the address specified in `config.yml` (default: `:8080`).
+
+## Environment Variables (.env)
+
+This project uses a `.env` file to manage local environment variables, especially for sensitive keys like session and CSRF tokens, and default admin credentials. This prevents hardcoding sensitive information directly in the codebase and ensures consistent behavior across application restarts during development.
+
+**Setup:**
+
+1.  **Create `.env` file:** In the root directory of the project, create a file named `.env`.
+2.  **Add variables:** Populate the `.env` file with the following variables. You should generate strong, random values for `SESSION_KEY` and `CSRF_KEY`.
+
+    ```
+    SESSION_KEY=your_long_random_session_key_here_at_least_32_bytes
+    CSRF_KEY=your_long_random_csrf_key_here_at_least_32_bytes
+    ADMIN_USERNAME=admin
+    ADMIN_PASSWORD=password
+    ```
+
+    *   **Generating Random Keys:** You can use command-line tools to generate random strings. For example:
+        *   **Linux/macOS:** `head /dev/urandom | tr -dc A-Za-z0-9 | head -c 64 ; echo ''`
+        *   **Windows (PowerShell):** `[System.Convert]::ToBase64String((New-Object Byte[] 32 | Get-Random -Count 32))` (for a 32-byte base64 encoded string)
+        *   Or use online random string generators.
+
+3.  **Important Note:** The `.env` file is listed in `.gitignore` and should **never** be committed to your version control system.
+
+The application will automatically load these variables at startup. If `.env` is not found or variables are not set, the application will fall back to temporary generated keys (for `SESSION_KEY`, `CSRF_KEY`) or default values (for `ADMIN_USERNAME`, `ADMIN_PASSWORD`), which may lead to session/cookie issues on restart.
