@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"gemini-demo/internal/config"
@@ -15,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/csrf"
+	"github.com/joho/godotenv"
 )
 
 var projectRootFlag string
@@ -26,7 +30,23 @@ func debugLog(format string, v ...interface{}) {
 	}
 }
 
+// generateRandomKey creates a random key of the specified length (in bytes)
+// and returns it as a hex-encoded string.
+func generateRandomKey(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
 func main() {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Error loading .env file, using system environment variables: %v", err)
+	}
+
 	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
 	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 	flag.Parse()
@@ -34,6 +54,40 @@ func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Error reading config file, %s", err)
+	}
+
+	// In debug mode, if keys are not set, generate temporary ones.
+	if debugFlag {
+		if cfg.Auth.Username == "" {
+			cfg.Auth.Username = "admin"
+			debugLog("Temporary username set to 'admin'.")
+		}
+		if cfg.Auth.Password == "" {
+			password, err := generateRandomKey(16)
+			if err != nil {
+				log.Fatalf("Failed to generate temporary password: %v", err)
+			}
+			cfg.Auth.Password = password
+			debugLog("Temporary password set to '%s'.", password)
+		}
+
+		if cfg.Auth.SessionKey == "" {
+			key, err := generateRandomKey(32)
+			if err != nil {
+				log.Fatalf("Failed to generate temporary session key: %v", err)
+			}
+			cfg.Auth.SessionKey = key
+			debugLog("Generated temporary session key.")
+		}
+		if cfg.Auth.CSRFKey == "" {
+			key, err := generateRandomKey(32)
+			if err != nil {
+				log.Fatalf("Failed to generate temporary CSRF key: %v", err)
+			}
+			cfg.Auth.CSRFKey = key
+			debugLog("Generated temporary CSRF key.")
+		}
+		debugLog("Using session key: %s", cfg.Auth.SessionKey)
 	}
 
 	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
@@ -98,7 +152,9 @@ func main() {
 			// Log the expected CSRF token (optional for production, but useful for debugging if issues arise)
 			debugLog("CSRF Error: Expected Token (from csrf.Token(r)): %s", csrf.Token(r)) // Made conditional
 			debugLog("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer")) // Made conditional
-			http.Error(w, "Forbidden - CSRF token invalid.", http.StatusForbidden)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]string{"message": "Forbidden - CSRF token invalid."})
 		})),
 	)
 

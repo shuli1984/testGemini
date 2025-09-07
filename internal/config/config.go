@@ -11,7 +11,10 @@ type Route struct {
 }
 
 // AuthConfig defines the structure for authentication configuration.
+// AuthConfig defines the structure for authentication configuration.
 type AuthConfig struct {
+	Username       string   `mapstructure:"username"`
+	Password       string   `mapstructure:"password"`
 	SessionKey     string   `mapstructure:"session_key"`
 	CSRFKey        string   `mapstructure:"csrf_key"`
 	TrustedOrigins []string `mapstructure:"trusted_origins"`

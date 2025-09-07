@@ -5,3 +5,5 @@ cover.out
 tests/data/
 *.db
 static/images/
+main.exe
+.env
