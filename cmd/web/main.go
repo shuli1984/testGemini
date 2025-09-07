@@ -58,18 +58,8 @@ func main() {
 
 	// In debug mode, if keys are not set, generate temporary ones.
 	if debugFlag {
-		if cfg.Auth.Username == "" {
-			cfg.Auth.Username = "admin"
-			debugLog("Temporary username set to 'admin'.")
-		}
-		if cfg.Auth.Password == "" {
-			password, err := generateRandomKey(16)
-			if err != nil {
-				log.Fatalf("Failed to generate temporary password: %v", err)
-			}
-			cfg.Auth.Password = password
-			debugLog("Temporary password set to '%s'.", password)
-		}
+		// Username and Password are now handled directly by os.Getenv in auth.go
+		// and do not need to be set via cfg.Auth here.
 
 		if cfg.Auth.SessionKey == "" {
 			key, err := generateRandomKey(32)
@@ -129,6 +119,9 @@ func main() {
 	}
 	debugLog("Configured Trusted Origins: %v", cfg.Auth.TrustedOrigins)
 
+	// Add this line to debug the session key being used
+	debugLog("AuthService Session Key being used: %s", cfg.Auth.SessionKey)
+
 	logRequestMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
@@ -149,7 +142,7 @@ func main() {
 			if err := csrf.FailureReason(r); err != nil { // Pass the request directly
 				debugLog("CSRF Error: Failure Reason: %v", err) // Made conditional
 			}
-			// Log the expected CSRF token (optional for production, but useful for debugging if issues arise)
+			// Log the expected CSRF token (optional for production, but useful for debugging if issues arises)
 			debugLog("CSRF Error: Expected Token (from csrf.Token(r)): %s", csrf.Token(r)) // Made conditional
 			debugLog("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer")) // Made conditional
 			w.Header().Set("Content-Type", "application/json")
