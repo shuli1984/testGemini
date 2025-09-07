@@ -61,22 +61,15 @@ func main() {
 		// Username and Password are now handled directly by os.Getenv in auth.go
 		// and do not need to be set via cfg.Auth here.
 
+		// Ensure SessionKey is set
 		if cfg.Auth.SessionKey == "" {
-			key, err := generateRandomKey(32)
-			if err != nil {
-				log.Fatalf("Failed to generate temporary session key: %v", err)
-			}
-			cfg.Auth.SessionKey = key
-			debugLog("Generated temporary session key.")
+			log.Fatalf("Session key not found in config or environment. Please set auth.session_key or SESSION_KEY environment variable.")
 		}
+		// Ensure CSRFKey is set
 		if cfg.Auth.CSRFKey == "" {
-			key, err := generateRandomKey(32)
-			if err != nil {
-				log.Fatalf("Failed to generate temporary CSRF key: %v", err)
-			}
-			cfg.Auth.CSRFKey = key
-			debugLog("Generated temporary CSRF key.")
+			log.Fatalf("CSRF key not found in config or environment. Please set auth.csrf_key or CSRF_KEY environment variable.")
 		}
+
 		debugLog("Using session key: %s", cfg.Auth.SessionKey)
 	}
 
@@ -119,9 +112,6 @@ func main() {
 	}
 	debugLog("Configured Trusted Origins: %v", cfg.Auth.TrustedOrigins)
 
-	// Add this line to debug the session key being used
-	debugLog("AuthService Session Key being used: %s", cfg.Auth.SessionKey)
-
 	logRequestMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
@@ -150,6 +140,9 @@ func main() {
 			json.NewEncoder(w).Encode(map[string]string{"message": "Forbidden - CSRF token invalid."})
 		})),
 	)
+
+	// Add this line to debug the session key being used
+	debugLog("AuthService Session Key being used: %s", cfg.Auth.SessionKey)
 
 	srv := server.New(cfg, db, parsedTemplates, func(h http.Handler) http.Handler {
 		// Conditionally apply PlaintextHTTPRequest for HTTP connections
