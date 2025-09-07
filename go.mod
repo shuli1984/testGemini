@@ -11,7 +11,7 @@ require (
 	gorm.io/gorm v1.30.1
 )
 
-require github.com/joho/godotenv v1.5.1 // indirect
+require github.com/joho/godotenv v1.5.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
