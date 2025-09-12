@@ -50,6 +50,10 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 		"AdminNewPageHandler":  h.AdminNewPageHandler,
 		"DeletePageHandler":    h.DeletePageHandler,
 		"ImageUploadHandler":   h.ImageUploadHandler,
+		"AdminTemplatesView":    h.AdminTemplatesView,
+		"AdminTemplateEditView": h.AdminTemplateEditView,
+		"AdminTemplateUpdate":   h.AdminTemplateUpdate,
+		"AdminTemplatePreview":  h.AdminTemplatePreview,
 	}
 
 	for _, route := range cfg.Routes {

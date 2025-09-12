@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="{{.CurrentLang}}">
+{{template "admin/admin_header.html" .}}
+<body>
+    <div class="d-flex flex-column flex-md-row min-vh-100">
+        <div class="border-end">
+            {{template "admin/admin_nav.html" .}}
+        </div>
+        <div class="p-4 shadow-sm flex-grow-1">
+            <h1 class="mb-4">{{.Title}}</h1>
+
+            <form method="POST" action="/admin/templates/edit">
+                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" name="filePath" value="{{.FilePath}}">
+                <input type="hidden" name="fileType" value="{{.FileType}}">
+                
+                <div class="mb-3">
+                    <label for="fileContent" class="form-label">File Content</label>
+                    <textarea class="form-control" id="fileContent" name="fileContent" rows="25" style="font-family: monospace;">{{.FileContent}}</textarea>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">{{T .CurrentLang "save_changes_button"}}</button>
+                    <a href="/admin/templates" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    {{template "admin/admin_footer.html" .}}
+
+</body>
+</html>

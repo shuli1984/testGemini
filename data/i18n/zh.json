@@ -94,5 +94,7 @@
     "lang_ja": "日语",
     "id_header": "ID",
     "title_header": "标题",
-    "name_header": "名称"
+    "name_header": "名称",
+    "template_editor_title": "模板编辑器",
+    "edit_file_title": "编辑文件"
 }

@@ -57,6 +57,22 @@ routes:
     handler: DeletePageHandler
     methods: [DELETE]
     auth_required: true
+  - path: /admin/templates
+    handler: AdminTemplatesView
+    methods: [GET]
+    auth_required: true
+  - path: /admin/templates/edit
+    handler: AdminTemplateEditView
+    methods: [GET]
+    auth_required: true
+  - path: /admin/templates/edit
+    handler: AdminTemplateUpdate
+    methods: [POST]
+    auth_required: true
+  - path: /admin/templates/preview
+    handler: AdminTemplatePreview
+    methods: [GET]
+    auth_required: true
   - path: "/admin/upload"
     handler: "ImageUploadHandler"
     methods:

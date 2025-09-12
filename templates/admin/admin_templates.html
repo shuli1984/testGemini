@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{.CurrentLang}}">
+{{template "admin/admin_header.html" .}}
+<body>
+    <div class="d-flex flex-column flex-md-row min-vh-100">
+        <div class="border-end">
+            {{template "admin/admin_nav.html" .}}
+        </div>
+        <div class="p-4 shadow-sm flex-grow-1">
+            <h1 class="mb-4">{{T .CurrentLang "template_editor_title"}}</h1>
+
+            <h2 class="h4 mt-5">Templates</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Templates}}
+                        <tr>
+                            <td>{{.}}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/admin/templates/edit?file={{.}}&type=template" class="btn btn-sm btn-secondary">{{T $.CurrentLang "edit_button"}}</a>
+                                    <a href="/admin/templates/preview?file={{.}}" class="btn btn-sm btn-info" target="_blank">{{T $.CurrentLang "preview_button"}}</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="2" class="text-center">No template files found.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            <h2 class="h4 mt-5">Static Files</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>File Path</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .StaticFiles}}
+                        <tr>
+                            <td>{{.}}</td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="/admin/templates/edit?file={{.}}&type=static" class="btn btn-sm btn-secondary">{{T $.CurrentLang "edit_button"}}</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td colspan="2" class="text-center">No static files found.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    {{template "admin/admin_footer.html" .}}
+
+</body>
+</html>

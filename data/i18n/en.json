@@ -94,5 +94,7 @@
     "lang_ja": "日本語",
     "id_header": "ID",
     "title_header": "Title",
-    "name_header": "Name"
+    "name_header": "Name",
+    "template_editor_title": "Template Editor",
+    "edit_file_title": "Edit File"
 }

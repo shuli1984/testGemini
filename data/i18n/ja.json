@@ -96,5 +96,7 @@
     "lang_ja": "日本語",
     "id_header": "ID",
     "title_header": "タイトル",
-    "name_header": "名前"
+    "name_header": "名前",
+    "template_editor_title": "テンプレートエディタ",
+    "edit_file_title": "ファイルの編集"
 }

@@ -652,5 +652,247 @@ func getTemplateName(r *http.Request) string {
 	// For other top-level paths like /pages, /about
 	// Example: "/pages" -> "pages.html"
 	// Example: "/about" -> "about.html"
+	// Example: "/about" -> "about.html"
 	return strings.TrimPrefix(path, "/") + ".html"
+}
+
+// TemplateManagementData holds the data for the template management page.
+type TemplateManagementData struct {
+	CSRFToken     string
+	CurrentPath   string
+	CurrentLang   string
+	Title         string
+	Templates     []string
+	StaticFiles   []string
+}
+
+// TemplateEditorData holds the data for the template editor page.
+type TemplateEditorData struct {
+	CSRFToken   string
+	CurrentPath string
+	CurrentLang string
+	Title       string
+	FilePath    string
+	FileContent string
+	FileType    string // "template" or "static"
+}
+
+// AdminTemplatesView handles the display of the template and static file editor.
+func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+
+	// --- List Template Files (non-recursive) ---
+	templatesDir := "templates"
+	templateFiles := []string{}
+	entries, err := os.ReadDir(templatesDir)
+	if err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error reading templates directory: %v", err)
+		return
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			templateFiles = append(templateFiles, entry.Name())
+		}
+	}
+
+	// --- List Static Files (recursive) ---
+	staticDir := "static"
+	staticFiles := []string{}
+	err = filepath.Walk(staticDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			// Make the path relative to the 'static' directory for cleaner display
+			relPath, err := filepath.Rel(staticDir, path)
+			if err != nil {
+				return err
+			}
+			staticFiles = append(staticFiles, filepath.ToSlash(relPath))
+		}
+		return nil
+	})
+	if err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error walking static directory: %v", err)
+		return
+	}
+
+	data := TemplateManagementData{
+		Title:       h.Translator.GetTranslation(currentLang, "template_editor_title"),
+		CSRFToken:   csrf.Token(r),
+		CurrentPath: r.URL.Path,
+		CurrentLang: currentLang,
+		Templates:   templateFiles,
+		StaticFiles: staticFiles,
+	}
+
+	h.renderTemplate(w, r, "admin/admin_templates.html", data)
+}
+
+// AdminTemplateEditView handles displaying the editor for a single file.
+func (h *Handler) AdminTemplateEditView(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+	filePath := r.URL.Query().Get("file")
+	fileType := r.URL.Query().Get("type") // "template" or "static"
+
+	if filePath == "" || (fileType != "template" && fileType != "static") {
+		http.Error(w, "Invalid request. 'file' and 'type' query parameters are required.", http.StatusBadRequest)
+		return
+	}
+
+	var fullPath string
+	if fileType == "template" {
+		fullPath = filepath.Join("templates", filePath)
+	} else {
+		fullPath = filepath.Join("static", filePath)
+	}
+
+	// Security check: Ensure the path is clean and within the allowed directories.
+	cleanPath := filepath.Clean(fullPath)
+	if (fileType == "template" && !strings.HasPrefix(cleanPath, "templates"+string(filepath.Separator))) ||
+	   (fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
+		http.Error(w, "Access denied: Path is outside of the allowed directories.", http.StatusForbidden)
+		return
+	}
+	
+	// Security check 2: Prevent reading directories
+	info, err := os.Stat(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, "Error accessing file.", http.StatusInternalServerError)
+		}
+		return
+	}
+	if info.IsDir() {
+		http.Error(w, "Cannot edit a directory.", http.StatusBadRequest)
+		return
+	}
+
+
+	content, err := os.ReadFile(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error reading file %s: %v", cleanPath, err)
+		return
+	}
+
+	data := TemplateEditorData{
+		Title:       h.Translator.GetTranslation(currentLang, "edit_file_title") + " " + filePath,
+		CSRFToken:   csrf.Token(r),
+		CurrentPath: r.URL.Path,
+		CurrentLang: currentLang,
+		FilePath:    filePath,
+		FileContent: string(content),
+		FileType:    fileType,
+	}
+
+	h.renderTemplate(w, r, "admin/admin_template_edit.html", data)
+}
+
+// AdminTemplateUpdate handles saving the updated file content.
+func (h *Handler) AdminTemplateUpdate(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	filePath := r.FormValue("filePath")
+	fileContent := r.FormValue("fileContent")
+	fileType := r.FormValue("fileType")
+
+	if filePath == "" || (fileType != "template" && fileType != "static") {
+		http.Error(w, "Invalid request. 'filePath' and 'fileType' are required.", http.StatusBadRequest)
+		return
+	}
+
+	var fullPath string
+	if fileType == "template" {
+		fullPath = filepath.Join("templates", filePath)
+	} else {
+		fullPath = filepath.Join("static", filePath)
+	}
+
+	// Security check: Ensure the path is clean and within the allowed directories.
+	cleanPath := filepath.Clean(fullPath)
+	if (fileType == "template" && !strings.HasPrefix(cleanPath, "templates"+string(filepath.Separator))) ||
+	   (fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
+		http.Error(w, "Access denied: Path is outside of the allowed directories.", http.StatusForbidden)
+		return
+	}
+	
+	// Security check 2: Prevent writing to directories
+	info, err := os.Stat(cleanPath)
+	if err != nil && !os.IsNotExist(err) { // If file doesn't exist, it's fine, but other errors are bad
+		http.Error(w, "Error accessing file.", http.StatusInternalServerError)
+		log.Printf("Error statting file before write %s: %v", cleanPath, err)
+		return
+	}
+	if info != nil && info.IsDir() {
+		http.Error(w, "Cannot write to a directory.", http.StatusBadRequest)
+		return
+	}
+
+	if err := os.WriteFile(cleanPath, []byte(fileContent), 0644); err != nil {
+		http.Error(w, "Failed to write file", http.StatusInternalServerError)
+		log.Printf("Error writing to file %s: %v", cleanPath, err)
+		return
+	}
+
+	// Redirect back to the editor with a success message (or just back to the editor)
+	http.Redirect(w, r, r.URL.String(), http.StatusFound)
+}
+
+// AdminTemplatePreview handles rendering a preview of a template file.
+func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
+	filePath := r.URL.Query().Get("file")
+	if filePath == "" {
+		http.Error(w, "Missing 'file' query parameter.", http.StatusBadRequest)
+		return
+	}
+
+	// Security check
+	cleanPath := filepath.Clean(filepath.Join("templates", filePath))
+	if !strings.HasPrefix(cleanPath, "templates"+string(filepath.Separator)) {
+		http.Error(w, "Access denied: Template is outside of the allowed directory.", http.StatusForbidden)
+		return
+	}
+	
+	// This is a simplified preview. It parses the requested template along with the base layouts.
+	// It won't have access to the full context of other templates, but it's good for a direct preview.
+	// It uses a nil data object, so templates expecting data may show errors.
+	
+	currentLang := h.getLanguage(r)
+	
+	// We need to parse the base templates along with the specific template file.
+	// This mimics how the main renderTemplate function works but for a single, dynamic file.
+	tmpl, err := template.New("preview").Funcs(h.Translator.FuncMap(currentLang)).ParseFiles(
+		"templates/base.html",
+		"templates/header.html",
+		"templates/footer.html",
+		"templates/nav.html",
+		cleanPath, // The actual template to preview
+	)
+
+	if err != nil {
+		http.Error(w, "Error parsing template for preview.", http.StatusInternalServerError)
+		log.Printf("Error parsing preview for %s: %v", cleanPath, err)
+		return
+	}
+
+	// We execute "base" which should in turn call our specific template's content block.
+	// We pass a nil data object.
+	err = tmpl.ExecuteTemplate(w, "base", nil)
+	if err != nil {
+		http.Error(w, "Error executing template for preview.", http.StatusInternalServerError)
+		log.Printf("Error executing preview for %s: %v", cleanPath, err)
+		return
+	}
 }
