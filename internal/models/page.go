@@ -13,10 +13,12 @@ import (
 
 type Page struct {
 	gorm.Model
-	Name        string `gorm:"uniqueIndex"`
-	Title       string
-	Description string
-	Message     template.HTML
+	Name           string `gorm:"uniqueIndex"`
+	Title          string
+	Description    string
+	Message        template.HTML
+	IsCoreSolution bool
+	Icon           string
 }
 
 func AutoMigrateAndSeed(db *gorm.DB) error {
@@ -103,6 +105,16 @@ func GetAllPages(db *gorm.DB) ([]Page, error) {
 	result := db.Find(&pages)
 	if result.Error != nil {
 		log.Printf("Failed to get all pages: %v", result.Error)
+		return nil, result.Error
+	}
+	return pages, nil
+}
+
+func GetCoreSolutions(db *gorm.DB) ([]Page, error) {
+	var pages []Page
+	result := db.Where("is_core_solution = ?", true).Find(&pages)
+	if result.Error != nil {
+		log.Printf("Failed to get core solutions: %v", result.Error)
 		return nil, result.Error
 	}
 	return pages, nil

@@ -76,6 +76,8 @@
     "page_name_label": "页面名称（例如：home，about，contact）：",
     "title_label": "标题：",
     "description_label": "描述：",
+    "is_core_solution_label": "核心解决方案",
+    "icon_label": "图标类",
     "message_label": "消息：",
     "create_page_button": "创建页面",
     "save_changes_button": "保存更改",

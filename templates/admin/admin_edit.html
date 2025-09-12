@@ -23,6 +23,14 @@
                     <label for="description" class="form-label">{{T .CurrentLang "description_label"}}</label>
                     <textarea id="description" class="form-control">{{.Page.Description}}</textarea>
                 </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="isCoreSolution" {{if .Page.IsCoreSolution}}checked{{end}}>
+                    <label class="form-check-label" for="isCoreSolution">{{T .CurrentLang "is_core_solution_label"}}</label>
+                </div>
+                <div class="mb-3">
+                    <label for="icon" class="form-label">{{T .CurrentLang "icon_label"}}</label>
+                    <input type="text" id="icon" value="{{.Page.Icon}}" class="form-control">
+                </div>
                 <div class="mb-3 d-flex flex-column flex-grow-1">
                     <label for="message" class="form-label">{{T .CurrentLang "message_label"}}</label>
                     <div id="message" class="flex-grow-1">{{.Message}}</div>
@@ -168,6 +176,8 @@
         const pageName = document.getElementById('pageName').value;
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
+        const isCoreSolution = document.getElementById('isCoreSolution').checked;
+        const icon = document.getElementById('icon').value;
         const message = quill.root.innerHTML;
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
@@ -180,7 +190,14 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ Name: pageName, Title: title, Description: description, Message: message })
+            body: JSON.stringify({ 
+                Name: pageName, 
+                Title: title, 
+                Description: description, 
+                Message: message,
+                IsCoreSolution: isCoreSolution,
+                Icon: icon
+            })
         });
 
         const responseDiv = document.getElementById('response');

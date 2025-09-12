@@ -17,6 +17,27 @@
       "Title": "Contact Us",
       "Description": "",
       "Message": "Get in touch with us."
+    },
+    {
+      "Name": "ai_ml",
+      "Title": "人工智能与机器学习 | AIと機械学習 | AI & Machine Learning",
+      "Description": "利用我们先进的机器学习模型和人工智能解决方案，释放数据的潜力，驱动智能决策。 | 当社の高度な機械学習モデルとAIソリューションを活用して、データの可能性を解き放ち、インテリジェントな意思決定を推進します。 | Unlock the potential of data and drive intelligent decision-making with our advanced machine learning models and AI solutions.",
+      "Message": "",
+      "IsCoreSolution": true
+    },
+    {
+      "Name": "enterprise_cloud",
+      "Title": "企业云服务 | エンタープライズクラウドサービス | Enterprise Cloud Services",
+      "Description": "我们提供安全、可扩展的企业云解决方案，帮助您优化运营，降低成本，并加速创新。 | 安全でスケーラブルなエンタープライズクラウドソリューションを提供し、運用を最適化し、コストを削減し、イノベーションを加速するお手伝いをします。 | We provide secure and scalable enterprise cloud solutions to help you optimize operations, reduce costs, and accelerate innovation.",
+      "Message": "",
+      "IsCoreSolution": true
+    },
+    {
+      "Name": "it_infra_modernization",
+      "Title": "IT基础架构现代化 | ITインフラのモダナイゼーション | IT Infrastructure Modernization",
+      "Description": "通过我们的IT基础架构现代化服务，构建一个敏捷、高效和安全的IT环境，支持您的业务持续增长。 | 当社のITインフラモダナイゼーションサービスを通じて、ビジネスの継続的な成長をサポートする、アジャイルで効率的かつ安全なIT環境を構築します。 | Build an agile, efficient, and secure IT environment that supports your continuous business growth with our IT infrastructure modernization services.",
+      "Message": "",
+      "IsCoreSolution": true
     }
   ],
   "SiteSettings": [

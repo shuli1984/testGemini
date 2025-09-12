@@ -76,6 +76,8 @@
     "page_name_label": "Page Name (e.g., home, about, contact):",
     "title_label": "Title:",
     "description_label": "Description:",
+    "is_core_solution_label": "Is Core Solution",
+    "icon_label": "Icon Class",
     "message_label": "Message:",
     "create_page_button": "Create Page",
     "save_changes_button": "Save Changes",

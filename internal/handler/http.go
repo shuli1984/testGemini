@@ -145,8 +145,9 @@ type PageCombinedData struct {
 
 // IndexTemplateData holds data for the index page template.
 type IndexTemplateData struct {
-	Site                *models.Site // Explicit field
-	CurrentLang         string
+	Site          *models.Site // Explicit field
+	CoreSolutions []models.Page
+	CurrentLang   string
 }
 
 // PagesListTemplateData holds data for the pages list page template.
@@ -197,9 +198,17 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Update siteData with carousel items
 	siteData.CarouselItems = carouselItems
 
+	coreSolutions, err := h.Store.GetCoreSolutions()
+	if err != nil {
+		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error getting core solutions: %v", err)
+		return
+	}
+
 	data := IndexTemplateData{
-		Site:                siteData,
-		CurrentLang:         currentLang,
+		Site:          siteData,
+		CoreSolutions: coreSolutions,
+		CurrentLang:   currentLang,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -325,6 +334,8 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	existingPage.Title = updatedPage.Title
 	existingPage.Description = updatedPage.Description
 	existingPage.Message = updatedPage.Message
+	existingPage.IsCoreSolution = updatedPage.IsCoreSolution
+	existingPage.Icon = updatedPage.Icon
 
 	if err := h.Store.UpdatePage(existingPage); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
