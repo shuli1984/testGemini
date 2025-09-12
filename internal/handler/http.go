@@ -873,7 +873,13 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 	
 	// We need to parse the base templates along with the specific template file.
 	// This mimics how the main renderTemplate function works but for a single, dynamic file.
-	tmpl, err := template.New("preview").Funcs(h.Translator.FuncMap(currentLang)).ParseFiles(
+	funcMap := template.FuncMap{
+		"T": func(key string) string {
+			return h.Translator.GetTranslation(currentLang, key)
+		},
+	}
+
+	tmpl, err := template.New("preview").Funcs(funcMap).ParseFiles(
 		"templates/base.html",
 		"templates/header.html",
 		"templates/footer.html",

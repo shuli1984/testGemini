@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="{{.CurrentLang}}">
 {{template "admin/admin_header.html" .}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<style>
+  .CodeMirror {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    height: auto;
+  }
+</style>
 <body>
     <div class="d-flex flex-column flex-md-row min-vh-100">
         <div class="border-end">
@@ -30,5 +38,16 @@
 
     {{template "admin/admin_footer.html" .}}
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script>
+      var editor = CodeMirror.fromTextArea(document.getElementById("fileContent"), {
+        lineNumbers: true,
+        mode: "htmlmixed"
+      });
+    </script>
 </body>
 </html>
