@@ -7,20 +7,29 @@
             {{template "admin/admin_nav.html" .}}
         </div>
         <div class="p-4 shadow-sm flex-grow-1 d-flex flex-column">
-            <h1 class="mb-4">{{.Title}}</h1>
+            <h1 class="mb-4">
+    {{if eq .CurrentPath "/admin/pages/new"}}
+        {{T .CurrentLang "admin.new_page_title"}}
+    {{else if hasPrefix .CurrentPath "/admin/pages/edit/"}}
+        {{T .CurrentLang "admin.edit_page_title"}}
+    {{else}}
+        <!-- Fallback or error title -->
+        {{T .CurrentLang "common.unknown_title"}}
+    {{end}}
+</h1>
 
             <form id="pageForm" class="d-flex flex-column flex-grow-1">
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
                 <div class="mb-3">
-                    <label for="pageName" class="form-label">{{T .CurrentLang "page_name_label"}}</label>
+                    <label for="pageName" class="form-label">{{T .CurrentLang "admin.page_name_label"}}</label>
                     <input type="text" id="pageName" value="{{.Page.Name}}" class="form-control" required {{if not .IsNew}}readonly{{end}}>
                 </div>
                 <div class="mb-3">
-                    <label for="title" class="form-label">{{T .CurrentLang "title_label"}}</label>
+                    <label for="title" class="form-label">{{T .CurrentLang "admin.title_label"}}</label>
                     <input type="text" id="title" value="{{.Page.Title}}" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label for="description" class="form-label">{{T .CurrentLang "description_label"}}</label>
+                    <label for="description" class="form-label">{{T .CurrentLang "admin.description_label"}}</label>
                     <textarea id="description" class="form-control">{{.Page.Description}}</textarea>
                 </div>
                 <div class="mb-3 form-check">
@@ -32,13 +41,13 @@
                     <input type="text" id="icon" value="{{.Page.Icon}}" class="form-control">
                 </div>
                 <div class="mb-3 d-flex flex-column flex-grow-1">
-                    <label for="message" class="form-label">{{T .CurrentLang "message_label"}}</label>
+                    <label for="message" class="form-label">{{T .CurrentLang "admin.message_label"}}</label>
                     <div id="message" class="flex-grow-1">{{.Message}}</div>
                 </div>
                 <div class="d-flex gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary">{{if .IsNew}}{{T .CurrentLang "create_page_button"}}{{else}}{{T .CurrentLang "save_changes_button"}}{{end}}</button>
-                    <button type="button" id="previewButton" class="btn btn-secondary">{{T .CurrentLang "preview_button"}}</button>
-                    <button type="button" id="toggleHtmlButton" class="btn btn-secondary">{{T .CurrentLang "toggle_html_button"}}</button>
+                    <button type="submit" class="btn btn-primary">{{if .IsNew}}{{T .CurrentLang "admin.create_page_button"}}{{else}}{{T .CurrentLang "admin.save_changes_button"}}{{end}}</button>
+                    <button type="button" id="previewButton" class="btn btn-secondary">{{T .CurrentLang "common.preview_button"}}</button>
+                    <button type="button" id="toggleHtmlButton" class="btn btn-secondary">{{T .CurrentLang "common.toggle_html_button"}}</button>
                 </div>
             </form>
 
@@ -51,8 +60,8 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="previewModalLabel">{{T .CurrentLang "preview_title"}}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{T .CurrentLang "close_button_aria_label"}}"></button>
+            <h5 class="modal-title" id="previewModalLabel">{{T .CurrentLang "common.preview_title"}}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{T .CurrentLang "common.close_button_aria_label"}}"></button>
           </div>
           <div class="modal-body" id="previewContent">
             <!-- Preview content will be injected here -->
@@ -94,7 +103,7 @@
             const range = quill.getSelection();
             quill.insertEmbed(range.index, 'image', imageUrl);
           } else {
-            console.error('Upload failed:', result);
+            console.error('{{T .CurrentLang "admin.upload_failed"}}:', result);
           }
         };
       }
@@ -207,11 +216,11 @@
                 const result = await response.json();
                 window.location.href = `/admin/pages/edit/${result.Name}`;
             } else {
-                responseDiv.innerHTML = `<div class="alert alert-success">{{T .CurrentLang "page_updated_success"}}</div>`;
+                responseDiv.innerHTML = `<div class="alert alert-success">{{T .CurrentLang "admin.page_updated_success"}}</div>`;
             }
         } else {
             const contentType = response.headers.get("content-type");
-            let errorMsg = '{{T .CurrentLang "unknown_error"}}';
+            let errorMsg = '{{T .CurrentLang "common.unknown_error"}}';
             if (contentType && contentType.indexOf("application/json") !== -1) {
                 const result = await response.json();
                 errorMsg = result.message;

@@ -4,7 +4,7 @@
     <section id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
         <div class="carousel-indicators">
             {{range $i, $e := .Site.CarouselItems}}
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{$i}}" class="{{if eq $i 0}}active{{end}}" aria-current="{{if eq $i 0}}true{{end}}" aria-label="Slide {{$i}}"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{$i}}" class="{{if eq $i 0}}active{{end}}" aria-current="{{if eq $i 0}}true{{end}}" aria-label="{{T $.CurrentLang "common.slide"}} {{$i}}"></button>
             {{end}}
         </div>
         <div class="carousel-inner">
@@ -22,17 +22,17 @@
         </div>
         <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
+            <span class="visually-hidden">{{T .CurrentLang "common.previous"}}</span>
         </button>
         <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
             <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
+            <span class="visually-hidden">{{T .CurrentLang "common.next"}}</span>
         </button>
     </section>
 
     <section id="services" class="section py-5">
         <div class="container">
-            <h2 class="section-title text-center mb-5">{{T .CurrentLang "core_solutions"}}</h2>
+            <h2 class="section-title text-center mb-5">{{T .CurrentLang "core_solutions.core_solutions"}}</h2>
             <div class="services-grid">
                 {{range .CoreSolutions}}
                 <a href="/page/{{.Name}}" class="service-card-link">
@@ -49,9 +49,9 @@
 
     <section id="about" class="section py-5 bg-light">
          <div class="container">
-            <h2 class="section-title text-center mb-4">{{T .CurrentLang "about_us_title"}}</h2>
+            <h2 class="section-title text-center mb-4">{{T .CurrentLang "pages.about_us_title"}}</h2>
             <p class="text-center">
-                {{T .CurrentLang "about_us_description"}}
+                {{T .CurrentLang "pages.about_us_description"}}
             </p>
         </div>
     </section>

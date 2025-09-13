@@ -1,0 +1,20 @@
+{
+  "about_page_title": "关于我们",
+  "about_page_content": "这是一个用Go构建的简单内容管理系统。",
+  "all_pages_title": "所有页面",
+  "about_us_title": "关于我们",
+  "about_us_description": "Innovatech 是一家充满活力的科技公司，致力于探索技术的无限可能。我们的团队由顶尖的工程师、科学家和战略家组成，共同的使命是通过创新技术为客户创造无与伦比的价值。我们相信，智能化未来始于今天可靠的IT和AI解决方案。",
+  "our_story_title": "我们的故事",
+  "our_story_description": "Innovatech 成立于一个旨在彻底改变科技行业的愿景，现已发展成为人工智能和云解决方案领域的领导者。我们的旅程始于一个由小团队和伟大构想组成的团队：用尖端技术赋能企业。",
+  "our_mission_description": "我们的使命是提供创新、可靠和可扩展的技术解决方案，为全球客户带来增长和效率。",
+  "our_mission_title": "我们的使命",
+  "our_clients_title": "我们的客户",
+  "pages.our_clients_description": "我们很荣幸能为从初创公司到财富500强企业等各类客户提供服务。我们对卓越的承诺确保每位客户都能获得量身定制的解决方案和卓越的服务。",
+  "contact_us_title": "联系我们",
+  "our_location_title": "我们的位置",
+  "company_address_line1": "1600 Amphitheatre Parkway",
+  "company_address_line2": "广州市，广东省 510000",
+  "company_address_line3": "中国",
+  "company_phone": "+86 (123) 456-7890",
+  "company_email": "info@innovatech.ai"
+}

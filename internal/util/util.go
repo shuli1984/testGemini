@@ -99,9 +99,9 @@ func ParseTemplates(translator *i18n.Translator, projectRoot ...string) (map[str
 		return nil, fmt.Errorf("error walking templates: %w", err)
 	}
 
-	funcMap := template.FuncMap{
-		"T": func(lang, key string) string {
-			return translator.GetTranslation(lang, key)
+		funcMap := template.FuncMap{
+		"T": func(lang, key string) template.HTML {
+			return template.HTML(translator.GetTranslation(lang, key))
 		},
 		"hasPrefix": strings.HasPrefix,
 	}

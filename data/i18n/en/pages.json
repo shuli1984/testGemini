@@ -1,0 +1,20 @@
+{
+  "about_page_title": "About Us",
+  "about_page_content": "This is a simple content management system built with Go.",
+  "all_pages_title": "All Pages",
+  "about_us_title": "About Us",
+  "about_us_description": "Innovatech is a dynamic technology company dedicated to exploring the infinite possibilities of technology. Our team consists of top engineers, scientists, and strategists, united by the mission to create unparalleled value for customers through innovative technology. We believe that an intelligent future begins today with reliable IT and AI solutions.",
+  "our_story_title": "Our Story",
+  "our_story_description": "Founded with a vision to revolutionize the tech industry, Innovatech has grown into a leader in AI and cloud solutions. Our journey began with a small team and a big idea: to empower businesses with cutting-edge technology.",
+  "our_mission_description": "Our mission is to deliver innovative, reliable, and scalable technology solutions that drive growth and efficiency for our clients worldwide.",
+  "our_mission_title": "Our Mission",
+  "our_clients_title": "Our Valued Clients",
+  "pages.our_clients_description": "We are proud to serve a diverse range of clients, from startups to Fortune 500 companies. Our commitment to excellence ensures that every client receives tailored solutions and exceptional service.",
+  "contact_us_title": "Contact Us",
+  "our_location_title": "Our Location",
+  "company_address_line1": "1600 Amphitheatre Parkway",
+  "company_address_line2": "Mountain View, CA 94043",
+  "company_address_line3": "USA",
+  "company_phone": "+1 (123) 456-7890",
+  "company_email": "info@innovatech.ai"
+}

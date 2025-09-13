@@ -118,7 +118,6 @@ type AdminEditPageTemplateData struct {
 	CSRFToken   string
 	CurrentPath string
 	CurrentLang string
-	Title       string
 	Message     template.HTML
 	IsNew       bool // Flag for new page creation
 }
@@ -172,24 +171,24 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Dummy Carousel Items for demonstration
 	carouselItems := []models.CarouselItem{
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_1")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_1")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_1"),
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_1")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_1")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_1"),
 			ButtonLink:    "#contact",
 			BackgroundImage: "/static/images/hero-bg-1.jpg", // Placeholder image
 			Active:        true,
 		},
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_2")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_2")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_2"),
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_2")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_2")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_2"),
 			ButtonLink:    "#services",
 			BackgroundImage: "/static/images/hero-bg-2.jpg", // Placeholder image
 		},
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "carousel_title_3")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "carousel_description_3")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "carousel_button_text_3"),
+			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_3")),
+			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_3")),
+			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_3"),
 			ButtonLink:    "#about",
 			BackgroundImage: "/static/images/hero-bg-3.jpg", // Placeholder image
 		},
@@ -460,8 +459,7 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := AdminEditPageTemplateData{
-		Title:       h.Translator.GetTranslation(currentLang, "edit_page_title"),
+		data := AdminEditPageTemplateData{
 		Page:        page,
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
@@ -552,7 +550,6 @@ func (h *Handler) AdminNewPageHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 	data := AdminEditPageTemplateData{
-		Title:       h.Translator.GetTranslation(currentLang, "new_page_title"),
 		Page:        &models.Page{},
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
@@ -672,7 +669,6 @@ type TemplateManagementData struct {
 	CSRFToken     string
 	CurrentPath   string
 	CurrentLang   string
-	Title         string
 	Templates     []string
 	StaticFiles   []string
 }
@@ -730,8 +726,7 @@ func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := TemplateManagementData{
-		Title:       h.Translator.GetTranslation(currentLang, "template_editor_title"),
+		data := TemplateManagementData{
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
 		CurrentLang: currentLang,
