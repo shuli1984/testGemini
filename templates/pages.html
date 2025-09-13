@@ -3,7 +3,7 @@
 {{define "content"}}
     <section class="section">
         <div class="container">
-            <h1 class="section-title">All Pages</h1>
+            <h1 class="section-title">{{T .CurrentLang "pages.all_pages_title"}}</h1>
             <div class="services-grid">
                 {{range .Pages}}
                 <a href="/page/{{.Name}}" class="service-card-link">

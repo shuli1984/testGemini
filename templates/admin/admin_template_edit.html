@@ -15,7 +15,7 @@
             {{template "admin/admin_nav.html" .}}
         </div>
         <div class="p-4 shadow-sm flex-grow-1">
-            <h1 class="mb-4">{{.Title}}</h1>
+            <h1 class="mb-4">{{T .CurrentLang "admin.edit_file_title"}}</h1>
 
             <form method="POST" action="/admin/templates/edit">
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -23,13 +23,13 @@
                 <input type="hidden" name="fileType" value="{{.FileType}}">
                 
                 <div class="mb-3">
-                    <label for="fileContent" class="form-label">File Content</label>
+                    <label for="fileContent" class="form-label">{{T .CurrentLang "admin.file_content_label"}}</label>
                     <textarea class="form-control" id="fileContent" name="fileContent" rows="25" style="font-family: monospace;">{{.FileContent}}</textarea>
                 </div>
                 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">{{T .CurrentLang "save_changes_button"}}</button>
-                    <a href="/admin/templates" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">{{T .CurrentLang "admin.save_changes_button"}}</button>
+                    <a href="/admin/templates" class="btn btn-secondary">{{T .CurrentLang "common.cancel_button"}}</a>
                 </div>
             </form>
 
