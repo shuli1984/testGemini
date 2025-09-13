@@ -35,11 +35,13 @@
             <h2 class="section-title text-center mb-5">{{T .CurrentLang "core_solutions"}}</h2>
             <div class="services-grid">
                 {{range .CoreSolutions}}
-                <div class="service-card">
-                    <div class="icon"><i class="{{.Icon}}"></i></div>
-                    <h3><a href="/page/{{.Name}}">{{.Title}}</a></h3>
-                    <p>{{.Description}}</p>
-                </div>
+                <a href="/page/{{.Name}}" class="service-card-link">
+                    <div class="service-card">
+                        <div class="icon"><i class="{{.Icon}}"></i></div>
+                        <h3>{{.Title}}</h3>
+                        <p>{{.Description}}</p>
+                    </div>
+                </a>
                 {{end}}
             </div>
         </div>
