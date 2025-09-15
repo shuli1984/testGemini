@@ -46,6 +46,8 @@
   "logout_menu": "退出",
   "edit_page_title": "编辑页面",
   "edit_language_label": "编辑语言",
+  "translate_button": "翻译",
+  "translate_all_button": "全部翻译",
   "confirm_discard_changes": "您有未保存的更改。确定要放弃更改并切换语言吗？",
   "templates_section_title": "模板",
   "file_name_header": "文件名",

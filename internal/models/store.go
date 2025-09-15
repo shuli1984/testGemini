@@ -9,6 +9,7 @@ type DataStore interface {
 	GetPageData(name string, lang string, defaultLang string) (*Page, error)
 	GetAllPages(lang string, defaultLang string) ([]Page, error)
 	CreatePage(page *Page) error
+	UpdatePage(page *Page) error // Add this line
 	UpdatePageTranslation(pageID uint, translation *PageTranslation) error
 	DeletePage(name string) error
 	GetDashboardData() (*DashboardData, error)
@@ -39,6 +40,10 @@ func (s *DBStore) GetAllPages(lang string, defaultLang string) ([]Page, error) {
 
 func (s *DBStore) CreatePage(page *Page) error {
 	return CreatePage(s.DB, page)
+}
+
+func (s *DBStore) UpdatePage(page *Page) error {
+	return UpdatePage(s.DB, page)
 }
 
 func (s *DBStore) UpdatePageTranslation(pageID uint, translation *PageTranslation) error {

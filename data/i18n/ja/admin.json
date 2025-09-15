@@ -46,6 +46,8 @@
   "templates_menu": "テンプレート",
   "edit_page_title": "ページを編集",
   "edit_language_label": "編集言語",
+  "translate_button": "翻訳",
+  "translate_all_button": "すべて翻訳",
   "confirm_discard_changes": "保存されていない変更があります。変更を破棄して言語を切り替えますか？",
   "templates_section_title": "テンプレート",
   "file_name_header": "ファイル名",

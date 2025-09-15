@@ -78,6 +78,11 @@ routes:
     methods:
       - "POST"
     auth_required: true
+  - path: "/admin/api/translate"
+    handler: "TranslateHandler"
+    methods:
+      - "POST"
+    auth_required: true
   - path: "/admin"
     handler: "AdminRedirectHandler"
     methods:

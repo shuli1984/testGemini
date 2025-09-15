@@ -301,15 +301,46 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 
 
+// PageUpdatePayload mirrors the structure of the JSON payload sent from the frontend for page updates.
+type PageUpdatePayload struct {
+	Name           string        `json:"Name"`
+	Title          string        `json:"Title"`
+	Description    string        `json:"Description"`
+	Message        template.HTML `json:"Message"`
+	IsCoreSolution bool          `json:"IsCoreSolution"`
+	Icon           string        `json:"Icon"`
+	LanguageCode   string        `json:"LanguageCode"` // Add LanguageCode to the payload
+}
+
 func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pageName := vars["name"]
-	currentLang := h.getLanguage(r)
+	currentLang := h.getLanguage(r) // Language of the UI
 
-	// First, get the page shell to find its ID
-	// We don't need the content here, so we can use a simple query if we had one,
-	// but GetPageData is fine. We just need the ID.
-	page, err := h.Store.GetPageData(pageName, currentLang, h.Translator.DefaultLanguage())
+	var payload PageUpdatePayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		return
+	}
+
+	// Determine the language being edited. Prioritize payload's LanguageCode, then query param, then currentLang.
+	editLang := payload.LanguageCode
+	if editLang == "" {
+		editLang = r.URL.Query().Get("lang")
+		if editLang == "" {
+			editLang = currentLang
+		}
+	}
+
+	// Basic validation for translation fields
+	if strings.TrimSpace(payload.Title) == "" {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "title_required"), http.StatusBadRequest)
+		return
+	}
+
+	// 1. Update the main Page fields (IsCoreSolution, Icon)
+	// First, get the existing page to update its non-translation fields.
+	existingPage, err := h.Store.GetPageData(pageName, editLang, h.Translator.DefaultLanguage())
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
@@ -319,28 +350,27 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Decode the new translation content from the request body
-	var translation models.PageTranslation
-	if err := json.NewDecoder(r.Body).Decode(&translation); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+	// Update only the fields that belong to the Page struct
+	existingPage.IsCoreSolution = payload.IsCoreSolution
+	existingPage.Icon = payload.Icon
+
+	// Save the updated Page (excluding its Content field which is not persisted directly)
+	if err := h.Store.UpdatePage(existingPage); err != nil { // Assuming an UpdatePage method exists or will be created
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error updating page: %v", err)
 		return
 	}
 
-	// Basic validation
-	if strings.TrimSpace(translation.Title) == "" {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "title_required"), http.StatusBadRequest)
-		return
-	}
-	
-	// The language code in the body should match the language being edited.
-	// This is an important security/consistency check.
-	if translation.LanguageCode == "" {
-		// If for some reason the client doesn't send it, we can assume the current language.
-		translation.LanguageCode = currentLang
+	// 2. Update or create the PageTranslation
+	translation := models.PageTranslation{
+		Title:        payload.Title,
+		Description:  payload.Description,
+		Keywords:     "", // Keywords are not in the current form, so leave empty or fetch from existing if needed
+		Message:      payload.Message,
+		LanguageCode: editLang,
 	}
 
-	// Call the store to update or create the translation
-	if err := h.Store.UpdatePageTranslation(page.ID, &translation); err != nil {
+	if err := h.Store.UpdatePageTranslation(existingPage.ID, &translation); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error updating page translation: %v", err)
 		return
@@ -348,7 +378,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(translation)
+	json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "save_successful")})
 }
 
 // LoginHandler handles admin login requests.
@@ -660,6 +690,81 @@ func (h *Handler) DeletePageHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// TranslateRequest represents the request body for the translation API.
+type TranslateRequest struct {
+	PageName       string `json:"page_name"` // Add PageName to identify the page
+	SourceLanguage string `json:"source_language"`
+		TargetLanguage string `json:"target_language"`
+	Content        string `json:"content"`
+	Field          string `json:"field"` // Optional: for context-specific translation
+}
+
+// TranslateResponse represents the response body for the translation API.
+type TranslateResponse struct {
+	TranslatedText string `json:"translated_text"`
+	Error          string `json:"error,omitempty"`
+}
+
+// TranslateHandler handles translation requests.
+func (h *Handler) TranslateHandler(w http.ResponseWriter, r *http.Request) {
+	currentLang := h.getLanguage(r)
+
+	var req TranslateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		return
+	}
+
+	// Basic validation
+	if req.SourceLanguage == "" || req.TargetLanguage == "" || req.PageName == "" {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		return
+	}
+
+	contentToTranslate := req.Content
+
+	// If content is empty, try to fetch it from the source language of the page
+	if strings.TrimSpace(contentToTranslate) == "" {
+		page, err := h.Store.GetPageData(req.PageName, req.SourceLanguage, h.Translator.DefaultLanguage())
+		if err != nil {
+			// If the source page/translation is not found, we can't translate from it.
+			// Return an empty string or an error, depending on desired behavior.
+			log.Printf("TranslateHandler: Could not fetch source content for page %s in lang %s: %v", req.PageName, req.SourceLanguage, err)
+			http.Error(w, h.Translator.GetTranslation(currentLang, "source_content_not_found"), http.StatusNotFound)
+			return
+		}
+
+		switch req.Field {
+		case "title":
+			contentToTranslate = page.Content.Title
+		case "description":
+			contentToTranslate = page.Content.Description
+		case "message":
+			contentToTranslate = string(page.Content.Message)
+		default:
+			// Unknown field, cannot fetch content
+			log.Printf("TranslateHandler: Unknown field %s for content fetching", req.Field)
+			http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_field_for_translation"), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Mock translation: Reverse the content for demonstration purposes.
+	// In a real application, this would call an external translation API (e.g., Gemini API).
+	runes := []rune(contentToTranslate)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	translatedText := string(runes)
+
+	resp := TranslateResponse{
+		TranslatedText: translatedText,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // getLanguage determines the language based on Accept-Language header or a cookie.
 func (h *Handler) getLanguage(r *http.Request) string {
 	// Check for language cookie first
@@ -731,6 +836,15 @@ type TemplateEditorData struct {
 	FilePath    string
 	FileContent string
 	FileType    string // "template" or "static"
+	Message     template.HTML // Message for success/error feedback
+	MessageType string // "success" or "error"
+}
+
+// TemplatePreviewData holds data for the template preview page.
+type TemplatePreviewData struct {
+	CSRFToken   string
+	CurrentLang string
+	Site        *models.Site
 }
 
 // AdminTemplatesView handles the display of the template and static file editor.
@@ -896,13 +1010,12 @@ func (h *Handler) AdminTemplateUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := os.WriteFile(cleanPath, []byte(fileContent), 0644); err != nil {
-		http.Error(w, "Failed to write file", http.StatusInternalServerError)
 		log.Printf("Error writing to file %s: %v", cleanPath, err)
+		http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=error", r.URL.Path, filePath, fileType, h.Translator.GetTranslation(h.getLanguage(r), "admin.file_save_failed")), http.StatusFound)
 		return
 	}
 
-	// Redirect back to the editor with a success message (or just back to the editor)
-	http.Redirect(w, r, r.URL.String(), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=success", r.URL.Path, filePath, fileType, h.Translator.GetTranslation(h.getLanguage(r), "admin.file_save_success")), http.StatusFound)
 }
 
 // AdminTemplatePreview handles rendering a preview of a template file.
@@ -950,7 +1063,21 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 
 	// We execute "base" which should in turn call our specific template's content block.
 	// We pass a nil data object.
-	err = tmpl.ExecuteTemplate(w, "base", nil)
+	
+	siteData, err := h.Store.GetSiteData()
+	if err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error getting site data for template preview: %v", err)
+		return
+	}
+
+	data := TemplatePreviewData{
+		CSRFToken:   csrf.Token(r),
+		CurrentLang: currentLang,
+		Site:        siteData,
+	}
+
+	err = tmpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		http.Error(w, "Error executing template for preview.", http.StatusInternalServerError)
 		log.Printf("Error executing preview for %s: %v", cleanPath, err)

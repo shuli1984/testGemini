@@ -49,6 +49,7 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 		"AdminEditPageHandler": h.AdminEditPageHandler,
 		"AdminNewPageHandler":  h.AdminNewPageHandler,
 		"DeletePageHandler":    h.DeletePageHandler,
+		"TranslateHandler":     h.TranslateHandler,
 		"ImageUploadHandler":   h.ImageUploadHandler,
 		"AdminTemplatesView":    h.AdminTemplatesView,
 		"AdminTemplateEditView": h.AdminTemplateEditView,

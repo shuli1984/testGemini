@@ -272,4 +272,9 @@ func DeletePage(db *gorm.DB, name string) error {
 	})
 }
 
+// UpdatePage updates the non-translation fields of a Page.
+func UpdatePage(db *gorm.DB, page *Page) error {
+	return db.Model(page).Select("IsCoreSolution", "Icon").Updates(Page{IsCoreSolution: page.IsCoreSolution, Icon: page.Icon}).Error
+}
+
 

@@ -26,34 +26,48 @@
 
             <form id="pageForm" class="d-flex flex-column flex-grow-1">
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                
                 <div class="mb-3">
                     <label for="pageName" class="form-label">{{T .CurrentLang "admin.page_name_label"}}</label>
                     <input type="text" id="pageName" value="{{.Page.Name}}" class="form-control" required {{if not .IsNew}}readonly{{end}}>
                 </div>
+
                 <div class="mb-3">
                     <label for="title" class="form-label">{{T .CurrentLang "admin.title_label"}}</label>
-                    <input type="text" id="title" value="{{.Page.Content.Title}}" class="form-control" required>
+                    <div class="input-group">
+                        <input type="text" id="title" value="{{.Page.Content.Title}}" class="form-control" required>
+                        <button class="btn btn-outline-secondary translate-btn" type="button" data-field="title">{{T .CurrentLang "admin.translate_button"}}</button>
+                    </div>
                 </div>
+
                 <div class="mb-3">
                     <label for="description" class="form-label">{{T .CurrentLang "admin.description_label"}}</label>
-                    <textarea id="description" class="form-control">{{.Page.Content.Description}}</textarea>
+                    <div class="input-group">
+                        <textarea id="description" class="form-control">{{.Page.Content.Description}}</textarea>
+                        <button class="btn btn-outline-secondary translate-btn" type="button" data-field="description">{{T .CurrentLang "admin.translate_button"}}</button>
+                    </div>
                 </div>
+
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="isCoreSolution" {{if .Page.IsCoreSolution}}checked{{end}}>
                     <label class="form-check-label" for="isCoreSolution">{{T .CurrentLang "is_core_solution_label"}}</label>
                 </div>
+
                 <div class="mb-3">
                     <label for="icon" class="form-label">{{T .CurrentLang "icon_label"}}</label>
                     <input type="text" id="icon" value="{{.Page.Icon}}" class="form-control">
                 </div>
+
                 <div class="mb-3 d-flex flex-column flex-grow-1">
-                    <label for="message" class="form-label">{{T .CurrentLang "admin.message_label"}}</label>
+                    <label for="message" class="form-label">{{T .CurrentLang "admin.message_label"}} <button class="btn btn-outline-secondary btn-sm translate-btn" type="button" data-field="message">{{T .CurrentLang "admin.translate_button"}}</button></label>
                     <div id="message" class="flex-grow-1">{{.Page.Content.Message}}</div>
                 </div>
+
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary">{{if .IsNew}}{{T .CurrentLang "admin.create_page_button"}}{{else}}{{T .CurrentLang "admin.save_changes_button"}}{{end}}</button>
                     <button type="button" id="previewButton" class="btn btn-secondary">{{T .CurrentLang "common.preview_button"}}</button>
                     <button type="button" id="toggleHtmlButton" class="btn btn-secondary">{{T .CurrentLang "common.toggle_html_button"}}</button>
+                    <button type="button" id="translateAllButton" class="btn btn-info">{{T .CurrentLang "admin.translate_all_button"}}</button>
                 </div>
             </form>
 
@@ -162,6 +176,119 @@
       document.getElementById('icon').addEventListener('input', markFormDirty);
       quill.on('text-change', markFormDirty);
 
+      // --- Translation Logic ---
+      const sourceLanguage = '{{.Page.Content.LanguageCode}}'; // Language of the content currently displayed
+      const targetLanguage = '{{.EditLang}}'; // Language we are translating TO
+
+      async function translateField(field, content) {
+          const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+          const responseDiv = document.getElementById('response');
+          responseDiv.innerHTML = ''; // Clear previous messages
+
+          try {
+              const response = await fetch('/admin/api/translate', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRF-Token': csrfToken
+                  },
+                  body: JSON.stringify({
+                      page_name: document.getElementById('pageName').value, // Add page_name
+                      source_language: sourceLanguage,
+                      target_language: targetLanguage,
+                      content: content,
+                      field: field
+                  })
+              });
+
+              const result = await response.json();
+
+              if (response.ok) {
+                  return result.translated_text;
+              } else {
+                  responseDiv.innerHTML = `<div class="alert alert-danger">Translation Error: ${result.message || 'Unknown error'}</div>`;
+                  return null;
+              }
+          } catch (error) {
+              responseDiv.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+              return null;
+          }
+      }
+
+      // Individual translate buttons
+      document.querySelectorAll('.translate-btn').forEach(button => {
+          button.addEventListener('click', async function() {
+              const field = this.dataset.field;
+              let contentToTranslate = '';
+
+              if (field === 'title') {
+                  contentToTranslate = document.getElementById('title').value;
+              } else if (field === 'description') {
+                  contentToTranslate = document.getElementById('description').value;
+              } else if (field === 'message') {
+                  contentToTranslate = quill.root.innerHTML;
+              }
+
+              if (contentToTranslate) {
+                  const translatedText = await translateField(field, contentToTranslate);
+                  if (translatedText !== null) {
+                      if (field === 'title') {
+                          document.getElementById('title').value = translatedText;
+                      } else if (field === 'description') {
+                          document.getElementById('description').value = translatedText;
+                      } else if (field === 'message') {
+                          quill.root.innerHTML = translatedText;
+                      }
+                      markFormDirty(); // Mark form as dirty after translation
+                  }
+              } else {
+                  document.getElementById('response').innerHTML = `<div class="alert alert-warning">No content to translate for ${field}.</div>`;
+              }
+          });
+      });
+
+      // Translate All button
+      document.getElementById('translateAllButton').addEventListener('click', async () => {
+          const responseDiv = document.getElementById('response');
+          responseDiv.innerHTML = '<div class="alert alert-info">Translating all fields...</div>';
+
+          const fieldsToTranslate = ['title', 'description', 'message'];
+          let allTranslated = true;
+
+          for (const field of fieldsToTranslate) {
+              let contentToTranslate = '';
+              if (field === 'title') {
+                  contentToTranslate = document.getElementById('title').value;
+              } else if (field === 'description') {
+                  contentToTranslate = document.getElementById('description').value;
+              } else if (field === 'message') {
+                  contentToTranslate = quill.root.innerHTML;
+              }
+
+              if (contentToTranslate) {
+                  const translatedText = await translateField(field, contentToTranslate);
+                  if (translatedText !== null) {
+                      if (field === 'title') {
+                          document.getElementById('title').value = translatedText;
+                      } else if (field === 'description') {
+                          document.getElementById('description').value = translatedText;
+                      } else if (field === 'message') {
+                          quill.root.innerHTML = translatedText;
+                      }
+                      markFormDirty();
+                  } else {
+                      allTranslated = false;
+                  }
+              }
+          }
+
+          if (allTranslated) {
+              responseDiv.innerHTML = '<div class="alert alert-success">All fields translated successfully!</div>';
+          } else {
+              responseDiv.innerHTML = '<div class="alert alert-warning">Some fields could not be translated. Check console for errors.</div>';
+          }
+      });
+
       document.getElementById('previewButton').addEventListener('click', () => {
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
@@ -246,7 +373,7 @@
                 const result = await response.json();
                 window.location.href = `/admin/pages/edit/${result.Name}`;
             } else {
-                responseDiv.innerHTML = `<div class="alert alert-success">{{T .CurrentLang "admin.page_updated_success"}}</div>`;
+                responseDiv.innerHTML = `<div class="alert alert-success">Save successful!</div>`; // Changed message
             }
         } else {
             const contentType = response.headers.get("content-type");

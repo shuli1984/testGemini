@@ -46,6 +46,8 @@
   "logout_menu": "Logout",
   "edit_page_title": "Edit Page",
   "edit_language_label": "Edit Language",
+  "translate_button": "Translate",
+  "translate_all_button": "Translate All",
   "confirm_discard_changes": "You have unsaved changes. Are you sure you want to discard them and switch languages?",
   "templates_section_title": "Templates",
   "file_name_header": "File Name",
