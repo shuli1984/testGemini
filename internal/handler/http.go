@@ -39,9 +39,9 @@ type ContentTemplater interface {
 
 
 // GetContentTemplateName implements ContentTemplater for PagesListTemplateData.
-func (d PagesListTemplateData) GetContentTemplateName() string {
-	return d.ContentTemplateName
-}
+// func (d PagesListTemplateData) GetContentTemplateName() string {
+// 	return d.ContentTemplateName
+// }
 
 
 
@@ -114,15 +114,15 @@ type DashboardTemplateData struct {
 
 // AdminEditPageTemplateData holds data for the admin edit page template.
 type AdminEditPageTemplateData struct {
-	Page        *models.Page
-	CSRFToken   string
-	CurrentPath string
-	CurrentLang string
-	Message     template.HTML
-	IsNew       bool // Flag for new page creation
+	Page               *models.Page
+	CSRFToken          string
+	CurrentPath        string
+	CurrentLang        string
+	Message            template.HTML
+	IsNew              bool // Flag for new page creation
+	SupportedLanguages []string
+	EditLang           string
 }
-
-
 
 // AdminPagesTemplateData holds data for the admin pages list template.
 type AdminPagesTemplateData struct {
@@ -147,10 +147,13 @@ type IndexTemplateData struct {
 	Site          *models.Site // Explicit field
 	CoreSolutions []models.Page
 	CurrentLang   string
+	Page          *models.Page // Add Page field for header compatibility
 }
 
 // PagesListTemplateData holds data for the pages list page template.
+// PagesListTemplateData holds data for the pages list page template.
 type PagesListTemplateData struct {
+	Page                *models.Page // Add Page field for header compatibility
 	Pages               []models.Page
 	Site                *models.Site
 	CurrentLang         string
@@ -197,7 +200,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Update siteData with carousel items
 	siteData.CarouselItems = carouselItems
 
-	coreSolutions, err := h.Store.GetCoreSolutions()
+	coreSolutions, err := h.Store.GetCoreSolutions(currentLang, h.Translator.DefaultLanguage())
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting core solutions: %v", err)
@@ -208,6 +211,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 		Site:          siteData,
 		CoreSolutions: coreSolutions,
 		CurrentLang:   currentLang,
+		Page:          nil, // Initialize Page to nil for index page
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -217,7 +221,7 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PagesListHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	pages, err := h.Store.GetAllPages()
+	pages, err := h.Store.GetAllPages(currentLang, h.Translator.DefaultLanguage())
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting all pages: %v", err)
@@ -246,9 +250,9 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentLang := h.getLanguage(r)
 
-	pageData, err := h.Store.GetPageData(pageName)
+	pageData, err := h.Store.GetPageData(pageName, currentLang, h.Translator.DefaultLanguage())
 	if err != nil {
-		if err.Error() == "record not found" {
+		if err == gorm.ErrRecordNotFound {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
 		} else {
 			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
@@ -264,9 +268,9 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	combinedData := PageCombinedData{
-		Page:                pageData,
-		Site:                siteData,
-		CurrentLang:         currentLang,
+		Page:        pageData,
+		Site:        siteData,
+		CurrentLang: currentLang,
 	}
 
 	h.renderTemplate(w, r, getTemplateName(r), combinedData)
@@ -298,51 +302,53 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 
 func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
-	currentLang := h.getLanguage(r)
-
-	// Log headers for CSRF debugging
-	h.DebugLog("UpdatePageHandler: Referer: %s", r.Header.Get("Referer"))
-	h.DebugLog("UpdatePageHandler: Origin: %s", r.Header.Get("Origin"))
-	h.DebugLog("UpdatePageHandler: X-CSRF-Token header: %s", r.Header.Get("X-CSRF-Token"))
-
 	vars := mux.Vars(r)
 	pageName := vars["name"]
+	currentLang := h.getLanguage(r)
 
-	var updatedPage models.Page
-	err := json.NewDecoder(r.Body).Decode(&updatedPage)
+	// First, get the page shell to find its ID
+	// We don't need the content here, so we can use a simple query if we had one,
+	// but GetPageData is fine. We just need the ID.
+	page, err := h.Store.GetPageData(pageName, currentLang, h.Translator.DefaultLanguage())
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest) // Translated
-		return
-	}
-
-	if updatedPage.Name != pageName {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "page_name_mismatch"), http.StatusBadRequest) // Translated
-		return
-	}
-
-	existingPage, err := h.Store.GetPageData(pageName)
-	if err != nil {
-		if err.Error() == "record not found" {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
 		} else {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
+			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		}
 		return
 	}
 
-	existingPage.Title = updatedPage.Title
-	existingPage.Description = updatedPage.Description
-	existingPage.Message = updatedPage.Message
-	existingPage.IsCoreSolution = updatedPage.IsCoreSolution
-	existingPage.Icon = updatedPage.Icon
-
-	if err := h.Store.UpdatePage(existingPage); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
+	// Decode the new translation content from the request body
+	var translation models.PageTranslation
+	if err := json.NewDecoder(r.Body).Decode(&translation); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
+	// Basic validation
+	if strings.TrimSpace(translation.Title) == "" {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "title_required"), http.StatusBadRequest)
+		return
+	}
+	
+	// The language code in the body should match the language being edited.
+	// This is an important security/consistency check.
+	if translation.LanguageCode == "" {
+		// If for some reason the client doesn't send it, we can assume the current language.
+		translation.LanguageCode = currentLang
+	}
+
+	// Call the store to update or create the translation
+	if err := h.Store.UpdatePageTranslation(page.ID, &translation); err != nil {
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error updating page translation: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(existingPage)
+	json.NewEncoder(w).Encode(translation)
 }
 
 // LoginHandler handles admin login requests.
@@ -425,7 +431,7 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 // PagesHandler displays the list of pages in the admin panel.
 func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
-	pages, err := h.Store.GetAllPages()
+	pages, err := h.Store.GetAllPages(currentLang, h.Translator.DefaultLanguage())
 	if err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting all pages: %v", err)
@@ -440,31 +446,51 @@ func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 	}
 
-	h.renderTemplate(w, r, getTemplateName(r), data)
+	h.renderTemplate(w, r, "admin/admin_pages.html", data)
 }
 
 // AdminEditPageHandler handles the display of the admin page edit form.
 func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pageName := vars["name"]
-	currentLang := h.getLanguage(r)
+	
+	// The language to edit can be passed as a query param, e.g., /admin/pages/edit/about?lang=ja
+	// If not provided, it defaults to the user's current language preference.
+	editLang := r.URL.Query().Get("lang")
+	if editLang == "" {
+		editLang = h.getLanguage(r)
+	}
 
-	page, err := h.Store.GetPageData(pageName)
+	// We fetch the page content for the specific language we want to edit.
+	// The fallback logic in GetPageData ensures we get *some* content if the specific language doesn't exist yet.
+	page, err := h.Store.GetPageData(pageName, editLang, h.Translator.DefaultLanguage())
 	if err != nil {
-		if err.Error() == "record not found" {
+		if err == gorm.ErrRecordNotFound {
 			http.NotFound(w, r)
 		} else {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		}
 		return
 	}
 
-		data := AdminEditPageTemplateData{
+	// If the fetched content's language doesn't match the edit language,
+	// it means we've fallen back to the default. In this case, we are creating a *new* translation,
+	// so we should clear the content fields for the form.
+	if page.Content.LanguageCode != editLang {
+		page.Content = models.PageTranslation{
+			LanguageCode: editLang, // Set the language code for the new translation
+		}
+	}
+
+	data := AdminEditPageTemplateData{
 		Page:        page,
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
-		CurrentLang: currentLang,
-		Message:     template.HTML(page.Message),
+		CurrentLang: h.getLanguage(r), // This is for the UI, not the content language
+		Message:     "", // No message on initial load
+		IsNew:       false,
+		SupportedLanguages: h.Translator.GetAvailableLanguages(),
+		EditLang:           editLang,
 	}
 
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)
@@ -549,13 +575,20 @@ func (h *Handler) AdminNewPageHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
+	editLang := r.URL.Query().Get("lang")
+	if editLang == "" {
+		editLang = currentLang
+	}
+
 	data := AdminEditPageTemplateData{
-		Page:        &models.Page{},
+		Page:        &models.Page{Content: models.PageTranslation{LanguageCode: editLang}},
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
 		CurrentLang: currentLang,
 		Message:     "",
 		IsNew:       true,
+		SupportedLanguages: h.Translator.GetAvailableLanguages(),
+		EditLang:           editLang,
 	}
 
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)
@@ -563,23 +596,39 @@ func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
+
+	// The request body should contain the page shell and the content for the first translation.
 	var newPage models.Page
 	if err := json.NewDecoder(r.Body).Decode(&newPage); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
-	if strings.TrimSpace(newPage.Name) == "" || strings.TrimSpace(newPage.Title) == "" {
+	// Basic validation
+	if strings.TrimSpace(newPage.Name) == "" || strings.TrimSpace(newPage.Content.Title) == "" {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "page_name_title_required"), http.StatusBadRequest)
 		return
 	}
 
-	_, err := h.Store.GetPageData(newPage.Name)
+	// Set the language code for the first translation if not provided
+	if newPage.Content.LanguageCode == "" {
+		newPage.Content.LanguageCode = currentLang
+	}
+
+	// Check if page with the same name already exists
+	_, err := h.Store.GetPageData(newPage.Name, currentLang, h.Translator.DefaultLanguage())
 	if err == nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "page_exists"), http.StatusConflict)
 		return
 	}
+	if err != gorm.ErrRecordNotFound {
+		// A different error occurred
+		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		log.Printf("Error checking for existing page: %v", err)
+		return
+	}
 
+	// Create the page and its first translation
 	if err := h.Store.CreatePage(&newPage); err != nil {
 		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error creating page: %v", err)
@@ -591,7 +640,7 @@ func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newPage)
 }
 
-// DeletePageHandler handles the deletion of a page.
+// DeletePageHandler handles the deletion of a page and all its translations.
 func (h *Handler) DeletePageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pageName := vars["name"]

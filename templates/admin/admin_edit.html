@@ -8,15 +8,21 @@
         </div>
         <div class="p-4 shadow-sm flex-grow-1 d-flex flex-column">
             <h1 class="mb-4">
-    {{if eq .CurrentPath "/admin/pages/new"}}
+    {{if .IsNew}}
         {{T .CurrentLang "admin.new_page_title"}}
-    {{else if hasPrefix .CurrentPath "/admin/pages/edit/"}}
-        {{T .CurrentLang "admin.edit_page_title"}}
     {{else}}
-        <!-- Fallback or error title -->
-        {{T .CurrentLang "common.unknown_title"}}
+        {{T .CurrentLang "admin.edit_page_title"}}
     {{end}}
 </h1>
+
+            <div class="mb-3">
+                <label for="languageSelector" class="form-label">{{T .CurrentLang "admin.edit_language_label"}}</label>
+                <select id="languageSelector" class="form-select" style="width: auto;">
+                    {{range .SupportedLanguages}}
+                    <option value="{{.}}" {{if eq . $.EditLang}}selected{{end}}>{{.}}</option>
+                    {{end}}
+                </select>
+            </div>
 
             <form id="pageForm" class="d-flex flex-column flex-grow-1">
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -26,11 +32,11 @@
                 </div>
                 <div class="mb-3">
                     <label for="title" class="form-label">{{T .CurrentLang "admin.title_label"}}</label>
-                    <input type="text" id="title" value="{{.Page.Title}}" class="form-control" required>
+                    <input type="text" id="title" value="{{.Page.Content.Title}}" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label for="description" class="form-label">{{T .CurrentLang "admin.description_label"}}</label>
-                    <textarea id="description" class="form-control">{{.Page.Description}}</textarea>
+                    <textarea id="description" class="form-control">{{.Page.Content.Description}}</textarea>
                 </div>
                 <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="isCoreSolution" {{if .Page.IsCoreSolution}}checked{{end}}>
@@ -42,7 +48,7 @@
                 </div>
                 <div class="mb-3 d-flex flex-column flex-grow-1">
                     <label for="message" class="form-label">{{T .CurrentLang "admin.message_label"}}</label>
-                    <div id="message" class="flex-grow-1">{{.Message}}</div>
+                    <div id="message" class="flex-grow-1">{{.Page.Content.Message}}</div>
                 </div>
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary">{{if .IsNew}}{{T .CurrentLang "admin.create_page_button"}}{{else}}{{T .CurrentLang "admin.save_changes_button"}}{{end}}</button>
@@ -75,6 +81,22 @@
 
     <!-- Initialize Quill editor and add event listeners -->
     <script>
+      let isFormDirty = false;
+      const markFormDirty = () => { isFormDirty = true; };
+
+      document.getElementById('languageSelector').addEventListener('change', function() {
+        if (isFormDirty) {
+            if (!confirm('{{T $.CurrentLang "admin.confirm_discard_changes"}}')) {
+                this.value = '{{.EditLang}}';
+                return;
+            }
+        }
+        const selectedLang = this.value;
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('lang', selectedLang);
+        window.location.href = currentUrl.toString();
+    });
+
       const isNew = {{.IsNew}};
 
       function imageHandler() {
@@ -132,6 +154,13 @@
           }
         }
       });
+
+      // Attach listeners to mark form as dirty
+      document.getElementById('title').addEventListener('input', markFormDirty);
+      document.getElementById('description').addEventListener('input', markFormDirty);
+      document.getElementById('isCoreSolution').addEventListener('change', markFormDirty);
+      document.getElementById('icon').addEventListener('input', markFormDirty);
+      quill.on('text-change', markFormDirty);
 
       document.getElementById('previewButton').addEventListener('click', () => {
         const title = document.getElementById('title').value;
@@ -212,6 +241,7 @@
         const responseDiv = document.getElementById('response');
 
         if (response.ok) {
+            isFormDirty = false; // Reset dirty flag on successful save
             if (isNew) {
                 const result = await response.json();
                 window.location.href = `/admin/pages/edit/${result.Name}`;

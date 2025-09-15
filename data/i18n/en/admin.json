@@ -45,6 +45,8 @@
   "site_settings_menu": "Site Settings",
   "logout_menu": "Logout",
   "edit_page_title": "Edit Page",
+  "edit_language_label": "Edit Language",
+  "confirm_discard_changes": "You have unsaved changes. Are you sure you want to discard them and switch languages?",
   "templates_section_title": "Templates",
   "file_name_header": "File Name",
   "actions_header": "Actions",

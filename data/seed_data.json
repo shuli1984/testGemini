@@ -2,42 +2,150 @@
   "Pages": [
     {
       "Name": "home",
-      "Title": "Innovatech - AI & IT 解决方案",
-      "Description": "Innovatech.AI 提供领先的IT解决方案和人工智能服务，包括企业云服务、机器学习模型和IT基础架构现代化。我们致力于通过前沿技术驱动您的业务增长。",
-      "Message": "Hello from the database!"
+      "IsCoreSolution": false,
+      "Icon": "fa-home",
+      "Translations": [
+        {
+          "LanguageCode": "zh",
+          "Title": "Innovatech - AI & IT 解决方案",
+          "Description": "Innovatech.AI 提供领先的IT解决方案和人工智能服务，包括企业云服务、机器学习模型和IT基础架构现代化。我们致力于通过前沿技术驱动您的业务增长。",
+          "Keywords": "AI, IT解决方案, 企业云服务, 机器学习, IT基础架构现代化",
+          "Message": "来自数据库的问候！"
+        },
+        {
+          "LanguageCode": "en",
+          "Title": "Innovatech - AI & IT Solutions",
+          "Description": "Innovatech.AI offers leading IT solutions and artificial intelligence services, including enterprise cloud services, machine learning models, and IT infrastructure modernization. We are dedicated to driving your business growth through cutting-edge technology.",
+          "Keywords": "AI, IT Solutions, Enterprise Cloud Services, Machine Learning, IT Infrastructure Modernization",
+          "Message": "Hello from the database!"
+        }
+      ]
     },
     {
       "Name": "about",
-      "Title": "About Us",
-      "Description": "",
-      "Message": "Learn more about our company."
+      "IsCoreSolution": false,
+      "Icon": "fa-info-circle",
+      "Translations": [
+        {
+          "LanguageCode": "en",
+          "Title": "About Us",
+          "Description": "Learn more about our company.",
+          "Keywords": "about us, company",
+          "Message": "Learn more about our company."
+        },
+        {
+          "LanguageCode": "zh",
+          "Title": "关于我们",
+          "Description": "了解更多关于我们公司的信息。",
+          "Keywords": "关于我们, 公司",
+          "Message": "了解更多关于我们公司的信息。"
+        }
+      ]
     },
     {
       "Name": "contact",
-      "Title": "Contact Us",
-      "Description": "",
-      "Message": "Get in touch with us."
+      "IsCoreSolution": false,
+      "Icon": "fa-envelope",
+      "Translations": [
+        {
+          "LanguageCode": "en",
+          "Title": "Contact Us",
+          "Description": "Get in touch with us.",
+          "Keywords": "contact, support",
+          "Message": "Get in touch with us."
+        },
+        {
+          "LanguageCode": "zh",
+          "Title": "联系我们",
+          "Description": "与我们取得联系。",
+          "Keywords": "联系, 支持",
+          "Message": "与我们取得联系。"
+        }
+      ]
     },
     {
       "Name": "ai_ml",
-      "Title": "人工智能与机器学习 | AIと機械学習 | AI & Machine Learning",
-      "Description": "利用我们先进的机器学习模型和人工智能解决方案，释放数据的潜力，驱动智能决策。 | 当社の高度な機械学習モデルとAIソリューションを活用して、データの可能性を解き放ち、インテリジェントな意思決定を推進します。 | Unlock the potential of data and drive intelligent decision-making with our advanced machine learning models and AI solutions.",
-      "Message": "",
-      "IsCoreSolution": true
+      "IsCoreSolution": true,
+      "Icon": "fa-brain",
+      "Translations": [
+        {
+          "LanguageCode": "zh",
+          "Title": "人工智能与机器学习",
+          "Description": "利用我们先进的机器学习模型和人工智能解决方案，释放数据的潜力，驱动智能决策。",
+          "Keywords": "人工智能, 机器学习",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "AIと機械学習",
+          "Description": "当社の高度な機械学習モデルとAIソリューションを活用して、データの可能性を解き放ち、インテリジェントな意思決定を推進します。",
+          "Keywords": "AI, 機械学習",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "en",
+          "Title": "AI & Machine Learning",
+          "Description": "Unlock the potential of data and drive intelligent decision-making with our advanced machine learning models and AI solutions.",
+          "Keywords": "AI, Machine Learning",
+          "Message": ""
+        }
+      ]
     },
     {
       "Name": "enterprise_cloud",
-      "Title": "企业云服务 | エンタープライズクラウドサービス | Enterprise Cloud Services",
-      "Description": "我们提供安全、可扩展的企业云解决方案，帮助您优化运营，降低成本，并加速创新。 | 安全でスケーラブルなエンタープライズクラウドソリューションを提供し、運用を最適化し、コストを削減し、イノベーションを加速するお手伝いをします。 | We provide secure and scalable enterprise cloud solutions to help you optimize operations, reduce costs, and accelerate innovation.",
-      "Message": "",
-      "IsCoreSolution": true
+      "IsCoreSolution": true,
+      "Icon": "fa-cloud",
+      "Translations": [
+        {
+          "LanguageCode": "zh",
+          "Title": "企业云服务",
+          "Description": "我们提供安全、可扩展的企业云解决方案，帮助您优化运营，降低成本，并加速创新。",
+          "Keywords": "企业云服务, 云解决方案",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "エンタープライズクラウドサービス",
+          "Description": "安全でスケーラブルなエンタープライズクラウドソリューションを提供し、運用を最適化し、コストを削減し、イノベーションを加速するお手伝いをします。",
+          "Keywords": "エンタープライズクラウドサービス, クラウドソリューション",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "en",
+          "Title": "Enterprise Cloud Services",
+          "Description": "We provide secure and scalable enterprise cloud solutions to help you optimize operations, reduce costs, and accelerate innovation.",
+          "Keywords": "Enterprise Cloud Services, Cloud Solutions",
+          "Message": ""
+        }
+      ]
     },
     {
       "Name": "it_infra_modernization",
-      "Title": "IT基础架构现代化 | ITインフラのモダナイゼーション | IT Infrastructure Modernization",
-      "Description": "通过我们的IT基础架构现代化服务，构建一个敏捷、高效和安全的IT环境，支持您的业务持续增长。 | 当社のITインフラモダナイゼーションサービスを通じて、ビジネスの継続的な成長をサポートする、アジャイルで効率的かつ安全なIT環境を構築します。 | Build an agile, efficient, and secure IT environment that supports your continuous business growth with our IT infrastructure modernization services.",
-      "Message": "",
-      "IsCoreSolution": true
+      "IsCoreSolution": true,
+      "Icon": "fa-server",
+      "Translations": [
+        {
+          "LanguageCode": "zh",
+          "Title": "IT基础架构现代化",
+          "Description": "通过我们的IT基础架构现代化服务，构建一个敏捷、高效和安全的IT环境，支持您的业务持续增长。",
+          "Keywords": "IT基础架构现代化, IT环境",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "ITインフラのモダナイゼーション",
+          "Description": "当社のITインフラモダナイゼーションサービスを通じて、ビジネスの継続的な成長をサポートする、アジャイルで効率的かつ安全なIT環境を構築します。",
+          "Keywords": "ITインフラのモダナイゼーション, IT環境",
+          "Message": ""
+        },
+        {
+          "LanguageCode": "en",
+          "Title": "IT Infrastructure Modernization",
+          "Description": "Build an agile, efficient, and secure IT environment that supports your continuous business growth with our IT infrastructure modernization services.",
+          "Keywords": "IT Infrastructure Modernization, IT Environment",
+          "Message": ""
+        }
+      ]
     }
   ],
   "SiteSettings": [

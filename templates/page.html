@@ -3,14 +3,14 @@
 {{define "content"}}
     <section class="page-hero text-center py-5">
         <div class="container">
-            <h1 class="display-4 mb-3">{{.Page.Title}}</h1>
+            <h1 class="display-4 mb-3">{{.Page.Content.Title}}</h1>
         </div>
     </section>
 
     <section class="content py-5">
         <div class="container">
             <div class="lead">
-                {{.Page.Message}}
+                {{.Page.Content.Message}}
             </div>
         </div>
     </section>

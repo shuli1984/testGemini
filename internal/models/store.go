@@ -6,13 +6,13 @@ import "gorm.io/gorm"
 // required by the application's handlers.
 type DataStore interface {
 	GetSiteData() (*Site, error)
-	GetPageData(name string) (*Page, error)
-	GetAllPages() ([]Page, error)
-	GetCoreSolutions() ([]Page, error)
-	UpdatePage(page *Page) error
+	GetPageData(name string, lang string, defaultLang string) (*Page, error)
+	GetAllPages(lang string, defaultLang string) ([]Page, error)
 	CreatePage(page *Page) error
+	UpdatePageTranslation(pageID uint, translation *PageTranslation) error
 	DeletePage(name string) error
 	GetDashboardData() (*DashboardData, error)
+	GetCoreSolutions(lang string, defaultLang string) ([]Page, error)
 }
 
 // DBStore is a GORM implementation of the DataStore interface.
@@ -29,24 +29,20 @@ func (s *DBStore) GetSiteData() (*Site, error) {
 	return GetSiteData(s.DB)
 }
 
-func (s *DBStore) GetPageData(name string) (*Page, error) {
-	return GetPageData(s.DB, name)
+func (s *DBStore) GetPageData(name string, lang string, defaultLang string) (*Page, error) {
+	return GetPageData(s.DB, name, lang, defaultLang)
 }
 
-func (s *DBStore) GetAllPages() ([]Page, error) {
-	return GetAllPages(s.DB)
-}
-
-func (s *DBStore) GetCoreSolutions() ([]Page, error) {
-	return GetCoreSolutions(s.DB)
-}
-
-func (s *DBStore) UpdatePage(page *Page) error {
-	return page.UpdatePage(s.DB)
+func (s *DBStore) GetAllPages(lang string, defaultLang string) ([]Page, error) {
+	return GetAllPages(s.DB, lang, defaultLang)
 }
 
 func (s *DBStore) CreatePage(page *Page) error {
-	return page.CreatePage(s.DB)
+	return CreatePage(s.DB, page)
+}
+
+func (s *DBStore) UpdatePageTranslation(pageID uint, translation *PageTranslation) error {
+	return UpdatePageTranslation(s.DB, pageID, translation)
 }
 
 func (s *DBStore) DeletePage(name string) error {
@@ -55,4 +51,8 @@ func (s *DBStore) DeletePage(name string) error {
 
 func (s *DBStore) GetDashboardData() (*DashboardData, error) {
 	return GetDashboardData(s.DB)
+}
+
+func (s *DBStore) GetCoreSolutions(lang string, defaultLang string) ([]Page, error) {
+	return GetCoreSolutions(s.DB, lang, defaultLang)
 }

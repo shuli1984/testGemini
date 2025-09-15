@@ -1,20 +1,22 @@
 {{define "header.html"}}
     <meta charset="UTF-8">
-    <title>{{T .CurrentLang "common.site_title"}} - {{.Site.Title}}</title>
+    <title>{{if .Page}}{{.Page.Content.Title}} - {{T .CurrentLang "common.site_title"}}{{else}}{{T .CurrentLang "common.site_title"}} - {{.Site.Title}}{{end}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- SEO Meta Tags -->
+    <meta name="description" content="{{if .Page}}{{.Page.Content.Description}}{{else}}{{.Site.Description}}{{end}}">
+    <meta name="keywords" content="{{if .Page}}{{.Page.Content.Keywords}}{{end}}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{.Site.CanonicalURL}}">
-    <meta property="og:title" content="{{.Site.Title}}">
-    <meta property="og:description" content="{{.Site.Description}}">
+    <meta property="og:title" content="{{if .Page}}{{.Page.Content.Title}}{{else}}{{.Site.Title}}{{end}}">
+    <meta property="og:description" content="{{if .Page}}{{.Page.Content.Description}}{{else}}{{.Site.Description}}{{end}}">
     <meta property="og:image" content="{{.Site.ImageURL}}">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{.Site.CanonicalURL}}">
-    <meta property="twitter:title" content="{{.Site.Title}}">
-    <meta property="twitter:description" content="{{.Site.Description}}">
+    <meta property="twitter:title" content="{{if .Page}}{{.Page.Content.Title}}{{else}}{{.Site.Title}}{{end}}">
+    <meta property="twitter:description" content="{{if .Page}}{{.Page.Content.Description}}{{else}}{{.Site.Description}}{{end}}">
     <meta property="twitter:image" content="{{.Site.ImageURL}}">
 
     <!-- Bootstrap CSS -->
