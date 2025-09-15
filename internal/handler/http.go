@@ -114,14 +114,15 @@ type DashboardTemplateData struct {
 
 // AdminEditPageTemplateData holds data for the admin edit page template.
 type AdminEditPageTemplateData struct {
-	Page               *models.Page
-	CSRFToken          string
-	CurrentPath        string
-	CurrentLang        string
-	Message            template.HTML
-	IsNew              bool // Flag for new page creation
-	SupportedLanguages []string
-	EditLang           string
+	Page                        *models.Page
+	CSRFToken                   string
+	CurrentPath                 string
+	CurrentLang                 string
+	Message                     template.HTML
+	IsNew                       bool // Flag for new page creation
+	SupportedLanguages          []string
+	EditLang                    string
+	OriginalContentLanguageCode string // Add this field
 }
 
 // AdminPagesTemplateData holds data for the admin pages list template.
@@ -503,6 +504,10 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Store the language code of the content that was actually retrieved.
+	// This is important if page.Content is about to be cleared for a new translation.
+	originalContentLang := page.Content.LanguageCode
+
 	// If the fetched content's language doesn't match the edit language,
 	// it means we've fallen back to the default. In this case, we are creating a *new* translation,
 	// so we should clear the content fields for the form.
@@ -513,14 +518,15 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := AdminEditPageTemplateData{
-		Page:        page,
-		CSRFToken:   csrf.Token(r),
-		CurrentPath: r.URL.Path,
-		CurrentLang: h.getLanguage(r), // This is for the UI, not the content language
-		Message:     "", // No message on initial load
-		IsNew:       false,
-		SupportedLanguages: h.Translator.GetAvailableLanguages(),
-		EditLang:           editLang,
+		Page:                        page,
+		CSRFToken:                   csrf.Token(r),
+		CurrentPath:                 r.URL.Path,
+		CurrentLang:                 h.getLanguage(r), // This is for the UI, not the content language
+		Message:                     "", // No message on initial load
+		IsNew:                       false,
+		SupportedLanguages:          h.Translator.GetAvailableLanguages(),
+		EditLang:                    editLang,
+		OriginalContentLanguageCode: originalContentLang, // Pass the original content language
 	}
 
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)
