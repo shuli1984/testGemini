@@ -28,6 +28,11 @@ type StaticConfig struct {
 	Dir       string `mapstructure:"dir"`
 }
 
+// TranslatorConfig defines the structure for the translation service.
+type TranslatorConfig struct {
+	APIKey string `mapstructure:"api_key"`
+}
+
 // Config holds all configuration for the application.
 type Config struct {
 	Server struct {
@@ -37,9 +42,10 @@ type Config struct {
 		Type string `mapstructure:"type"`
 		DSN  string `mapstructure:"dsn"`
 	} `mapstructure:"database"`
-	Auth   AuthConfig   `mapstructure:"auth"`
-	Static StaticConfig `mapstructure:"static"`
-	Routes []Route      `mapstructure:"routes"`
+	Auth       AuthConfig       `mapstructure:"auth"`
+	Static     StaticConfig     `mapstructure:"static"`
+	Translator TranslatorConfig `mapstructure:"translator"`
+	Routes     []Route          `mapstructure:"routes"`
 }
 
 // LoadConfig reads configuration from file or environment variables.
@@ -58,6 +64,7 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("auth.csrf_key", "CSRF_KEY")
 	viper.BindEnv("auth.username", "ADMIN_USERNAME") // Bind username/password too for consistency
 	viper.BindEnv("auth.password", "ADMIN_PASSWORD")
+	viper.BindEnv("translator.api_key", "TRANSLATOR_API_KEY")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err

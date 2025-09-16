@@ -8,6 +8,7 @@ import (
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/models"
+	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
 	"html/template"
 	"io"
@@ -23,12 +24,13 @@ import (
 )
 
 type Handler struct {
-	Store       models.DataStore
-	AuthService *auth.AuthService
-	Templates   map[string]*template.Template // Changed to map
-	DebugLog    func(format string, v ...interface{})
-	Translator  *i18n.Translator
-	DebugMode   bool
+	Store          models.DataStore
+	AuthService    *auth.AuthService
+	Templates      map[string]*template.Template // Changed to map
+	DebugLog       func(format string, v ...interface{})
+	I18n           *i18n.Translator
+	API_Translator translator.Translator
+	DebugMode      bool
 }
 
 // ContentTemplater defines an interface for data structures that can specify a content template name.
@@ -36,24 +38,20 @@ type ContentTemplater interface {
 	GetContentTemplateName() string
 }
 
-
-
 // GetContentTemplateName implements ContentTemplater for PagesListTemplateData.
 // func (d PagesListTemplateData) GetContentTemplateName() string {
 // 	return d.ContentTemplateName
 // }
-
-
 
 func (h *Handler) renderTemplate(w http.ResponseWriter, r *http.Request, templateName string, data interface{}) {
 	var currentTemplates map[string]*template.Template
 	var err error
 
 	if h.DebugMode {
-		currentTemplates, err = util.ParseTemplates(h.Translator)
+		currentTemplates, err = util.ParseTemplates(h.I18n)
 		if err != nil {
 			log.Printf("Error parsing templates in debug mode: %v", err)
-			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "error_processing_template"), http.StatusInternalServerError)
+			http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "error_processing_template"), http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -68,7 +66,7 @@ func (h *Handler) renderTemplate(w http.ResponseWriter, r *http.Request, templat
 
 	tmpl, ok := currentTemplates[templateName]
 	if !ok {
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Template %s not found in map", templateName)
 		return
 	}
@@ -89,7 +87,7 @@ func (h *Handler) renderTemplate(w http.ResponseWriter, r *http.Request, templat
 	// Execute the specified content template name (e.g., "index_content", "pages_content", "page_content")
 	// or fallback to "base" if not specified.
 	if err := tmpl.ExecuteTemplate(&buf, executeTemplateName, data); err != nil {
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error executing template (%s) with content template (%s): %v", templateName, executeTemplateName, err)
 		return
 	}
@@ -109,8 +107,6 @@ type DashboardTemplateData struct {
 	CurrentPath           string // Add CurrentPath field
 	CurrentLang           string
 }
-
-
 
 // AdminEditPageTemplateData holds data for the admin edit page template.
 type AdminEditPageTemplateData struct {
@@ -133,8 +129,6 @@ type AdminPagesTemplateData struct {
 	CurrentLang string
 	Title       string
 }
-
-
 
 // PageCombinedData holds data for a page template, combining page and site data.
 type PageCombinedData struct {
@@ -164,7 +158,7 @@ type PagesListTemplateData struct {
 func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting site data: %v", err)
 		return
 	}
@@ -175,24 +169,24 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Dummy Carousel Items for demonstration
 	carouselItems := []models.CarouselItem{
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_1")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_1")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_1"),
+			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_1")),
+			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_1")),
+			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_1"),
 			ButtonLink:    "#contact",
 			BackgroundImage: "/static/images/hero-bg-1.jpg", // Placeholder image
 			Active:        true,
 		},
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_2")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_2")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_2"),
+			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_2")),
+			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_2")),
+			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_2"),
 			ButtonLink:    "#services",
 			BackgroundImage: "/static/images/hero-bg-2.jpg", // Placeholder image
 		},
 		{
-			Title:         template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_title_3")),
-			Description:   template.HTML(h.Translator.GetTranslation(currentLang, "common.carousel_description_3")),
-			ButtonText:    h.Translator.GetTranslation(currentLang, "common.carousel_button_text_3"),
+			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_3")),
+			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_3")),
+			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_3"),
 			ButtonLink:    "#about",
 			BackgroundImage: "/static/images/hero-bg-3.jpg", // Placeholder image
 		},
@@ -201,9 +195,9 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Update siteData with carousel items
 	siteData.CarouselItems = carouselItems
 
-	coreSolutions, err := h.Store.GetCoreSolutions(currentLang, h.Translator.DefaultLanguage())
+	coreSolutions, err := h.Store.GetCoreSolutions(currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting core solutions: %v", err)
 		return
 	}
@@ -222,16 +216,16 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PagesListHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	pages, err := h.Store.GetAllPages(currentLang, h.Translator.DefaultLanguage())
+	pages, err := h.Store.GetAllPages(currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting all pages: %v", err)
 		return
 	}
 
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting site data: %v", err)
 		return
 	}
@@ -251,20 +245,20 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentLang := h.getLanguage(r)
 
-	pageData, err := h.Store.GetPageData(pageName, currentLang, h.Translator.DefaultLanguage())
+	pageData, err := h.Store.GetPageData(pageName, currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
+			http.Error(w, h.I18n.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound) // Translated
 		} else {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
+			http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
 		}
 		return
 	}
 
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
-		log.Printf(h.Translator.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
+		log.Printf(h.I18n.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
 		return
 	}
 
@@ -283,7 +277,7 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		h.DebugLog("Error getting site data for about page: %v", err)
 		return
 	}
@@ -298,9 +292,6 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 
 	h.renderTemplate(w, r, "about.html", data)
 }
-
-
-
 
 // PageUpdatePayload mirrors the structure of the JSON payload sent from the frontend for page updates.
 type PageUpdatePayload struct {
@@ -320,7 +311,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	var payload PageUpdatePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
@@ -335,18 +326,18 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Basic validation for translation fields
 	if strings.TrimSpace(payload.Title) == "" {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "title_required"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "title_required"), http.StatusBadRequest)
 		return
 	}
 
 	// 1. Update the main Page fields (IsCoreSolution, Icon)
 	// First, get the existing page to update its non-translation fields.
-	existingPage, err := h.Store.GetPageData(pageName, editLang, h.Translator.DefaultLanguage())
+	existingPage, err := h.Store.GetPageData(pageName, editLang, h.I18n.DefaultLanguage())
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
 		} else {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -357,7 +348,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Save the updated Page (excluding its Content field which is not persisted directly)
 	if err := h.Store.UpdatePage(existingPage); err != nil { // Assuming an UpdatePage method exists or will be created
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error updating page: %v", err)
 		return
 	}
@@ -372,14 +363,14 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Store.UpdatePageTranslation(existingPage.ID, &translation); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error updating page translation: %v", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "save_successful")})
+	json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "save_successful")})
 }
 
 // LoginHandler handles admin login requests.
@@ -415,7 +406,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "invalid_request_body")})
+		json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "invalid_request_body")})
 		return
 	}
 
@@ -425,17 +416,17 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "failed_to_login")})
+			json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "failed_to_login")})
 			return
 		}
 		log.Printf("Login successful for user: %s", credentials.Username)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "login_successful")})
+		json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "login_successful")})
 	} else {
 		log.Printf("Login failed for user: %s", credentials.Username)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"message": h.Translator.GetTranslation(currentLang, "invalid_credentials")})
+		json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "invalid_credentials")})
 	}
 }
 
@@ -445,8 +436,8 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := h.Store.GetDashboardData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
-		log.Printf(h.Translator.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
+		log.Printf(h.I18n.GetTranslation(currentLang, "error_getting_site_data")+ ": %v", err) // Translated
 		return
 	}
 
@@ -462,15 +453,15 @@ func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 // PagesHandler displays the list of pages in the admin panel.
 func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
-	pages, err := h.Store.GetAllPages(currentLang, h.Translator.DefaultLanguage())
+	pages, err := h.Store.GetAllPages(currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting all pages: %v", err)
 		return
 	}
 
 	data := AdminPagesTemplateData{
-		Title:       h.Translator.GetTranslation(currentLang, "pages_menu"),
+		Title:       h.I18n.GetTranslation(currentLang, "pages_menu"),
 		Pages:       pages,
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
@@ -494,12 +485,12 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// We fetch the page content for the specific language we want to edit.
 	// The fallback logic in GetPageData ensures we get *some* content if the specific language doesn't exist yet.
-	page, err := h.Store.GetPageData(pageName, editLang, h.Translator.DefaultLanguage())
+	page, err := h.Store.GetPageData(pageName, editLang, h.I18n.DefaultLanguage())
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			http.NotFound(w, r)
 		} else {
-			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
+			http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "internal_server_error"), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -524,7 +515,7 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		CurrentLang:                 h.getLanguage(r), // This is for the UI, not the content language
 		Message:                     "", // No message on initial load
 		IsNew:                       false,
-		SupportedLanguages:          h.Translator.GetAvailableLanguages(),
+		SupportedLanguages:          h.I18n.GetAvailableLanguages(),
 		EditLang:                    editLang,
 		OriginalContentLanguageCode: originalContentLang, // Pass the original content language
 	}
@@ -543,7 +534,7 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	err := h.AuthService.Logout(w, r)
 	if err != nil {
 		log.Printf("Error logging out: %v", err)
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "failed_to_log_out"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "failed_to_log_out"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/admin/login", http.StatusFound) // Redirect to login page
@@ -552,13 +543,13 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 // ImageUploadHandler handles image uploads for the editor.
 func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10 MB
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_parse_form"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_parse_form"), http.StatusBadRequest)
 		return
 	}
 
 	file, handler, err := r.FormFile("image")
 	if err != nil {
-					http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_get_image_from_form"), http.StatusBadRequest)
+					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_get_image_from_form"), http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -566,7 +557,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Generate a random filename
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
-					http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "failed_to_generate_random_filename"), http.StatusInternalServerError)
+					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "failed_to_generate_random_filename"), http.StatusInternalServerError)
 		return
 	}
 	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
@@ -575,7 +566,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		err = os.MkdirAll(uploadDir, 0755) // Create directory with read/write/execute permissions for owner, read/execute for others
 		if err != nil {
-			http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
+			http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
 			return
 		}
 	}
@@ -583,14 +574,14 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Create the file
 	dst, err := os.Create(filepath.Join(uploadDir, filename))
 	if err != nil {
-					http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
+					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
 
 	// Copy the uploaded file to the destination file
 	if _, err := io.Copy(dst, file); err != nil {
-		http.Error(w, h.Translator.GetTranslation(h.getLanguage(r), "unable_to_save_file"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_save_file"), http.StatusInternalServerError)
 		return
 	}
 
@@ -623,7 +614,7 @@ func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 		CurrentLang: currentLang,
 		Message:     "",
 		IsNew:       true,
-		SupportedLanguages: h.Translator.GetAvailableLanguages(),
+		SupportedLanguages: h.I18n.GetAvailableLanguages(),
 		EditLang:           editLang,
 	}
 
@@ -636,13 +627,13 @@ func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	// The request body should contain the page shell and the content for the first translation.
 	var newPage models.Page
 	if err := json.NewDecoder(r.Body).Decode(&newPage); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
 	// Basic validation
 	if strings.TrimSpace(newPage.Name) == "" || strings.TrimSpace(newPage.Content.Title) == "" {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "page_name_title_required"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "page_name_title_required"), http.StatusBadRequest)
 		return
 	}
 
@@ -652,21 +643,21 @@ func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if page with the same name already exists
-	_, err := h.Store.GetPageData(newPage.Name, currentLang, h.Translator.DefaultLanguage())
+	_, err := h.Store.GetPageData(newPage.Name, currentLang, h.I18n.DefaultLanguage())
 	if err == nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "page_exists"), http.StatusConflict)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "page_exists"), http.StatusConflict)
 		return
 	}
 	if err != gorm.ErrRecordNotFound {
 		// A different error occurred
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error checking for existing page: %v", err)
 		return
 	}
 
 	// Create the page and its first translation
 	if err := h.Store.CreatePage(&newPage); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error creating page: %v", err)
 		return
 	}
@@ -685,9 +676,9 @@ func (h *Handler) DeletePageHandler(w http.ResponseWriter, r *http.Request) {
 	err := h.Store.DeletePage(pageName)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "page_not_found"), http.StatusNotFound)
 		} else {
-			http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		}
 		log.Printf("Error deleting page %s: %v", pageName, err)
 		return
@@ -700,7 +691,7 @@ func (h *Handler) DeletePageHandler(w http.ResponseWriter, r *http.Request) {
 type TranslateRequest struct {
 	PageName       string `json:"page_name"` // Add PageName to identify the page
 	SourceLanguage string `json:"source_language"`
-		TargetLanguage string `json:"target_language"`
+	TargetLanguage string `json:"target_language"`
 	Content        string `json:"content"`
 	Field          string `json:"field"` // Optional: for context-specific translation
 }
@@ -717,13 +708,13 @@ func (h *Handler) TranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var req TranslateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
 	// Basic validation
 	if req.SourceLanguage == "" || req.TargetLanguage == "" || req.PageName == "" {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
@@ -731,12 +722,12 @@ func (h *Handler) TranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// If content is empty, try to fetch it from the source language of the page
 	if strings.TrimSpace(contentToTranslate) == "" {
-		page, err := h.Store.GetPageData(req.PageName, req.SourceLanguage, h.Translator.DefaultLanguage())
+		page, err := h.Store.GetPageData(req.PageName, req.SourceLanguage, h.I18n.DefaultLanguage())
 		if err != nil {
 			// If the source page/translation is not found, we can't translate from it.
 			// Return an empty string or an error, depending on desired behavior.
 			log.Printf("TranslateHandler: Could not fetch source content for page %s in lang %s: %v", req.PageName, req.SourceLanguage, err)
-			http.Error(w, h.Translator.GetTranslation(currentLang, "source_content_not_found"), http.StatusNotFound)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "source_content_not_found"), http.StatusNotFound)
 			return
 		}
 
@@ -750,18 +741,17 @@ func (h *Handler) TranslateHandler(w http.ResponseWriter, r *http.Request) {
 		default:
 			// Unknown field, cannot fetch content
 			log.Printf("TranslateHandler: Unknown field %s for content fetching", req.Field)
-			http.Error(w, h.Translator.GetTranslation(currentLang, "invalid_field_for_translation"), http.StatusBadRequest)
+			http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_field_for_translation"), http.StatusBadRequest)
 			return
 		}
 	}
 
-	// Mock translation: Reverse the content for demonstration purposes.
-	// In a real application, this would call an external translation API (e.g., Gemini API).
-	runes := []rune(contentToTranslate)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
+	translatedText, err := h.API_Translator.TranslateText(r.Context(), contentToTranslate, req.SourceLanguage, req.TargetLanguage)
+	if err != nil {
+		log.Printf("TranslateHandler: Error translating text: %v", err)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "translation_failed"), http.StatusInternalServerError)
+		return
 	}
-	translatedText := string(runes)
 
 	resp := TranslateResponse{
 		TranslatedText: translatedText,
@@ -775,7 +765,7 @@ func (h *Handler) TranslateHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) getLanguage(r *http.Request) string {
 	// Check for language cookie first
 	if cookie, err := r.Cookie("lang"); err == nil {
-		if h.Translator.IsValidLanguage(cookie.Value) {
+		if h.I18n.IsValidLanguage(cookie.Value) {
 			return cookie.Value
 		}
 	}
@@ -789,14 +779,14 @@ func (h *Handler) getLanguage(r *http.Request) string {
 		parts := strings.Split(acceptLang, ",")
 		for _, part := range parts {
 			lang := strings.Split(part, ";")[0]
-			h.DebugLog("Parsed language: %s, IsValid: %t", lang, h.Translator.IsValidLanguage(lang))
-			if h.Translator.IsValidLanguage(lang) {
+			h.DebugLog("Parsed language: %s, IsValid: %t", lang, h.I18n.IsValidLanguage(lang))
+			if h.I18n.IsValidLanguage(lang) {
 				return lang
 			}
 		}
 	}
 
-	return h.Translator.DefaultLanguage() // Fallback to default language
+	return h.I18n.DefaultLanguage() // Fallback to default language
 }
 
 func getTemplateName(r *http.Request) string {
@@ -862,7 +852,7 @@ func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
 	templateFiles := []string{}
 	entries, err := os.ReadDir(templatesDir)
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error reading templates directory: %v", err)
 		return
 	}
@@ -890,7 +880,7 @@ func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error walking static directory: %v", err)
 		return
 	}
@@ -954,13 +944,13 @@ func (h *Handler) AdminTemplateEditView(w http.ResponseWriter, r *http.Request) 
 			http.NotFound(w, r)
 			return
 		}
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error reading file %s: %v", cleanPath, err)
 		return
 	}
 
 	data := TemplateEditorData{
-		Title:       h.Translator.GetTranslation(currentLang, "edit_file_title") + " " + filePath,
+		Title:       h.I18n.GetTranslation(currentLang, "edit_file_title") + " " + filePath,
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
 		CurrentLang: currentLang,
@@ -1017,11 +1007,11 @@ func (h *Handler) AdminTemplateUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := os.WriteFile(cleanPath, []byte(fileContent), 0644); err != nil {
 		log.Printf("Error writing to file %s: %v", cleanPath, err)
-		http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=error", r.URL.Path, filePath, fileType, h.Translator.GetTranslation(h.getLanguage(r), "admin.file_save_failed")), http.StatusFound)
+		http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=error", r.URL.Path, filePath, fileType, h.I18n.GetTranslation(h.getLanguage(r), "admin.file_save_failed")), http.StatusFound)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=success", r.URL.Path, filePath, fileType, h.Translator.GetTranslation(h.getLanguage(r), "admin.file_save_success")), http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("%s?file=%s&type=%s&message=%s&messageType=success", r.URL.Path, filePath, fileType, h.I18n.GetTranslation(h.getLanguage(r), "admin.file_save_success")), http.StatusFound)
 }
 
 // AdminTemplatePreview handles rendering a preview of a template file.
@@ -1049,7 +1039,7 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 	// This mimics how the main renderTemplate function works but for a single, dynamic file.
 	funcMap := template.FuncMap{
 		"T": func(key string) string {
-			return h.Translator.GetTranslation(currentLang, key)
+			return h.I18n.GetTranslation(currentLang, key)
 		},
 	}
 
@@ -1072,7 +1062,7 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 	
 	siteData, err := h.Store.GetSiteData()
 	if err != nil {
-		http.Error(w, h.Translator.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error getting site data for template preview: %v", err)
 		return
 	}

@@ -52,6 +52,7 @@ This project uses a `.env` file to manage local environment variables, especiall
     CSRF_KEY=your_long_random_csrf_key_here_at_least_32_bytes
     ADMIN_USERNAME=admin
     ADMIN_PASSWORD=password
+    TRANSLATOR_API_KEY="your_google_cloud_api_key_here"
     ```
 
     *   **Generating Random Keys:** You can use command-line tools to generate random strings. For example:
@@ -62,3 +63,55 @@ This project uses a `.env` file to manage local environment variables, especiall
 3.  **Important Note:** The `.env` file is listed in `.gitignore` and should **never** be committed to your version control system.
 
 The application will automatically load these variables at startup. If `.env` is not found or variables are not set, the application will fall back to temporary generated keys (for `SESSION_KEY`, `CSRF_KEY`) or default values (for `ADMIN_USERNAME`, `ADMIN_PASSWORD`), which may lead to session/cookie issues on restart.
+
+## Translation Feature
+
+The application includes a feature to translate page content using the Google Cloud Translation API. This can be used in two modes: a mock translator for development and the real API for production or testing.
+
+### Usage
+
+1.  Navigate to the page you wish to translate in the admin panel (`Admin -> Pages -> Edit`).
+2.  To translate a single field (like Title, Description, or the main content), click the "Translate" button located next to that field.
+3.  To translate all text fields on the page at once, click the "Translate All" button at the bottom of the form.
+
+The translation will always use the page's original language as the source and translate to the currently selected editing language.
+
+### Configuration
+
+The translation service's behavior is controlled by the `-debug` flag at startup and the `TRANSLATOR_API_KEY` environment variable.
+
+#### Mock Translator (Default in Debug Mode)
+
+If you run the application in debug mode without providing an API key, a mock translator is used. This mock service does not call any external APIs. It simply prepends the string `"Translated from [source] to [target]: "` to the original text.
+
+```bash
+# Run with mock translator
+go run ./cmd/web -debug
+```
+
+#### Google Cloud Translation API
+
+To use the real Google Cloud Translation API, you must provide an API key.
+
+1.  **Obtain an API Key:** Get an API key from your Google Cloud Platform project and ensure the "Cloud Translation API" is enabled.
+2.  **Set Environment Variable:** Add the key to your `.env` file:
+
+    ```
+    TRANSLATOR_API_KEY="your_google_cloud_api_key_here"
+    ```
+
+You can now use the real API in two ways:
+
+*   **Debug Mode with Real API:** Run the application with the `-debug` flag. It will detect the `TRANSLATOR_API_KEY` and activate the real API, while still providing other debug features. This is useful for testing the API during development.
+
+    ```bash
+    # Run in debug mode with the real translator enabled
+    go run ./cmd/web -debug
+    ```
+
+*   **Production Mode:** Run the application without the `-debug` flag. It will use the real API if the key is present.
+
+    ```bash
+    # Run in production mode with the real translator
+    go run ./cmd/web
+    ```

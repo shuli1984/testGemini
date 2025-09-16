@@ -186,7 +186,7 @@
       const originalContentLanguageCode = '{{.OriginalContentLanguageCode}}'; // New: Get original content language
       const targetLanguage = '{{.EditLang}}'; // Language we are translating TO
 
-      async function translateField(field, content) {
+      async function translateField(field) {
           const csrfToken = document.querySelector('input[name="csrf_token"]').value;
           const responseDiv = document.getElementById('response');
           responseDiv.innerHTML = ''; // Clear previous messages
@@ -211,7 +211,7 @@
                       page_name: document.getElementById('pageName').value,
                       source_language: sourceLangForTranslation, // Use the determined source language
                       target_language: targetLanguage,
-                      content: content,
+                      content: "", // Always send empty content to fetch from backend
                       field: field
                   })
               });
@@ -271,19 +271,7 @@
           let allTranslated = true;
 
           for (const field of fieldsToTranslate) {
-              let contentToTranslate = '';
-              if (field === 'title') {
-                  contentToTranslate = document.getElementById('title').value;
-              } else if (field === 'description') {
-                  contentToTranslate = document.getElementById('description').value;
-              } else if (field === 'message') {
-                  contentToTranslate = quill.getText(); // Get plain text from Quill
-                  contentToTranslate = normalizeNewlines(contentToTranslate); // Normalize newlines
-                  contentToTranslate = normalizeNewlines(contentToTranslate); // Normalize newlines
-              }
-
-              // Always call translateField, let the backend handle empty content
-              const translatedText = await translateField(field, contentToTranslate);
+              const translatedText = await translateField(field);
               if (translatedText !== null) {
                   if (field === 'title') {
                       document.getElementById('title').value = translatedText;

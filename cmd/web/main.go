@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
+	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
 	"log"
 	"net/http"
@@ -74,9 +76,14 @@ func main() {
 	}
 
 	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
-	translator := i18n.NewTranslator(i18nBasePath, "en")
-	if err := translator.LoadTranslations(); err != nil {
+	i18nTranslator := i18n.NewTranslator(i18nBasePath, "en")
+	if err := i18nTranslator.LoadTranslations(); err != nil {
 		log.Fatalf("Failed to load translations: %v", err)
+	}
+
+	apiTranslator, err := translator.New(context.Background(), debugFlag, cfg.Translator.APIKey)
+	if err != nil {
+		log.Fatalf("Failed to create translator: %v", err)
 	}
 
 	db, sqlDB, err := database.InitDB(cfg.Database.Type, cfg.Database.DSN)
@@ -94,7 +101,7 @@ func main() {
 		log.Fatalf("failed to auto migrate and seed models: %v", err)
 	}
 
-	parsedTemplates, err := util.ParseTemplates(translator, projectRootFlag)
+	parsedTemplates, err := util.ParseTemplates(i18nTranslator, projectRootFlag)
 	if err != nil {
 		log.Fatalf("failed to parse templates: %v", err)
 	}
@@ -153,7 +160,7 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	}, translator, debugLog, debugFlag) // Pass the translator and debug flag
+	}, i18nTranslator, apiTranslator, debugLog, debugFlag) // Pass the translator and debug flag
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)

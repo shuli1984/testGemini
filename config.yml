@@ -109,3 +109,5 @@ auth:
 static:
   url_prefix: "/static/"
   dir: "static"
+translator:
+  api_key: ""
