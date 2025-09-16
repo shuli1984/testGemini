@@ -52,6 +52,7 @@ func main() {
 	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
 	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 	flag.Parse()
+	log.Printf("Debug mode enabled: %t", debugFlag) // Add this line
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -81,7 +82,7 @@ func main() {
 		log.Fatalf("Failed to load translations: %v", err)
 	}
 
-	apiTranslator, err := translator.New(context.Background(), debugFlag, cfg.Translator.APIKey)
+	apiTranslator, err := translator.New(context.Background(), cfg.Translator.Type, cfg.Translator.APIKey)
 	if err != nil {
 		log.Fatalf("Failed to create translator: %v", err)
 	}
@@ -139,7 +140,6 @@ func main() {
 			if err := csrf.FailureReason(r); err != nil { // Pass the request directly
 				debugLog("CSRF Error: Failure Reason: %v", err) // Made conditional
 			}
-			// Log the expected CSRF token (optional for production, but useful for debugging if issues arises)
 			debugLog("CSRF Error: Expected Token (from csrf.Token(r)): %s", csrf.Token(r)) // Made conditional
 			debugLog("CSRF Error: Origin: %s, Referer: %s", r.Header.Get("Origin"), r.Header.Get("Referer")) // Made conditional
 			w.Header().Set("Content-Type", "application/json")

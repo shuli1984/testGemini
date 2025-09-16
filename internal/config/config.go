@@ -30,6 +30,7 @@ type StaticConfig struct {
 
 // TranslatorConfig defines the structure for the translation service.
 type TranslatorConfig struct {
+	Type   string `mapstructure:"type"`
 	APIKey string `mapstructure:"api_key"`
 }
 
@@ -65,6 +66,7 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("auth.username", "ADMIN_USERNAME") // Bind username/password too for consistency
 	viper.BindEnv("auth.password", "ADMIN_PASSWORD")
 	viper.BindEnv("translator.api_key", "TRANSLATOR_API_KEY")
+	viper.BindEnv("translator.type", "TRANSLATOR_TYPE")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err

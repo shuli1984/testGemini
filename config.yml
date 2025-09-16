@@ -110,4 +110,5 @@ static:
   url_prefix: "/static/"
   dir: "static"
 translator:
+  type: "mock"
   api_key: ""

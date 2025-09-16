@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 
 	"cloud.google.com/go/translate"
+	"github.com/lkretschmer/deepl-go"
 	"golang.org/x/text/language"
 	"google.golang.org/api/option"
 )
@@ -86,35 +86,56 @@ func (t *GoogleCloudTranslator) Close() error {
 	return nil
 }
 
-// MockTranslator implements the Translator interface for testing or local development.
-type MockTranslator struct{}
-
-// NewMockTranslator creates a new MockTranslator instance.
-func NewMockTranslator() *MockTranslator {
-	log.Println("Using MockTranslator.")
-	return &MockTranslator{}
+// DeepLTranslator implements the Translator interface using the DeepL API.
+type DeepLTranslator struct {
+	client *deepl.Client
 }
 
-// TranslateText returns a mock translation.
-func (t *MockTranslator) TranslateText(ctx context.Context, text, sourceLang, targetLang string) (string, error) {
-	return fmt.Sprintf("Translated from %s to %s: %s", sourceLang, targetLang, text), nil
+// NewDeepLTranslator creates a new DeepLTranslator instance.
+func NewDeepLTranslator(apiKey string) (*DeepLTranslator, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("DeepL API key is required")
+	}
+	log.Println("Initializing DeepL client.")
+	client := deepl.NewClient(apiKey)
+	return &DeepLTranslator{client: client}, nil
 }
 
-// Close does nothing for the mock translator.
-func (t *MockTranslator) Close() error {
+// TranslateText translates the given text from sourceLang to targetLang using the DeepL API.
+func (t *DeepLTranslator) TranslateText(ctx context.Context, text, sourceLang, targetLang string) (string, error) {
+	if t.client == nil {
+		return "", fmt.Errorf("DeepL client is not initialized")
+	}
+
+	if text == "" {
+		return "", nil // Return empty string for empty input
+	}
+
+	translation, err := t.client.TranslateText(text, targetLang)
+	if err != nil {
+		return "", fmt.Errorf("failed to translate text with DeepL: %w", err)
+	}
+
+	return translation.Text, nil
+}
+
+// Close does nothing for the DeepL translator as the underlying client does not need to be closed.
+func (t *DeepLTranslator) Close() error {
 	return nil
 }
 
+
+
 // New selects the appropriate translator based on the configuration.
-func New(ctx context.Context, debugMode bool, apiKey string) (Translator, error) {
-	if debugMode {
-		// If an API key is provided in debug mode, use the real translator.
-		if apiKey != "" {
-			return NewGoogleCloudTranslator(ctx, apiKey)
-		}
-		// Otherwise, use the mock translator.
-		return NewMockTranslator(), nil
+func New(ctx context.Context, translatorType, apiKey string) (Translator, error) {
+	switch translatorType {
+	case "google":
+		return NewGoogleCloudTranslator(ctx, apiKey)
+	case "deepl":
+		return NewDeepLTranslator(apiKey)
+	case "mock":
+		return nil, fmt.Errorf("mock translator can only be used in test environment")
+	default:
+		return nil, fmt.Errorf("unknown translator type: %s", translatorType)
 	}
-	// In non-debug mode, always use the real translator.
-	return NewGoogleCloudTranslator(ctx, apiKey)
 }

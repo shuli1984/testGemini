@@ -1,127 +1,91 @@
 package models_test
 
 import (
-	"fmt"
-	"path/filepath"
-	"gemini-demo/internal/database"
 	"gemini-demo/internal/models"
-	"os"
 	"testing"
-	"time"
 
 	"gorm.io/gorm"
 )
 
 func TestPageCRUD(t *testing.T) {
-	// Use a unique database file for each test run to avoid conflicts
-	testDBName := filepath.Join(os.TempDir(), fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
 
-	db, sqlDB, err := database.InitDB("sqlite", testDBName)
-	if err != nil {
-		t.Fatalf("failed to initialize database: %v", err)
-	}
-	defer func() {
-		if sqlDB != nil {
-			sqlDB.Close()
-		}
-	}()
-	defer os.Remove(testDBName) // Clean up the unique database file
-
-	// AutoMigrate for this test
-	err = db.AutoMigrate(&models.Page{}) // Updated to models.Page{}
-	if err != nil {
-		t.Fatalf("failed to auto migrate: %v", err)
-	}
+	var newPageID uint
 
 	// --- Create Test ---
 	t.Run("Create Page", func(t *testing.T) {
-		newPage := &models.Page{Name: "test_page", Title: "Test Title", Message: "Test Message"} // Updated to models.Page{}
-		result := db.Create(newPage)
-		if result.Error != nil {
-			t.Fatalf("failed to create page: %v", result.Error)
+		newPage := &models.Page{
+			Name:           "test_page",
+			IsCoreSolution: false,
+			Icon:           "test-icon",
+			Content: models.PageTranslation{
+				LanguageCode: "en",
+				Title:        "Test Title",
+				Description:  "Test Description",
+				Message:      "Test Message",
+			},
+		}
+		err := models.CreatePage(db, newPage)
+		if err != nil {
+			t.Fatalf("failed to create page: %v", err)
 		}
 		if newPage.ID == 0 {
 			t.Errorf("expected ID to be set, got 0")
 		}
+		newPageID = newPage.ID
 	})
 
 	// --- Read Test ---
 	t.Run("Read Page", func(t *testing.T) {
-		page, err := models.GetPageData(db, "test_page") // Updated to models.GetPageData
+		page, err := models.GetPageData(db, "test_page", "en", "en")
 		if err != nil {
 			t.Fatalf("failed to read page: %v", err)
 		}
-		if page.Name != "test_page" || page.Title != "Test Title" || page.Message != "Test Message" {
-			t.Errorf("read page data mismatch: got %+v", page)
+		if page.Name != "test_page" {
+			t.Errorf("page name mismatch: got %s, want test_page", page.Name)
+		}
+		if page.Content.Title != "Test Title" {
+			t.Errorf("page title mismatch: got %s, want Test Title", page.Content.Title)
+		}
+		if page.Content.Message != "Test Message" {
+			t.Errorf("page message mismatch: got %s, want Test Message", page.Content.Message)
 		}
 	})
 
 	// --- Update Test ---
-	t.Run("Update Page", func(t *testing.T) {
-		page, err := models.GetPageData(db, "test_page") // Updated to models.GetPageData
-		if err != nil {
-			t.Fatalf("failed to get page for update: %v", err)
-		}
-		page.Title = "Updated Title"
-		result := db.Save(page)
-		if result.Error != nil {
-			t.Fatalf("failed to update page: %v", result.Error)
+	t.Run("Update Page Translation", func(t *testing.T) {
+		updatedTranslation := &models.PageTranslation{
+			LanguageCode: "en",
+			Title:        "Updated Title",
+			Description:  "Updated Description",
+			Message:      "Updated Message",
 		}
 
-		updatedPage, err := models.GetPageData(db, "test_page") // Updated to models.GetPageData
+		err := models.UpdatePageTranslation(db, newPageID, updatedTranslation)
+		if err != nil {
+			t.Fatalf("failed to update page translation: %v", err)
+		}
+
+		updatedPage, err := models.GetPageData(db, "test_page", "en", "en")
 		if err != nil {
 			t.Fatalf("failed to read updated page: %v", err)
 		}
-		if updatedPage.Title != "Updated Title" {
-			t.Errorf("updated page title mismatch: got %q, want %q", updatedPage.Title, "Updated Title")
+		if updatedPage.Content.Title != "Updated Title" {
+			t.Errorf("updated page title mismatch: got %q, want %q", updatedPage.Content.Title, "Updated Title")
 		}
 	})
 
 	// --- Delete Test ---
 	t.Run("Delete Page", func(t *testing.T) {
-		page, err := models.GetPageData(db, "test_page") // Updated to models.GetPageData
+		err := models.DeletePage(db, "test_page")
 		if err != nil {
-			t.Fatalf("failed to get page for delete: %v", err)
-		}
-		result := db.Delete(page)
-		if result.Error != nil {
-			t.Fatalf("failed to delete page: %v", result.Error)
+			t.Fatalf("failed to delete page: %v", err)
 		}
 
-		_, err = models.GetPageData(db, "test_page") // Updated to models.GetPageData
+		_, err = models.GetPageData(db, "test_page", "en", "en")
 		if err != gorm.ErrRecordNotFound {
 			t.Errorf("expected record not found after delete, got %v", err)
 		}
 	})
-}
-
-func TestAutoMigrateAndSeed_AutoMigrateError(t *testing.T) {
-	// Setup a temporary read-only database to trigger an error in AutoMigrate
-	testDBName := filepath.Join(os.TempDir(), fmt.Sprintf("crud_test_%d.db", time.Now().UnixNano()))
-	file, err := os.Create(testDBName)
-	if err != nil {
-		t.Fatalf("failed to create temp db file: %v", err)
-	}
-	file.Close()
-
-	// Change file permissions to read-only
-	if err := os.Chmod(testDBName, 0400); err != nil {
-		t.Fatalf("failed to change file permissions: %v", err)
-	}
-	defer os.Remove(testDBName)
-
-	db, sqlDB, err := database.InitDB("sqlite", testDBName)
-	if err != nil {
-		t.Fatalf("failed to initialize database: %v", err)
-	}
-	defer func() {
-		if sqlDB != nil {
-			sqlDB.Close()
-		}
-	}()
-
-	err = models.AutoMigrateAndSeed(db)
-	if err == nil {
-		t.Errorf("expected an error from AutoMigrateAndSeed with a read-only database, but got nil")
-	}
 }

@@ -66,7 +66,7 @@ The application will automatically load these variables at startup. If `.env` is
 
 ## Translation Feature
 
-The application includes a feature to translate page content using the Google Cloud Translation API. This can be used in two modes: a mock translator for development and the real API for production or testing.
+The application includes a feature to translate page content using Google Cloud Translation API, DeepL API, or a mock translator for development. The desired translation service can be configured in the `config.yml` file.
 
 ### Usage
 
@@ -78,40 +78,41 @@ The translation will always use the page's original language as the source and t
 
 ### Configuration
 
-The translation service's behavior is controlled by the `-debug` flag at startup and the `TRANSLATOR_API_KEY` environment variable.
+The translation service is configured in the `config.yml` file under the `translator` section, or via environment variables. You can choose between `google`, `deepl`, and `mock` translators.
 
-#### Mock Translator (Default in Debug Mode)
-
-If you run the application in debug mode without providing an API key, a mock translator is used. This mock service does not call any external APIs. It simply prepends the string `"Translated from [source] to [target]: "` to the original text.
-
-```bash
-# Run with mock translator
-go run ./cmd/web -debug
+**`config.yml`:**
+```yaml
+translator:
+  type: "mock" # Can be "google", "deepl", or "mock"
+  api_key: "YOUR_API_KEY_HERE" # Required for Google and DeepL
 ```
+
+**Environment Variables:**
+```
+TRANSLATOR_TYPE="mock" # Can be "google", "deepl", or "mock"
+TRANSLATOR_API_KEY="YOUR_API_KEY_HERE"
+```
+
+#### Mock Translator
+
+This is the default translator and is used for development. It does not call any external APIs. It simply prepends the string `"Translated from [source] to [target]: "` to the original text.
+
+To use the mock translator, set the `type` in `config.yml` to `"mock"`.
 
 #### Google Cloud Translation API
 
-To use the real Google Cloud Translation API, you must provide an API key.
+To use the Google Cloud Translation API, you must provide an API key.
 
 1.  **Obtain an API Key:** Get an API key from your Google Cloud Platform project and ensure the "Cloud Translation API" is enabled.
-2.  **Set Environment Variable:** Add the key to your `.env` file:
+2.  **Set Configuration:**
+    - In `config.yml`, set `translator.type` to `"google"`.
+    - Set `translator.api_key` to your Google Cloud API key, or set the `TRANSLATOR_API_KEY` environment variable.
 
-    ```
-    TRANSLATOR_API_KEY="your_google_cloud_api_key_here"
-    ```
+#### DeepL API
 
-You can now use the real API in two ways:
+To use the DeepL API, you must provide an API key.
 
-*   **Debug Mode with Real API:** Run the application with the `-debug` flag. It will detect the `TRANSLATOR_API_KEY` and activate the real API, while still providing other debug features. This is useful for testing the API during development.
-
-    ```bash
-    # Run in debug mode with the real translator enabled
-    go run ./cmd/web -debug
-    ```
-
-*   **Production Mode:** Run the application without the `-debug` flag. It will use the real API if the key is present.
-
-    ```bash
-    # Run in production mode with the real translator
-    go run ./cmd/web
-    ```
+1.  **Obtain an API Key:** Get an API key from your DeepL account.
+2.  **Set Configuration:**
+    - In `config.yml`, set `translator.type` to `"deepl"`.
+    - Set `translator.api_key` to your DeepL API key, or set the `TRANSLATOR_API_KEY` environment variable.

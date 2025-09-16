@@ -2,6 +2,8 @@ module gemini-demo
 
 go 1.23.2
 
+replace gemini-demo => ./
+
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.4.0
@@ -14,6 +16,7 @@ require (
 require (
 	cloud.google.com/go/translate v1.12.6
 	github.com/joho/godotenv v1.5.1
+	github.com/lkretschmer/deepl-go v0.3.0
 	google.golang.org/api v0.237.0
 )
 
@@ -62,6 +65,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/text v0.26.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

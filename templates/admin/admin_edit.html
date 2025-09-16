@@ -26,6 +26,7 @@
 
             <form id="pageForm" class="d-flex flex-column flex-grow-1">
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" id="editLang" value="{{.EditLang}}">
                 
                 <div class="mb-3">
                     <label for="pageName" class="form-label">{{T .CurrentLang "admin.page_name_label"}}</label>
@@ -352,6 +353,7 @@
         const icon = document.getElementById('icon').value;
         const message = quill.root.innerHTML;
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const editLang = document.getElementById('editLang').value;
 
         const url = isNew ? '/admin/pages/new' : `/admin/pages/${pageName}`;
         const method = isNew ? 'POST' : 'PUT';
@@ -368,7 +370,8 @@
                 Description: description, 
                 Message: message,
                 IsCoreSolution: isCoreSolution,
-                Icon: icon
+                Icon: icon,
+                LanguageCode: editLang
             })
         });
 
