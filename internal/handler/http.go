@@ -285,9 +285,11 @@ func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Site *models.Site // Explicit field
 		CurrentLang string
+		Page *models.Page // Add Page field for header compatibility
 	}{
 		Site: siteData,
 		CurrentLang: currentLang,
+		Page: nil, // Initialize Page to nil for about page
 	}
 
 	h.renderTemplate(w, r, "about.html", data)
@@ -308,9 +310,11 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pageName := vars["name"]
 	currentLang := h.getLanguage(r) // Language of the UI
+	log.Printf("UpdatePageHandler started for page: %s, language: %s", pageName, currentLang)
 
 	var payload PageUpdatePayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		log.Printf("UpdatePageHandler: Error decoding payload for page %s: %v", pageName, err)
 		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
@@ -368,6 +372,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("UpdatePageHandler successfully updated page: %s, language: %s", pageName, editLang)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "save_successful")})

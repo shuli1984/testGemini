@@ -1,10 +1,13 @@
 package server
 
 import (
+	"context"
+	"fmt"
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/i18n" // Added for i18n
 	"gemini-demo/internal/models"
+	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +17,19 @@ import (
 	"testing"
 )
 
+// MockAPITranslator is a mock implementation of the translator.Translator interface for testing.
+type MockAPITranslator struct{}
 
+func (m *MockAPITranslator) TranslateText(ctx context.Context, text, sourceLang, targetLang string) (string, error) {
+	// For testing, just return the original text with language codes
+	return fmt.Sprintf("%s (translated from %s to %s)", text, sourceLang, targetLang), nil
+}
+
+func (m *MockAPITranslator) Close() error {
+	return nil
+}
+
+var _ translator.Translator = (*MockAPITranslator)(nil)
 
 // debugLog is a dummy function for testing to prevent nil pointer dereference
 func debugLog(format string, v ...interface{}) {
@@ -59,13 +74,13 @@ func TestNew(t *testing.T) {
 
 	// Initialize i18n translator for testing
 	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
-	translator := i18n.NewTranslator(i18nBasePath, "en") // "en" as default language
-	if err := translator.LoadTranslations(); err != nil {
+	i18nTranslator := i18n.NewTranslator(i18nBasePath, "en") // "en" as default language
+	if err := i18nTranslator.LoadTranslations(); err != nil {
 		t.Fatalf("Failed to load translations for test: %v", err)
 	}
 
 	// Parse templates for testing
-	templatesMap, err := util.ParseTemplates(translator)
+	templatesMap, err := util.ParseTemplates(i18nTranslator)
 	if err != nil {
 		t.Fatalf("failed to parse templates: %v", err)
 	}
@@ -77,7 +92,9 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	srv := New(cfg, db, templatesMap, mockCSRFMiddleware, translator, debugLog, false) // Use the map directly
+	
+
+	srv := New(cfg, db, templatesMap, mockCSRFMiddleware, i18nTranslator, &MockAPITranslator{}, debugLog, false) // Use the map directly
 
 	
 
@@ -129,15 +146,15 @@ func TestNew(t *testing.T) {
 		}
 
 		// Check for key content in the rendered HTML
-		expectedContent := "about_hero_title"
-		if !strings.Contains(rr.Body.String(), expectedContent) {
+		expectedAboutTitle := i18nTranslator.GetTranslation("en", "about_us_title")
+		if !strings.Contains(rr.Body.String(), expectedAboutTitle) {
 			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
-				expectedContent, rr.Body.String())
+				expectedAboutTitle, rr.Body.String())
 		}
-		expectedContent = "our_story_content"
-		if !strings.Contains(rr.Body.String(), expectedContent) {
+		expectedStoryContent := i18nTranslator.GetTranslation("en", "our_story_title")
+		if !strings.Contains(rr.Body.String(), expectedStoryContent) {
 			t.Errorf("handler returned unexpected body: expected to contain %q, got %q",
-				expectedContent, rr.Body.String())
+				expectedStoryContent, rr.Body.String())
 		}
 	})
 
@@ -238,5 +255,5 @@ func TestNew_PanicOnNilConfig(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	New(nil, nil, nil, nil, nil, nil, false) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
+	New(nil, nil, nil, nil, nil, nil, nil, false) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
 }

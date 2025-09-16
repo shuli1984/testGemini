@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -14,7 +15,23 @@ import (
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/util"
+	"gemini-demo/internal/translator"
 )
+
+// MockTranslator is a mock implementation of the translator.Translator interface for testing.
+type MockTranslator struct{}
+
+func (m *MockTranslator) TranslateText(ctx context.Context, text, sourceLang, targetLang string) (string, error) {
+	// For testing, just return the original text with language codes
+	return fmt.Sprintf("%s (translated from %s to %s)", text, sourceLang, targetLang), nil
+}
+
+func (m *MockTranslator) Close() error {
+	return nil
+}
+
+var _ translator.Translator = (*MockTranslator)(nil)
+
 
 func TestNewAuthService(t *testing.T) {
 	t.Run("successful creation with valid key", func(t *testing.T) {
@@ -233,10 +250,11 @@ func TestMiddleware(t *testing.T) {
         }
 
         h := &handler.Handler{
-            AuthService: authService,
-            Templates:   map[string]*template.Template{"default": tmpl},
-            Translator:  translator,
-            DebugLog:    debugLog,
+            AuthService:    authService,
+            Templates:      map[string]*template.Template{"default": tmpl},
+            I18n:           translator,
+            API_Translator: &MockTranslator{}, // Initialize API_Translator with mock
+            DebugLog:       debugLog,
         }
         h.LoginHandler(loginRr, loginReq)
 
