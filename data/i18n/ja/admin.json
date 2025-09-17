@@ -62,5 +62,6 @@
   "static_files_section_title": "静的ファイル",
   "file_path_header": "ファイルパス",
   "no_static_files_found": "静的ファイルが見つかりません。",
-  "file_content_label": "ファイル内容"
+  "file_content_label": "ファイル内容",
+  "network_error": "ネットワークエラー"
 }

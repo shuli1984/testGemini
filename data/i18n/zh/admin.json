@@ -62,5 +62,6 @@
   "static_files_section_title": "静态文件",
   "file_path_header": "文件路径",
   "no_static_files_found": "未找到静态文件。",
-  "file_content_label": "文件内容"
+  "file_content_label": "文件内容",
+  "network_error": "网络错误"
 }

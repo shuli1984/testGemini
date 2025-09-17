@@ -62,5 +62,6 @@
   "static_files_section_title": "Static Files",
   "file_path_header": "File Path",
   "no_static_files_found": "No static files found.",
-  "file_content_label": "File Content"
+  "file_content_label": "File Content",
+  "network_error": "Network error"
 }
