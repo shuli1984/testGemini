@@ -72,6 +72,7 @@ func LoadConfig() (*Config, error) {
 	viper.BindEnv("auth.password", "ADMIN_PASSWORD")
 	viper.BindEnv("translator.api_key", "TRANSLATOR_API_KEY")
 	viper.BindEnv("translator.type", "TRANSLATOR_TYPE")
+	viper.BindEnv("i18n.default_language", "I18N_DEFAULT_LANGUAGE")
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
