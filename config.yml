@@ -112,3 +112,5 @@ static:
 translator:
   type: "mock"
   api_key: ""
+i18n:
+  default_language: "zh"

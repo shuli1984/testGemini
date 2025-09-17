@@ -77,7 +77,7 @@ func main() {
 	}
 
 	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
-	i18nTranslator := i18n.NewTranslator(i18nBasePath, "en")
+	i18nTranslator := i18n.NewTranslator(i18nBasePath, cfg.I18n.DefaultLanguage)
 	if err := i18nTranslator.LoadTranslations(); err != nil {
 		log.Fatalf("Failed to load translations: %v", err)
 	}

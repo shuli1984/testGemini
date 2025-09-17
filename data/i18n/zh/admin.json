@@ -41,6 +41,7 @@
   "some_fields_not_translated": "部分字段未能翻译。请检查控制台错误。",
   "save_successful": "保存成功！",
   "translating_all_fields": "正在翻译所有字段...",
+  "confirm_overwrite_translation": "此操作将使用默认语言的新翻译覆盖当前内容。您确定吗？",
   "no_translation_needed": "无需翻译。",
   "upload_failed": "上传失败",
   "template_file_content_label": "文件内容",

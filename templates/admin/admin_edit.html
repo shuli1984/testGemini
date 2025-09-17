@@ -184,7 +184,7 @@
       quill.on('text-change', markFormDirty);
 
       // --- Translation Logic ---
-      const originalContentLanguageCode = '{{.OriginalContentLanguageCode}}'; // New: Get original content language
+      const siteDefaultLanguage = '{{.SiteDefaultLanguage}}';
       const targetLanguage = '{{.EditLang}}'; // Language we are translating TO
 
       async function translateField(field) {
@@ -192,14 +192,15 @@
           const responseDiv = document.getElementById('response');
           responseDiv.innerHTML = ''; // Clear previous messages
 
-          // If the target language is the same as the original content language, no translation is needed.
-          if (targetLanguage === originalContentLanguageCode) {
+          // If the target language is the same as the site's default language, we cannot translate.
+          // This prevents translating from 'zh' to 'zh', for example.
+          if (targetLanguage === siteDefaultLanguage) {
               responseDiv.innerHTML = `<div class="alert alert-info">{{T .CurrentLang "admin.no_translation_needed"}}</div>`;
               return null;
           }
 
-          // Always translate from the original content language to the target language.
-          let sourceLangForTranslation = originalContentLanguageCode;
+          // Always translate from the site's default language to the target language.
+          const sourceLangForTranslation = siteDefaultLanguage;
 
           try {
               const response = await fetch('/admin/api/translate', {
@@ -210,7 +211,7 @@
                   },
                   body: JSON.stringify({
                       page_name: document.getElementById('pageName').value,
-                      source_language: sourceLangForTranslation, // Use the determined source language
+                      source_language: sourceLangForTranslation,
                       target_language: targetLanguage,
                       content: "", // Always send empty content to fetch from backend
                       field: field
@@ -235,28 +236,33 @@
       document.querySelectorAll('.translate-btn').forEach(button => {
           button.addEventListener('click', async function() {
               const field = this.dataset.field;
-              let contentToTranslate = '';
+              let hasContent = false;
 
               if (field === 'title') {
-                  contentToTranslate = document.getElementById('title').value;
+                  hasContent = document.getElementById('title').value.trim() !== '';
               } else if (field === 'description') {
-                  contentToTranslate = document.getElementById('description').value;
+                  hasContent = document.getElementById('description').value.trim() !== '';
               } else if (field === 'message') {
-                  contentToTranslate = quill.getText(); // Get plain text from Quill
-                  contentToTranslate = normalizeNewlines(contentToTranslate); // Normalize newlines
-                  contentToTranslate = normalizeNewlines(contentToTranslate); // Normalize newlines
+                  hasContent = quill.getText().trim() !== '';
               }
 
-              // Always call translateField, let the backend handle empty content
-              const translatedText = await translateField(field, contentToTranslate);
+              if (hasContent) {
+                  if (!confirm('{{T $.CurrentLang "admin.confirm_overwrite_translation" | js}}')) {
+                      return;
+                  }
+              }
+
+              // The `translateField` function is designed to fetch the source content from the backend,
+              // so we don't need to pass any content from the frontend.
+              const translatedText = await translateField(field);
               if (translatedText !== null) {
                   if (field === 'title') {
                       document.getElementById('title').value = translatedText;
                   } else if (field === 'description') {
                       document.getElementById('description').value = translatedText;
                   } else if (field === 'message') {
-                      let normalizedTranslatedText = normalizeNewlines(translatedText); // Normalize newlines
-                      quill.setText(normalizedTranslatedText); // Set plain text back into Quill
+                      let normalizedTranslatedText = normalizeNewlines(translatedText);
+                      quill.setText(normalizedTranslatedText);
                   }
                   markFormDirty(); // Mark form as dirty after translation
               }
@@ -265,6 +271,10 @@
 
       // Translate All button
       document.getElementById('translateAllButton').addEventListener('click', async () => {
+          if (!confirm('{{T .CurrentLang "admin.confirm_overwrite_translation" | js}}')) {
+              return;
+          }
+
           const responseDiv = document.getElementById('response');
           responseDiv.innerHTML = '<div class="alert alert-info">' + '{{T .CurrentLang "admin.translating_all_fields" | js}}' + '</div>';
 

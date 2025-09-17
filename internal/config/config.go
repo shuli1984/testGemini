@@ -34,7 +34,11 @@ type TranslatorConfig struct {
 	APIKey string `mapstructure:"api_key"`
 }
 
-// Config holds all configuration for the application.
+// I18nConfig defines the structure for i18n configuration.
+type I18nConfig struct {
+	DefaultLanguage string `mapstructure:"default_language"`
+}
+
 type Config struct {
 	Server struct {
 		Address string `mapstructure:"address"`
@@ -46,6 +50,7 @@ type Config struct {
 	Auth       AuthConfig       `mapstructure:"auth"`
 	Static     StaticConfig     `mapstructure:"static"`
 	Translator TranslatorConfig `mapstructure:"translator"`
+	I18n       I18nConfig       `mapstructure:"i18n"`
 	Routes     []Route          `mapstructure:"routes"`
 }
 

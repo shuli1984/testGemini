@@ -41,6 +41,7 @@
   "some_fields_not_translated": "一部のフィールドは翻訳できませんでした。コンソールでエラーを確認してください。",
   "save_successful": "保存に成功しました！",
   "translating_all_fields": "すべてのフィールドを翻訳中...",
+  "confirm_overwrite_translation": "この操作を実行すると、既存のコンテンツがデフォルト言語からの新しい翻訳で上書きされます。よろしいですか？",
   "no_translation_needed": "翻訳は不要です。",
   "upload_failed": "アップロードに失敗しました",
   "template_file_content_label": "ファイル内容",

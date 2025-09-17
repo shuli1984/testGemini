@@ -119,6 +119,7 @@ type AdminEditPageTemplateData struct {
 	SupportedLanguages          []string
 	EditLang                    string
 	OriginalContentLanguageCode string // Add this field
+	SiteDefaultLanguage         string
 }
 
 // AdminPagesTemplateData holds data for the admin pages list template.
@@ -523,6 +524,7 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		SupportedLanguages:          h.I18n.GetAvailableLanguages(),
 		EditLang:                    editLang,
 		OriginalContentLanguageCode: originalContentLang, // Pass the original content language
+		SiteDefaultLanguage:         h.I18n.DefaultLanguage(),
 	}
 
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)

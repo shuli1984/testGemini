@@ -41,6 +41,7 @@
   "some_fields_not_translated": "Some fields could not be translated. Check console for errors.",
   "save_successful": "Save successful!",
   "translating_all_fields": "Translating all fields...",
+  "confirm_overwrite_translation": "This will overwrite existing content with a new translation from the default language. Are you sure?",
   "no_translation_needed": "No translation needed.",
   "upload_failed": "Upload failed",
   "template_file_content_label": "File Content",
