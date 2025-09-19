@@ -97,10 +97,18 @@ func main() {
 		}
 	}()
 
-	err = models.AutoMigrateAndSeed(db)
+		err = models.AutoMigrateAndSeed(db)
 	if err != nil {
 		log.Fatalf("failed to auto migrate and seed models: %v", err)
 	}
+
+	// Load dynamic site settings from the database
+	siteConfigFromDB, err := models.GetSiteConfig(db)
+	if err != nil {
+		log.Fatalf("failed to load site settings from database: %v", err)
+	}
+	// Merge DB settings into the main config struct
+	cfg.Site = *siteConfigFromDB
 
 	parsedTemplates, err := util.ParseTemplates(i18nTranslator, projectRootFlag)
 	if err != nil {

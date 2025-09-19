@@ -141,3 +141,17 @@ To use the DeepL API, you must provide an API key.
 2. **Set Configuration:**
     - In `config.yml`, set `translator.type` to `"deepl"`.
     - Set `translator.api_key` to your DeepL API key, or set the `TRANSLATOR_API_KEY` environment variable.
+
+## Maintenance Mode
+
+You can enable or disable site maintenance mode from the "Settings" page in the admin panel.
+
+- **To enable maintenance mode**:
+  1. Log in to the admin panel (`/admin`).
+  2. Navigate to the "Settings" page (`/admin/settings`).
+  3. Check the "Enable Maintenance Mode" checkbox and save the settings.
+
+- **Important Notes**:
+  - When maintenance mode is enabled, all visitors who are not logged in will see the maintenance page.
+  - **Logged-in administrators will not see the maintenance page** and can browse the site normally.
+  - To test the maintenance page, make sure you are **logged out** of the admin panel or use a different browser.

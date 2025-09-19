@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gemini-demo/internal/config"
+	"gorm.io/gorm"
+)
 
 // DataStore defines the interface for all database operations
 // required by the application's handlers.
@@ -14,6 +17,8 @@ type DataStore interface {
 	DeletePage(name string) error
 	GetDashboardData() (*DashboardData, error)
 	GetCoreSolutions(lang string, defaultLang string) ([]Page, error)
+	GetSiteConfig() (*config.SiteConfig, error)
+	SaveSiteConfig(siteConfig *config.SiteConfig) error
 }
 
 // DBStore is a GORM implementation of the DataStore interface.
@@ -60,4 +65,12 @@ func (s *DBStore) GetDashboardData() (*DashboardData, error) {
 
 func (s *DBStore) GetCoreSolutions(lang string, defaultLang string) ([]Page, error) {
 	return GetCoreSolutions(s.DB, lang, defaultLang)
+}
+
+func (s *DBStore) GetSiteConfig() (*config.SiteConfig, error) {
+	return GetSiteConfig(s.DB)
+}
+
+func (s *DBStore) SaveSiteConfig(siteConfig *config.SiteConfig) error {
+	return SaveSiteConfig(s.DB, siteConfig)
 }

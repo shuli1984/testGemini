@@ -39,6 +39,31 @@ type I18nConfig struct {
 	DefaultLanguage string `mapstructure:"default_language"`
 }
 
+// NavigationItem defines the structure for a single item in the navigation menu.
+type NavigationItem struct {
+	Label   string `yaml:"label" mapstructure:"label"`
+	Type    string `yaml:"type" mapstructure:"type"`
+	Value   string `yaml:"value" mapstructure:"value"`
+	NewTab  bool   `yaml:"new_tab" mapstructure:"new_tab"`
+}
+
+// SiteConfig defines the structure for general site settings.
+type SiteConfig struct {
+	Title              string           `yaml:"title" mapstructure:"title"`
+	Tagline            string           `yaml:"tagline" mapstructure:"tagline"`
+	Logo               string           `yaml:"logo" mapstructure:"logo"`
+	Favicon            string           `yaml:"favicon" mapstructure:"favicon"`
+	DefaultLanguage    string           `yaml:"default_language" mapstructure:"default_language"`
+	Timezone           string           `yaml:"timezone" mapstructure:"timezone"`
+	Navigation         []NavigationItem `yaml:"navigation,omitempty" mapstructure:"navigation"`
+	HomePage           string           `yaml:"home_page" mapstructure:"home_page"`
+	MetaDescription    string           `yaml:"meta_description" mapstructure:"meta_description"`
+	MetaKeywords       string           `yaml:"meta_keywords" mapstructure:"meta_keywords"`
+	GoogleAnalyticsID  string           `yaml:"google_analytics_id" mapstructure:"google_analytics_id"`
+	MaintenanceMode    bool             `yaml:"maintenance_mode" mapstructure:"maintenance_mode"`
+	MaintenanceMessage string           `yaml:"maintenance_message" mapstructure:"maintenance_message"`
+}
+
 type Config struct {
 	Server struct {
 		Address string `mapstructure:"address"`
@@ -51,6 +76,7 @@ type Config struct {
 	Static     StaticConfig     `mapstructure:"static"`
 	Translator TranslatorConfig `mapstructure:"translator"`
 	I18n       I18nConfig       `mapstructure:"i18n"`
+	Site       SiteConfig       `mapstructure:"site"`
 	Routes     []Route          `mapstructure:"routes"`
 }
 

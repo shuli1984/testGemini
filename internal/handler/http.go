@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/config"
 	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/translator"
@@ -24,6 +25,7 @@ import (
 )
 
 type Handler struct {
+	Cfg            *config.Config
 	Store          models.DataStore
 	AuthService    *auth.AuthService
 	Templates      map[string]*template.Template // Changed to map
@@ -129,6 +131,16 @@ type AdminPagesTemplateData struct {
 	CurrentPath string
 	CurrentLang string
 	Title       string
+}
+
+// AdminSettingsTemplateData holds data for the admin settings page.
+type AdminSettingsTemplateData struct {
+	CSRFToken      string
+	Settings       *config.SiteConfig
+	Message        string
+	CurrentLang    string
+	CurrentPath    string
+	NavigationJSON template.JS
 }
 
 // PageCombinedData holds data for a page template, combining page and site data.
@@ -530,6 +542,167 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)
 }
 
+
+// AdminSettingsHandler displays the settings page.
+func (h *Handler) AdminSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	siteConfig, err := h.Store.GetSiteConfig()
+	if err != nil {
+		log.Printf("Error getting site config: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	navJSON, err := json.Marshal(siteConfig.Navigation)
+	if err != nil {
+		log.Printf("Error marshalling navigation: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	data := AdminSettingsTemplateData{
+		CSRFToken:      csrf.Token(r),
+		Settings:       siteConfig,
+		Message:        r.URL.Query().Get("message"),
+		CurrentLang:    h.getLanguage(r),
+		CurrentPath:    r.URL.Path,
+		NavigationJSON: template.JS(navJSON),
+	}
+	h.renderTemplate(w, r, "admin/admin_settings.html", data)
+}
+
+// UpdateSettingsHandler handles updating the site settings.
+func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Add robust validation as requested.
+	currentLang := h.getLanguage(r)
+
+	// Populate a new config object from the form.
+	// This allows us to pass the user's entered data back if validation fails.
+	formConfig := &config.SiteConfig{
+		Title:             r.FormValue("siteTitle"),
+		Tagline:           r.FormValue("siteTagline"),
+		Logo:              r.FormValue("siteLogo"),
+		Favicon:           r.FormValue("favicon"),
+		DefaultLanguage:   r.FormValue("defaultLanguage"),
+		Timezone:          r.FormValue("timezone"),
+		HomePage:          r.FormValue("homePage"),
+		MetaDescription:   r.FormValue("metaDescription"),
+		MetaKeywords:      r.FormValue("metaKeywords"),
+		GoogleAnalyticsID: r.FormValue("googleAnalyticsID"),
+		MaintenanceMode:   r.FormValue("maintenanceMode") == "on",
+		MaintenanceMessage: r.FormValue("maintenanceMessage"),
+	}
+	navJSON := r.FormValue("navigationJson")
+
+	// --- Validation ---
+	var validationErrors []string
+
+	// Rule 1: Title is required
+	if strings.TrimSpace(formConfig.Title) == "" {
+		validationErrors = append(validationErrors, h.I18n.GetTranslation(currentLang, "settings.error.title_required"))
+	}
+
+	// Rule 2: Language must be valid
+	if !h.I18n.IsValidLanguage(formConfig.DefaultLanguage) {
+		availableLangs := strings.Join(h.I18n.GetAvailableLanguages(), ", ")
+		errorMsg := fmt.Sprintf(h.I18n.GetTranslation(currentLang, "settings.error.invalid_language_format"), formConfig.DefaultLanguage, availableLangs)
+		validationErrors = append(validationErrors, errorMsg)
+	}
+
+	// Rule 3: Google Analytics ID format (basic check)
+	gaID := formConfig.GoogleAnalyticsID
+	if gaID != "" && !strings.HasPrefix(gaID, "G-") && !strings.HasPrefix(gaID, "UA-") && !strings.HasPrefix(gaID, "GTM-") {
+		validationErrors = append(validationErrors, h.I18n.GetTranslation(currentLang, "settings.error.invalid_ga_id"))
+	}
+
+	// Rule 4: Navigation JSON
+	var navigation []config.NavigationItem
+	if navJSON != "" {
+		if err := json.Unmarshal([]byte(navJSON), &navigation); err != nil {
+			validationErrors = append(validationErrors, h.I18n.GetTranslation(currentLang, "settings.error.invalid_nav_json"))
+		}
+	}
+	formConfig.Navigation = navigation
+
+	// --- End Validation ---
+
+	// If there are validation errors, re-render the form with the errors and user's input.
+	if len(validationErrors) > 0 {
+		// In case of error, we still need the CSRF token for the form.
+		data := AdminSettingsTemplateData{
+			CSRFToken:      csrf.Token(r),
+			Settings:       formConfig,
+			Message:        strings.Join(validationErrors, "; "),
+			CurrentLang:    currentLang,
+			CurrentPath:    r.URL.Path,
+			NavigationJSON: template.JS(navJSON), // Pass back the original JSON input
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		h.renderTemplate(w, r, "admin/admin_settings.html", data)
+		return
+	}
+
+	// If validation passes, save the config.
+	if err := h.Store.SaveSiteConfig(formConfig); err != nil {
+		log.Printf("Error saving site config: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Also need to update the global config in the running application
+	h.Cfg.Site = *formConfig
+
+	http.Redirect(w, r, "/admin/settings?message=Settings+saved+successfully", http.StatusFound)
+}
+
+
+
+// MaintenanceMiddleware checks if the site is in maintenance mode.
+func (h *Handler) MaintenanceMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Bypass maintenance mode for admin, login, and static assets
+		isAdminRoute := strings.HasPrefix(r.URL.Path, "/admin")
+		isLoginRoute := r.URL.Path == "/login"
+		isStatic := strings.HasPrefix(r.URL.Path, h.Cfg.Static.URLPrefix)
+
+		// Check if maintenance mode is enabled and the route is not exempt
+		if h.Cfg.Site.MaintenanceMode && !isAdminRoute && !isLoginRoute && !isStatic {
+
+			// Prepare data for the maintenance template
+			data := struct {
+				Site        *config.SiteConfig
+				CurrentLang string
+			}{
+				Site:        &h.Cfg.Site,
+				CurrentLang: h.getLanguage(r),
+			}
+
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+
+			// Manually parse and execute the maintenance template to avoid the site's base layout
+			tmpl, err := template.ParseFiles("templates/maintenance.html")
+			if err != nil {
+				log.Printf("Error parsing maintenance template: %v", err)
+				http.Error(w, "Error displaying maintenance page.", http.StatusInternalServerError)
+				return
+			}
+
+			err = tmpl.Execute(w, data)
+			if err != nil {
+				log.Printf("Error executing maintenance template: %v", err)
+				// http.Error is already sent by this point, so just log
+			}
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 // AdminRedirectHandler redirects /admin to /admin/dashboard
 func (h *Handler) AdminRedirectHandler(w http.ResponseWriter, r *http.Request) {

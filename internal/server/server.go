@@ -34,7 +34,7 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 	dbStore := &models.DBStore{DB: db}
 
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, I18n: i18nTranslator, API_Translator: apiTranslator, DebugMode: debugMode}
+	h := &handler.Handler{Cfg: cfg, Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, I18n: i18nTranslator, API_Translator: apiTranslator, DebugMode: debugMode}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,
@@ -56,6 +56,8 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 		"AdminTemplateEditView": h.AdminTemplateEditView,
 		"AdminTemplateUpdate":   h.AdminTemplateUpdate,
 		"AdminTemplatePreview":  h.AdminTemplatePreview,
+		"AdminSettingsHandler":  h.AdminSettingsHandler,
+		"UpdateSettingsHandler": h.UpdateSettingsHandler,
 	}
 
 	for _, route := range cfg.Routes {
@@ -77,6 +79,8 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 			debugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
 		})
 	}
+
+	finalHandler = h.MaintenanceMiddleware(finalHandler)
 
 	return &http.Server{
 		Handler: finalHandler,

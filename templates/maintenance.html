@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="{{.CurrentLang}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Site.Title}} - Maintenance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="d-flex align-items-center justify-content-center vh-100">
+        <div class="text-center p-5 bg-white rounded shadow-sm">
+            <h1 class="display-1 fw-bold">Maintenance</h1>
+            <p class="fs-3"> <span class="text-danger">Oops!</span> We're currently performing maintenance.</p>
+            <p class="lead">
+                {{if .Site.MaintenanceMessage}}
+                    {{.Site.MaintenanceMessage}}
+                {{else}}
+                    We will be back shortly. Thank you for your patience.
+                {{end}}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

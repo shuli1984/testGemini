@@ -1,0 +1,150 @@
+{{template "admin/admin_header.html" .}}
+<body>
+    <div class="d-flex flex-column flex-md-row min-vh-100">
+        <div class="border-end">
+            {{template "admin/admin_nav.html" .}}
+        </div>
+        <main class="p-4 shadow-sm flex-grow-1">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">{{ T .CurrentLang "admin.settings_title" }}</h1>
+            </div>
+
+            {{if .Message}}
+            <div class="alert alert-success" role="alert">
+                {{.Message}}
+            </div>
+            {{end}}
+
+            <form action="/admin/settings" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="gorilla.csrf.Token" value="{{.CSRFToken}}">
+
+                <!-- General Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_general_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="siteTitle" class="form-label">{{ T .CurrentLang "admin.settings_site_title" }}</label>
+                            <input type="text" class="form-control" id="siteTitle" name="siteTitle" value="{{.Settings.Title}}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="siteTagline" class="form-label">{{ T .CurrentLang "admin.settings_site_tagline" }}</label>
+                            <input type="text" class="form-control" id="siteTagline" name="siteTagline" value="{{.Settings.Tagline}}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="siteLogo" class="form-label">{{ T .CurrentLang "admin.settings_site_logo" }}</label>
+                            <input type="text" class="form-control" id="siteLogo" name="siteLogo" value="{{.Settings.Logo}}" placeholder="e.g., /static/images/logo.png">
+                            <!-- Image upload will be handled later -->
+                        </div>
+                        <div class="mb-3">
+                            <label for="favicon" class="form-label">{{ T .CurrentLang "admin.settings_favicon" }}</label>
+                            <input type="text" class="form-control" id="favicon" name="favicon" value="{{.Settings.Favicon}}" placeholder="e.g., /static/images/favicon.ico">
+                        </div>
+                         <div class="mb-3">
+                            <label for="defaultLanguage" class="form-label">{{ T .CurrentLang "admin.settings_default_language" }}</label>
+                            <input type="text" class="form-control" id="defaultLanguage" name="defaultLanguage" value="{{.Settings.DefaultLanguage}}" placeholder="e.g., en, ja, zh">
+                        </div>
+                        <div class="mb-3">
+                            <label for="timezone" class="form-label">{{ T .CurrentLang "admin.settings_timezone" }}</label>
+                            <input type="text" class="form-control" id="timezone" name="timezone" value="{{.Settings.Timezone}}" placeholder="e.g., UTC, America/New_York">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_navigation_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="navigation-list" class="list-group mb-3"></ul>
+                        <button type="button" id="add-nav-item" class="btn btn-secondary">{{ T .CurrentLang "admin.add_nav_item_button" }}</button>
+                        <input type="hidden" id="navigation-json" name="navigationJson" value="">
+                    </div>
+                </div>
+                
+                <!-- Content & SEO -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_seo_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="homePage" class="form-label">{{ T .CurrentLang "admin.settings_homepage_display" }}</label>
+                            <input type="text" class="form-control" id="homePage" name="homePage" value="{{.Settings.HomePage}}" placeholder="{{ T .CurrentLang `admin.settings_homepage_placeholder` }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="metaDescription" class="form-label">{{ T .CurrentLang "admin.settings_meta_description" }}</label>
+                            <textarea class="form-control" id="metaDescription" name="metaDescription" rows="3">{{.Settings.MetaDescription}}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="metaKeywords" class="form-label">{{ T .CurrentLang "admin.settings_meta_keywords" }}</label>
+                            <textarea class="form-control" id="metaKeywords" name="metaKeywords" rows="2">{{.Settings.MetaKeywords}}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integrations -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_integrations_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="googleAnalyticsID" class="form-label">{{ T .CurrentLang "admin.settings_ga_id" }}</label>
+                            <input type="text" class="form-control" id="googleAnalyticsID" name="googleAnalyticsID" value="{{.Settings.GoogleAnalyticsID}}">
+                        </div>
+                         <!-- Social Media Links will be added here -->
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_advanced_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="maintenanceMode" name="maintenanceMode" {{if .Settings.MaintenanceMode}}checked{{end}}>
+                            <label class="form-check-label" for="maintenanceMode">{{ T .CurrentLang "admin.settings_maintenance_mode" }}</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="maintenanceMessage" class="form-label">{{ T .CurrentLang "admin.settings_maintenance_message" }}</label>
+                            <textarea class="form-control" id="maintenanceMessage" name="maintenanceMessage" rows="3">{{.Settings.MaintenanceMessage}}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">{{ T .CurrentLang "admin.save_settings_button" }}</button>
+            </form>
+        </main>
+    </div>
+
+{{template "admin/admin_footer.html" .}}
+
+<template id="nav-item-template">
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1 me-3">
+            <div class="input-group mb-2">
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_label" }}</span>
+                <input type="text" class="form-control nav-label" value="">
+            </div>
+            <div class="input-group">
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_type" }}</span>
+                <select class="form-select nav-type">
+                    <option value="page">Page</option>
+                    <option value="custom">Custom URL</option>
+                </select>
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_value" }}</span>
+                <input type="text" class="form-control nav-value" value="">
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm remove-nav-item">{{ T .CurrentLang "admin.remove_nav_item_button" }}</button>
+    </li>
+</template>
+
+<script src="/static/js/Sortable.min.js"></script>
+<script src="/static/js/admin_settings.js"></script>
+</body>

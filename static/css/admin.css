@@ -310,3 +310,33 @@ html[data-theme='dark'] .table {
 html[data-theme='dark'] .table thead th {
     background-color: rgba(255, 255, 255, 0.02);
 }
+
+/* Additional Dark Mode Styles */
+html[data-theme='dark'] .card {
+    background-color: var(--header-bg);
+    border-color: var(--header-border);
+}
+
+html[data-theme='dark'] .form-control,
+html[data-theme='dark'] .form-select {
+    background-color: var(--header-bg);
+    color: var(--text-color);
+    border-color: var(--input-border);
+}
+
+html[data-theme='dark'] .form-control:focus,
+html[data-theme='dark'] .form-select:focus {
+    background-color: var(--header-bg);
+    color: var(--text-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--primary-color), 0.25);
+}
+
+html[data-theme='dark'] .list-group-item {
+    background-color: var(--header-bg);
+    border-color: var(--header-border);
+}
+
+html[data-theme='dark'] .card-header {
+    color: var(--text-color);
+}

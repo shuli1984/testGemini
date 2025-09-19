@@ -37,11 +37,11 @@ routes:
     methods:
       - "GET"
     auth_required: true
-  - path: /admin/pages/new
-    handler: AdminNewPageHandler
+  - path: "/admin/pages/new"
+    handler: "AdminNewPageHandler"
     methods: 
-      - GET
-      - POST
+      - "GET"
+      - "POST"
     auth_required: true
   - path: "/admin/pages/edit/{name}"
     handler: "AdminEditPageHandler"
@@ -53,25 +53,30 @@ routes:
     methods:
       - "PUT"
     auth_required: true
-  - path: /admin/pages/delete/{name}
-    handler: DeletePageHandler
-    methods: [DELETE]
+  - path: "/admin/pages/delete/{name}"
+    handler: "DeletePageHandler"
+    methods:
+      - "DELETE"
     auth_required: true
-  - path: /admin/templates
-    handler: AdminTemplatesView
-    methods: [GET]
+  - path: "/admin/templates"
+    handler: "AdminTemplatesView"
+    methods:
+      - "GET"
     auth_required: true
-  - path: /admin/templates/edit
-    handler: AdminTemplateEditView
-    methods: [GET]
+  - path: "/admin/templates/edit"
+    handler: "AdminTemplateEditView"
+    methods:
+      - "GET"
     auth_required: true
-  - path: /admin/templates/edit
-    handler: AdminTemplateUpdate
-    methods: [POST]
+  - path: "/admin/templates/edit"
+    handler: "AdminTemplateUpdate"
+    methods:
+      - "POST"
     auth_required: true
-  - path: /admin/templates/preview
-    handler: AdminTemplatePreview
-    methods: [GET]
+  - path: "/admin/templates/preview"
+    handler: "AdminTemplatePreview"
+    methods:
+      - "GET"
     auth_required: true
   - path: "/admin/upload"
     handler: "ImageUploadHandler"
@@ -80,6 +85,16 @@ routes:
     auth_required: true
   - path: "/admin/api/translate"
     handler: "TranslateHandler"
+    methods:
+      - "POST"
+    auth_required: true
+  - path: "/admin/settings"
+    handler: "AdminSettingsHandler"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin/settings"
+    handler: "UpdateSettingsHandler"
     methods:
       - "POST"
     auth_required: true
