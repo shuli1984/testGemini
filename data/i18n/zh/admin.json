@@ -89,5 +89,14 @@
   "nav_item_label": "标签",
   "nav_item_type": "类型",
   "nav_item_value": "值",
-  "remove_nav_item_button": "移除"
+  "remove_nav_item_button": "移除",
+  "maintenance.title": "维护模式",
+  "maintenance.oops": "哎呀！",
+  "maintenance.subheading": "我们正在进行定期维护。",
+  "settings_saved_successfully": "设置保存成功",
+  "settings_save_failed": "设置保存失败。",
+  "settings.error.title_required": "站点标题不能为空。",
+  "settings.error.invalid_language_format": "无效的默认语言代码 '%s'。可用代码: %s",
+  "settings.error.invalid_ga_id": "无效的 Google Analytics ID 格式。",
+  "settings.error.invalid_nav_json": "导航菜单的JSON格式无效。"
 }

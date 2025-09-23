@@ -103,7 +103,7 @@ func main() {
 	}
 
 	// Load dynamic site settings from the database
-	siteConfigFromDB, err := models.GetSiteConfig(db)
+	siteConfigFromDB, err := models.GetSiteConfig(db, cfg.I18n.DefaultLanguage, cfg.I18n.DefaultLanguage)
 	if err != nil {
 		log.Fatalf("failed to load site settings from database: %v", err)
 	}

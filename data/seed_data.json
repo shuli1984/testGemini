@@ -6,18 +6,25 @@
       "Icon": "fa-home",
       "Translations": [
         {
-          "LanguageCode": "zh",
-          "Title": "Innovatech - AI & IT 解决方案",
-          "Description": "Innovatech.AI 提供领先的IT解决方案和人工智能服务，包括企业云服务、机器学习模型和IT基础架构现代化。我们致力于通过前沿技术驱动您的业务增长。",
-          "Keywords": "AI, IT解决方案, 企业云服务, 机器学习, IT基础架构现代化",
-          "Message": "来自数据库的问候！"
-        },
-        {
           "LanguageCode": "en",
           "Title": "Innovatech - AI & IT Solutions",
           "Description": "Innovatech.AI offers leading IT solutions and artificial intelligence services, including enterprise cloud services, machine learning models, and IT infrastructure modernization. We are dedicated to driving your business growth through cutting-edge technology.",
           "Keywords": "AI, IT Solutions, Enterprise Cloud Services, Machine Learning, IT Infrastructure Modernization",
           "Message": "Hello from the database!"
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "Innovatech - AI & ITソリューション",
+          "Description": "Innovatech.AIは、エンタープライズクラウドサービス、機械学習モデル、ITインフラストラクチャの近代化など、最先端のITソリューションと人工知能サービスを提供しています。当社は、最先端技術を通じてお客様のビジネス成長を促進することに専念しています。",
+          "Keywords": "AI, ITソリューション, エンタープライズクラウドサービス, 機械学習, ITインフラストラクチャの近代化",
+          "Message": "データベースからのご挨拶！"
+        },
+        {
+          "LanguageCode": "zh",
+          "Title": "Innovatech - AI & IT 解决方案",
+          "Description": "Innovatech.AI 提供领先的IT解决方案和人工智能服务，包括企业云服务、机器学习模型和IT基础架构现代化。我们致力于通过前沿技术驱动您的业务增长。",
+          "Keywords": "AI, IT解决方案, 企业云服务, 机器学习, IT基础架构现代化",
+          "Message": "来自数据库的问候！"
         }
       ]
     },
@@ -32,6 +39,13 @@
           "Description": "Learn more about our company.",
           "Keywords": "about us, company",
           "Message": "Learn more about our company."
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "会社概要",
+          "Description": "私たちの会社についてもっと知る。",
+          "Keywords": "会社概要, 会社",
+          "Message": "私たちの会社についてもっと知る。"
         },
         {
           "LanguageCode": "zh",
@@ -55,6 +69,13 @@
           "Message": "Get in touch with us."
         },
         {
+          "LanguageCode": "ja",
+          "Title": "お問い合わせ",
+          "Description": "お問い合わせはこちらから。",
+          "Keywords": "お問い合わせ, サポート",
+          "Message": "お問い合わせはこちらから。"
+        },
+        {
           "LanguageCode": "zh",
           "Title": "联系我们",
           "Description": "与我们取得联系。",
@@ -69,10 +90,10 @@
       "Icon": "fa-brain",
       "Translations": [
         {
-          "LanguageCode": "zh",
-          "Title": "人工智能与机器学习",
-          "Description": "利用我们先进的机器学习模型和人工智能解决方案，释放数据的潜力，驱动智能决策。",
-          "Keywords": "人工智能, 机器学习",
+          "LanguageCode": "en",
+          "Title": "AI & Machine Learning",
+          "Description": "Unlock the potential of data and drive intelligent decision-making with our advanced machine learning models and AI solutions.",
+          "Keywords": "AI, Machine Learning",
           "Message": ""
         },
         {
@@ -83,10 +104,10 @@
           "Message": ""
         },
         {
-          "LanguageCode": "en",
-          "Title": "AI & Machine Learning",
-          "Description": "Unlock the potential of data and drive intelligent decision-making with our advanced machine learning models and AI solutions.",
-          "Keywords": "AI, Machine Learning",
+          "LanguageCode": "zh",
+          "Title": "人工智能与机器学习",
+          "Description": "利用我们先进的机器学习模型和人工智能解决方案，释放数据的潜力，驱动智能决策。",
+          "Keywords": "人工智能, 机器学习",
           "Message": ""
         }
       ]
@@ -97,10 +118,10 @@
       "Icon": "fa-cloud",
       "Translations": [
         {
-          "LanguageCode": "zh",
-          "Title": "企业云服务",
-          "Description": "我们提供安全、可扩展的企业云解决方案，帮助您优化运营，降低成本，并加速创新。",
-          "Keywords": "企业云服务, 云解决方案",
+          "LanguageCode": "en",
+          "Title": "Enterprise Cloud Services",
+          "Description": "We provide secure and scalable enterprise cloud solutions to help you optimize operations, reduce costs, and accelerate innovation.",
+          "Keywords": "Enterprise Cloud Services, Cloud Solutions",
           "Message": ""
         },
         {
@@ -111,10 +132,10 @@
           "Message": ""
         },
         {
-          "LanguageCode": "en",
-          "Title": "Enterprise Cloud Services",
-          "Description": "We provide secure and scalable enterprise cloud solutions to help you optimize operations, reduce costs, and accelerate innovation.",
-          "Keywords": "Enterprise Cloud Services, Cloud Solutions",
+          "LanguageCode": "zh",
+          "Title": "企业云服务",
+          "Description": "我们提供安全、可扩展的企业云解决方案，帮助您优化运营，降低成本，并加速创新。",
+          "Keywords": "企业云服务, 云解决方案",
           "Message": ""
         }
       ]
@@ -125,10 +146,10 @@
       "Icon": "fa-server",
       "Translations": [
         {
-          "LanguageCode": "zh",
-          "Title": "IT基础架构现代化",
-          "Description": "通过我们的IT基础架构现代化服务，构建一个敏捷、高效和安全的IT环境，支持您的业务持续增长。",
-          "Keywords": "IT基础架构现代化, IT环境",
+          "LanguageCode": "en",
+          "Title": "IT Infrastructure Modernization",
+          "Description": "Build an agile, efficient, and secure IT environment that supports your continuous business growth with our IT infrastructure modernization services.",
+          "Keywords": "IT Infrastructure Modernization, IT Environment",
           "Message": ""
         },
         {
@@ -139,29 +160,166 @@
           "Message": ""
         },
         {
-          "LanguageCode": "en",
-          "Title": "IT Infrastructure Modernization",
-          "Description": "Build an agile, efficient, and secure IT environment that supports your continuous business growth with our IT infrastructure modernization services.",
-          "Keywords": "IT Infrastructure Modernization, IT Environment",
+          "LanguageCode": "zh",
+          "Title": "IT基础架构现代化",
+          "Description": "通过我们的IT基础架构现代化服务，构建一个敏捷、高效和安全的IT环境，支持您的业务持续增长。",
+          "Keywords": "IT基础架构现代化, IT环境",
           "Message": ""
         }
       ]
     }
   ],
-  "SiteSettings": [
-    {"Key": "Title", "Value": "Innovatech.AI - 智能驱动，构建未来"},
-    {"Key": "Description", "Value": "我们提供尖端的IT基础架构和人工智能解决方案，帮助您的企业在数字化浪潮中保持领先。"},
-    {"Key": "CanonicalURL", "Value": "https://www.innovatech.ai/"},
-    {"Key": "ImageURL", "Value": "https://www.innovatech.ai/assets/og-image.jpg"},
-    {"Key": "HeroTitle", "Value": "构建未来, <span>智能驱动</span>"},
-    {"Key": "HeroDescription", "Value": "我们提供尖端的IT基础架构和人工智能解决方案，帮助您的企业在数字化浪潮中保持领先。"},
-    {"Key": "Keywords", "Value": "IT基础架构, 人工智能, 解决方案, 云服务, 机器学习"},
-    {"Key": "Robots", "Value": "index, follow"}
+  "Settings": [
+    {
+      "Key": "timezone",
+      "Value": "UTC"
+    },
+    {
+      "Key": "google_analytics_id",
+      "Value": ""
+    },
+    {
+      "Key": "maintenance_mode",
+      "Value": "false"
+    },
+    {
+      "Key": "home_page",
+      "Value": "home"
+    },
+    {
+      "Key": "default_language",
+      "Value": "en"
+    }
   ],
-  "MenuItems": [
-    {"URL": "/#services", "Text": "解决方案", "Order": 1},
-    {"URL": "/about", "Text": "关于我们", "Order": 2},
-    {"URL": "/#contact", "Text": "联系我们", "Order": 3},
-    {"URL": "/pages", "Text": "页面列表", "Order": 4}
+  "SettingTranslations": [
+    {
+      "Key": "navigation",
+      "LanguageCode": "en",
+      "Value": [
+        {
+          "label": "Pages",
+          "type": "internal",
+          "value": "pages",
+          "new_tab": false
+        },
+        {
+          "label": "About",
+          "type": "page",
+          "value": "about",
+          "new_tab": false
+        }
+      ]
+    },
+    {
+      "Key": "navigation",
+      "LanguageCode": "ja",
+      "Value": [
+        {
+          "label": "ページ一覧",
+          "type": "internal",
+          "value": "pages",
+          "new_tab": false
+        },
+        {
+          "label": "概要",
+          "type": "page",
+          "value": "about",
+          "new_tab": false
+        }
+      ]
+    },
+    {
+      "Key": "navigation",
+      "LanguageCode": "zh",
+      "Value": [
+        {
+          "label": "页面",
+          "type": "internal",
+          "value": "pages",
+          "new_tab": false
+        },
+        {
+          "label": "关于",
+          "type": "page",
+          "value": "about",
+          "new_tab": false
+        }
+      ]
+    },
+    {
+      "Key": "site_title",
+      "LanguageCode": "en",
+      "Value": "My Awesome Website"
+    },
+    {
+      "Key": "site_title",
+      "LanguageCode": "ja",
+      "Value": "私の素晴らしいウェブサイト"
+    },
+    {
+      "Key": "site_title",
+      "LanguageCode": "zh",
+      "Value": "我的很棒的网站"
+    },
+    {
+      "Key": "site_tagline",
+      "LanguageCode": "en",
+      "Value": "A great place to be"
+    },
+    {
+      "Key": "site_tagline",
+      "LanguageCode": "ja",
+      "Value": "素晴らしい場所"
+    },
+    {
+      "Key": "site_tagline",
+      "LanguageCode": "zh",
+      "Value": "一个很棒的地方"
+    },
+    {
+      "Key": "meta_description",
+      "LanguageCode": "en",
+      "Value": "This is a default meta description."
+    },
+    {
+      "Key": "meta_description",
+      "LanguageCode": "ja",
+      "Value": "これはデフォルトのメタディスクリプションです。"
+    },
+    {
+      "Key": "meta_description",
+      "LanguageCode": "zh",
+      "Value": "这是一个默认的元描述。"
+    },
+    {
+      "Key": "meta_keywords",
+      "LanguageCode": "en",
+      "Value": "website, awesome, default"
+    },
+    {
+      "Key": "meta_keywords",
+      "LanguageCode": "ja",
+      "Value": "ウェブサイト, 素晴らしい, デフォルト"
+    },
+    {
+      "Key": "meta_keywords",
+      "LanguageCode": "zh",
+      "Value": "网站, 很棒, 默认"
+    },
+    {
+      "Key": "maintenance_message",
+      "LanguageCode": "en",
+      "Value": "We will be back shortly. Thank you for your patience."
+    },
+    {
+      "Key": "maintenance_message",
+      "LanguageCode": "ja",
+      "Value": "ただいまメンテナンス中です。ご不便をおかけします。"
+    },
+    {
+      "Key": "maintenance_message",
+      "LanguageCode": "zh",
+      "Value": "我们很快就回来。感谢您的耐心等待。"
+    }
   ]
 }

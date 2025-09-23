@@ -8,17 +8,17 @@ import (
 // DataStore defines the interface for all database operations
 // required by the application's handlers.
 type DataStore interface {
-	GetSiteData() (*Site, error)
 	GetPageData(name string, lang string, defaultLang string) (*Page, error)
 	GetAllPages(lang string, defaultLang string) ([]Page, error)
 	CreatePage(page *Page) error
 	UpdatePage(page *Page) error // Add this line
 	UpdatePageTranslation(pageID uint, translation *PageTranslation) error
 	DeletePage(name string) error
-	GetDashboardData() (*DashboardData, error)
 	GetCoreSolutions(lang string, defaultLang string) ([]Page, error)
-	GetSiteConfig() (*config.SiteConfig, error)
-	SaveSiteConfig(siteConfig *config.SiteConfig) error
+	GetSiteConfig(lang string, defaultLang string) (*config.SiteConfig, error)
+	SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error
+	GetPageCount() (int64, error)
+	GetSettingValue(key, lang string) (string, error)
 }
 
 // DBStore is a GORM implementation of the DataStore interface.
@@ -31,9 +31,7 @@ func NewDBStore(db *gorm.DB) DataStore {
 	return &DBStore{DB: db}
 }
 
-func (s *DBStore) GetSiteData() (*Site, error) {
-	return GetSiteData(s.DB)
-}
+
 
 func (s *DBStore) GetPageData(name string, lang string, defaultLang string) (*Page, error) {
 	return GetPageData(s.DB, name, lang, defaultLang)
@@ -59,18 +57,24 @@ func (s *DBStore) DeletePage(name string) error {
 	return DeletePage(s.DB, name)
 }
 
-func (s *DBStore) GetDashboardData() (*DashboardData, error) {
-	return GetDashboardData(s.DB)
+func (s *DBStore) GetPageCount() (int64, error) {
+	var pageCount int64
+	err := s.DB.Model(&Page{}).Count(&pageCount).Error
+	return pageCount, err
 }
 
 func (s *DBStore) GetCoreSolutions(lang string, defaultLang string) ([]Page, error) {
 	return GetCoreSolutions(s.DB, lang, defaultLang)
 }
 
-func (s *DBStore) GetSiteConfig() (*config.SiteConfig, error) {
-	return GetSiteConfig(s.DB)
+func (s *DBStore) GetSiteConfig(lang string, defaultLang string) (*config.SiteConfig, error) {
+	return GetSiteConfig(s.DB, lang, defaultLang)
 }
 
-func (s *DBStore) SaveSiteConfig(siteConfig *config.SiteConfig) error {
-	return SaveSiteConfig(s.DB, siteConfig)
+func (s *DBStore) SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error {
+	return SaveSiteConfig(s.DB, siteConfig, lang)
+}
+
+func (s *DBStore) GetSettingValue(key, lang string) (string, error) {
+	return GetSettingValue(s.DB, key, lang)
 }

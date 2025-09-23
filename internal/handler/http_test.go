@@ -43,15 +43,19 @@ func setupTest(t *testing.T) *handler.Handler {
 	assert.NoError(t, err)
 	t.Cleanup(func() { sqlDB.Close() })
 
-	// Auto-migrate models
-	err = db.AutoMigrate(&models.SiteSetting{}, &models.MenuItemDB{}, &models.Page{}, &models.PageTranslation{})
+	// Auto-migrate models (new version)
+	err = db.AutoMigrate(&models.Page{}, &models.PageTranslation{}, &models.Setting{}, &models.SettingTranslation{})
 	assert.NoError(t, err)
 
-	// Insert initial test data
-	    // Insert initial test data using FirstOrCreate for robustness
-    db.FirstOrCreate(&models.SiteSetting{}, models.SiteSetting{Key: "Title", Value: "Test Title"})
-    db.FirstOrCreate(&models.SiteSetting{}, models.SiteSetting{Key: "Description", Value: "Test Description"})
-    db.FirstOrCreate(&models.MenuItemDB{}, models.MenuItemDB{URL: "/home", Text: "Home", Order: 0})
+	// Insert initial test data (new version)
+    // Seed non-translatable settings
+    db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "default_language", Value: "en"})
+    db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "home_page", Value: "home"})
+
+    // Seed translatable settings
+    db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_title", LanguageCode: "en", Value: "Test Title"})
+    db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_tagline", LanguageCode: "en", Value: "Test Tagline"})
+
 
     // Create a test page and its translation
     testPage := models.Page{Name: "test-page"}
@@ -84,11 +88,6 @@ func setupTest(t *testing.T) *handler.Handler {
 		I18n:        translator,
 		DebugLog:    func(format string, v ...interface{}) { t.Logf(format, v...) },
 	}
-
-	siteData, err := h.Store.GetSiteData()
-	assert.NoError(t, err)
-	assert.NotNil(t, siteData)
-	t.Logf("setupTest: siteData = %+v", siteData)
 
 	return h
 }

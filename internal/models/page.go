@@ -216,4 +216,13 @@ func UpdatePage(db *gorm.DB, page *Page) error {
 	return db.Model(page).Select("IsCoreSolution", "Icon").Updates(Page{IsCoreSolution: page.IsCoreSolution, Icon: page.Icon}).Error
 }
 
+// CarouselItem represents a single item in the hero carousel.
 
+type CarouselItem struct {
+	Title           template.HTML
+	Description     template.HTML
+	ButtonText      string
+	ButtonLink      string
+	BackgroundImage string
+	Active          bool
+}

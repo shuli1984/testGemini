@@ -89,5 +89,14 @@
   "nav_item_label": "Label",
   "nav_item_type": "Type",
   "nav_item_value": "Value",
-  "remove_nav_item_button": "Remove"
+  "remove_nav_item_button": "Remove",
+  "maintenance.title": "Maintenance Mode",
+  "maintenance.oops": "Oops!",
+  "maintenance.subheading": "We're currently undergoing scheduled maintenance.",
+  "settings_saved_successfully": "Settings saved successfully",
+  "settings_save_failed": "Failed to save settings.",
+  "settings.error.title_required": "Site title cannot be empty.",
+  "settings.error.invalid_language_format": "Invalid default language code '%s'. Available codes: %s",
+  "settings.error.invalid_ga_id": "Invalid Google Analytics ID format.",
+  "settings.error.invalid_nav_json": "Invalid JSON format for navigation menu."
 }

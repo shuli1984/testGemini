@@ -3,12 +3,12 @@
 {{define "content"}}
     <section id="heroCarousel" class="carousel slide hero-carousel" data-bs-ride="carousel">
         <div class="carousel-indicators">
-            {{range $i, $e := .Site.CarouselItems}}
+            {{range $i, $e := .CarouselItems}}
             <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{$i}}" class="{{if eq $i 0}}active{{end}}" aria-current="{{if eq $i 0}}true{{end}}" aria-label="{{T $.CurrentLang "common.slide"}} {{$i}}"></button>
             {{end}}
         </div>
         <div class="carousel-inner">
-            {{range .Site.CarouselItems}}
+            {{range .CarouselItems}}
             <div class="carousel-item {{if .Active}}active{{end}}" style="background-image: url('{{.BackgroundImage}}');">
                 <div class="container">
                     <div class="hero-content text-center">

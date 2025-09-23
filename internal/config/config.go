@@ -41,10 +41,10 @@ type I18nConfig struct {
 
 // NavigationItem defines the structure for a single item in the navigation menu.
 type NavigationItem struct {
-	Label   string `yaml:"label" mapstructure:"label"`
-	Type    string `yaml:"type" mapstructure:"type"`
-	Value   string `yaml:"value" mapstructure:"value"`
-	NewTab  bool   `yaml:"new_tab" mapstructure:"new_tab"`
+	Label  string `yaml:"label" mapstructure:"label" json:"label"`
+	Type   string `yaml:"type" mapstructure:"type" json:"type"`
+	Value  string `yaml:"value" mapstructure:"value" json:"value"`
+	NewTab bool   `yaml:"new_tab" mapstructure:"new_tab" json:"new_tab"`
 }
 
 // SiteConfig defines the structure for general site settings.

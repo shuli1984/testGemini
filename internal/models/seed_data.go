@@ -8,9 +8,16 @@ type SeedPage struct {
 	Translations   []PageTranslation `json:"Translations"`
 }
 
+// SeedSettingTranslation allows for flexible Value types during seeding.
+type SeedSettingTranslation struct {
+	Key          string      `json:"Key"`
+	LanguageCode string      `json:"LanguageCode"`
+	Value        interface{} `json:"Value"`
+}
+
 // SeedData represents the structure of seed_data.json
 type SeedData struct {
-	Pages        []SeedPage    `json:"Pages"`
-	SiteSettings []SiteSetting `json:"SiteSettings"`
-	MenuItems    []MenuItemDB  `json:"MenuItems"`
+	Pages               []SeedPage               `json:"Pages"`
+	Settings            []Setting                `json:"Settings"`
+	SettingTranslations []SeedSettingTranslation `json:"SettingTranslations"`
 }

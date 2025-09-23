@@ -3,93 +3,141 @@ package models
 import (
 	"encoding/json"
 	"gemini-demo/internal/config"
+	"log"
 	"strconv"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-// GetSiteConfig loads all settings from the database and populates a SiteConfig struct.
-func GetSiteConfig(db *gorm.DB) (*config.SiteConfig, error) {
+// GetSiteConfig loads all settings from the database and populates a SiteConfig struct
+// for a specific language, with a fallback to the default language.
+func GetSiteConfig(db *gorm.DB, lang string, defaultLang string) (*config.SiteConfig, error) {
+	siteConfig := &config.SiteConfig{}
+
+	// 1. Fetch non-translatable settings
 	var settings []Setting
 	if err := db.Find(&settings).Error; err != nil {
 		return nil, err
 	}
-
 	settingsMap := make(map[string]string)
 	for _, s := range settings {
 		settingsMap[s.Key] = s.Value
 	}
-
-	siteConfig := &config.SiteConfig{}
-
-	// Map simple key-value pairs
-	siteConfig.Title = settingsMap["site_title"]
-	siteConfig.Tagline = settingsMap["site_tagline"]
 	siteConfig.Logo = settingsMap["site_logo"]
 	siteConfig.Favicon = settingsMap["site_favicon"]
 	siteConfig.DefaultLanguage = settingsMap["default_language"]
 	siteConfig.Timezone = settingsMap["timezone"]
 	siteConfig.HomePage = settingsMap["home_page"]
-	siteConfig.MetaDescription = settingsMap["meta_description"]
-	siteConfig.MetaKeywords = settingsMap["meta_keywords"]
 	siteConfig.GoogleAnalyticsID = settingsMap["google_analytics_id"]
-	siteConfig.MaintenanceMessage = settingsMap["maintenance_message"]
-
-	// Map boolean value
 	maintenanceMode, err := strconv.ParseBool(settingsMap["maintenance_mode"])
 	if err == nil {
 		siteConfig.MaintenanceMode = maintenanceMode
 	}
 
+	// 2. Fetch translations for default language
+	var defaultTranslations []SettingTranslation
+	if err := db.Where("language_code = ?", defaultLang).Find(&defaultTranslations).Error; err != nil {
+		return nil, err
+	}
+	defaultTranslationsMap := make(map[string]string)
+	for _, t := range defaultTranslations {
+		defaultTranslationsMap[t.Key] = t.Value
+	}
+
+	// 3. Fetch translations for the requested language
+	var langTranslations []SettingTranslation
+	if err := db.Where("language_code = ?", lang).Find(&langTranslations).Error; err != nil {
+		return nil, err
+	}
+	langTranslationsMap := make(map[string]string)
+	for _, t := range langTranslations {
+		langTranslationsMap[t.Key] = t.Value
+	}
+
+	// 4. Combine translations, with requested language overriding default
+	getValue := func(key string) string {
+		if val, ok := langTranslationsMap[key]; ok && val != "" {
+			return val
+		}
+		return defaultTranslationsMap[key]
+	}
+
+	siteConfig.Title = getValue("site_title")
+	siteConfig.Tagline = getValue("site_tagline")
+	siteConfig.MetaDescription = getValue("meta_description")
+	siteConfig.MetaKeywords = getValue("meta_keywords")
+	siteConfig.MaintenanceMessage = getValue("maintenance_message")
+
 	// Unmarshal JSON for navigation
-	if navJSON, ok := settingsMap["navigation"]; ok && navJSON != "" {
+	navJSON := getValue("navigation")
+	if navJSON != "" {
 		var navigation []config.NavigationItem
 		if err := json.Unmarshal([]byte(navJSON), &navigation); err != nil {
-			return nil, err
+			log.Printf("Error unmarshalling navigation JSON for lang %s: %v. JSON: %s", lang, err, navJSON)
+		} else {
+			siteConfig.Navigation = navigation
 		}
-		siteConfig.Navigation = navigation
 	}
 
 	return siteConfig, nil
 }
 
-// SaveSiteConfig saves a SiteConfig struct to the key-value settings table in the database.
-func SaveSiteConfig(db *gorm.DB, siteConfig *config.SiteConfig) error {
-	// Use a transaction to ensure all settings are saved or none are.
+// SaveSiteConfig saves a SiteConfig struct to the database for a specific language.
+func SaveSiteConfig(db *gorm.DB, siteConfig *config.SiteConfig, lang string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		// Simple key-value pairs
-		settingsToSave := map[string]string{
-			"site_title":          siteConfig.Title,
-			"site_tagline":        siteConfig.Tagline,
+		// 1. Save non-translatable settings
+		nonTranslatable := map[string]string{
 			"site_logo":           siteConfig.Logo,
 			"site_favicon":        siteConfig.Favicon,
 			"default_language":    siteConfig.DefaultLanguage,
 			"timezone":            siteConfig.Timezone,
 			"home_page":           siteConfig.HomePage,
-			"meta_description":    siteConfig.MetaDescription,
-			"meta_keywords":       siteConfig.MetaKeywords,
 			"google_analytics_id": siteConfig.GoogleAnalyticsID,
 			"maintenance_mode":    strconv.FormatBool(siteConfig.MaintenanceMode),
-			"maintenance_message": siteConfig.MaintenanceMessage,
 		}
 
-		for key, value := range settingsToSave {
-			// Using .Save() on a struct with a primary key will perform an upsert (update or insert).
-			if err := tx.Save(&Setting{Key: key, Value: value}).Error; err != nil {
+		for key, value := range nonTranslatable {
+			setting := Setting{Key: key, Value: value}
+			if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "key"}}, DoUpdates: clause.AssignmentColumns([]string{"value"})}).Create(&setting).Error; err != nil {
 				return err
 			}
 		}
 
-		// Marshal and save navigation
+		// 2. Save translatable settings for the given language
 		navJSON, err := json.Marshal(siteConfig.Navigation)
 		if err != nil {
 			return err
 		}
-		navSetting := Setting{Key: "navigation", Value: string(navJSON)}
-		if err := tx.Save(&navSetting).Error; err != nil {
-			return err
+
+		translatable := map[string]string{
+			"site_title":          siteConfig.Title,
+			"site_tagline":        siteConfig.Tagline,
+			"meta_description":    siteConfig.MetaDescription,
+			"meta_keywords":       siteConfig.MetaKeywords,
+			"maintenance_message": siteConfig.MaintenanceMessage,
+			"navigation":          string(navJSON),
+		}
+
+		for key, value := range translatable {
+			translation := SettingTranslation{Key: key, LanguageCode: lang, Value: value}
+			if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "key"}, {Name: "language_code"}}, DoUpdates: clause.AssignmentColumns([]string{"value"})}).Create(&translation).Error; err != nil {
+				return err
+			}
 		}
 
 		return nil
 	})
+}
+
+// GetSettingValue retrieves a single translated setting value from the database.
+func GetSettingValue(db *gorm.DB, key, lang string) (string, error) {
+	var translation SettingTranslation
+	if err := db.Where("key = ? AND language_code = ?", key, lang).First(&translation).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return "", nil // Return empty string and no error if not found
+		}
+		return "", err
+	}
+	return translation.Value, nil
 }

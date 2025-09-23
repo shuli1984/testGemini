@@ -89,5 +89,14 @@
   "nav_item_label": "ラベル",
   "nav_item_type": "タイプ",
   "nav_item_value": "値",
-  "remove_nav_item_button": "削除"
+  "remove_nav_item_button": "削除",
+  "maintenance.title": "メンテナンスモード",
+  "maintenance.oops": "おっと！",
+  "maintenance.subheading": "現在、定期メンテナンス中です。",
+  "settings_saved_successfully": "設定が正常に保存されました",
+  "settings_save_failed": "設定の保存に失敗しました。",
+  "settings.error.title_required": "サイトタイトルは空にできません。",
+  "settings.error.invalid_language_format": "無効なデフォルト言語コード '%s'。利用可能なコード: %s",
+  "settings.error.invalid_ga_id": "無効なGoogle Analytics ID形式です。",
+  "settings.error.invalid_nav_json": "ナビゲーションメニューのJSON形式が無効です。"
 }
