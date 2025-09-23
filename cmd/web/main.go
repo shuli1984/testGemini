@@ -10,6 +10,7 @@ import (
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/database"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/logger"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/server"
 	"gemini-demo/internal/translator"
@@ -18,6 +19,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gorilla/csrf"
 	"github.com/joho/godotenv"
@@ -159,6 +161,9 @@ func main() {
 	// Add this line to debug the session key being used
 	debugLog("AuthService Session Key being used: %s", cfg.Auth.SessionKey)
 
+	startTime := time.Now()
+	inMemoryLogger := logger.NewInMemoryLogCollector(10) // Capacity of 10 errors
+
 	srv := server.New(cfg, db, parsedTemplates, func(h http.Handler) http.Handler {
 		// Conditionally apply PlaintextHTTPRequest for HTTP connections
 		wrappedHandler := logRequestMiddleware(csrfMiddleware(h))
@@ -168,7 +173,7 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	}, i18nTranslator, apiTranslator, debugLog, debugFlag) // Pass the translator and debug flag
+	}, i18nTranslator, apiTranslator, debugLog, debugFlag, inMemoryLogger, startTime) // Pass the translator and debug flag
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)

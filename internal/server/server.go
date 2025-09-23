@@ -5,10 +5,12 @@ import (
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/logger"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/translator"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -17,7 +19,7 @@ import (
 // DebugLog is a placeholder for the debug logging function from main.go
 // New creates a new HTTP server with configured routes and handlers.
 // This function is the entry point for the server.
-func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, csrfMiddleware func(http.Handler) http.Handler, i18nTranslator *i18n.Translator, apiTranslator translator.Translator, debugLog func(format string, v ...interface{}), debugMode bool) *http.Server {
+func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, csrfMiddleware func(http.Handler) http.Handler, i18nTranslator *i18n.Translator, apiTranslator translator.Translator, debugLog func(format string, v ...interface{}), debugMode bool, errorLogger *logger.InMemoryLogCollector, startTime time.Time) *http.Server {
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -34,7 +36,7 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 	dbStore := &models.DBStore{DB: db}
 
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{Cfg: cfg, Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, I18n: i18nTranslator, API_Translator: apiTranslator, DebugMode: debugMode}
+	h := &handler.Handler{Cfg: cfg, Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, I18n: i18nTranslator, API_Translator: apiTranslator, DebugMode: debugMode, ErrorLogger: errorLogger, StartTime: startTime}
 
 	handlers := map[string]http.HandlerFunc{
 		"IndexHandler":         h.IndexHandler,

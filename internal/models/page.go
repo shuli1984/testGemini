@@ -216,6 +216,50 @@ func UpdatePage(db *gorm.DB, page *Page) error {
 	return db.Model(page).Select("IsCoreSolution", "Icon").Updates(Page{IsCoreSolution: page.IsCoreSolution, Icon: page.Icon}).Error
 }
 
+// GetRecentPages retrieves the most recently updated pages.
+func GetRecentPages(db *gorm.DB, limit int, lang string, defaultLang string) ([]Page, error) {
+	var pages []Page
+	// Order by updated_at descending and limit the result
+	if err := db.Order("updated_at desc").Limit(limit).Find(&pages).Error; err != nil {
+		return nil, err
+	}
+
+	if len(pages) == 0 {
+		return []Page{}, nil
+	}
+
+	// The rest of the logic is identical to GetAllPages for fetching translations
+	pageIDs := make([]uint, len(pages))
+	for i, p := range pages {
+		pageIDs[i] = p.ID
+	}
+
+	var translations []PageTranslation
+	db.Where("page_id IN ? AND language_code IN ?", pageIDs, []string{lang, defaultLang}).Find(&translations)
+
+	transMap := make(map[uint]map[string]PageTranslation)
+	for _, t := range translations {
+		if _, ok := transMap[t.PageID]; !ok {
+			transMap[t.PageID] = make(map[string]PageTranslation)
+		}
+		transMap[t.PageID][t.LanguageCode] = t
+	}
+
+	for i := range pages {
+		if pageTranslations, ok := transMap[pages[i].ID]; ok {
+			// Prioritize the requested language
+			if translation, ok := pageTranslations[lang]; ok {
+				pages[i].Content = translation
+			} else if translation, ok := pageTranslations[defaultLang]; ok {
+				// Fallback to the default language
+				pages[i].Content = translation
+			}
+		}
+	}
+
+	return pages, nil
+}
+
 // CarouselItem represents a single item in the hero carousel.
 
 type CarouselItem struct {

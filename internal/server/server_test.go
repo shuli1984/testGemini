@@ -15,6 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"gemini-demo/internal/logger"
 )
 
 // MockAPITranslator is a mock implementation of the translator.Translator interface for testing.
@@ -94,7 +97,9 @@ func TestNew(t *testing.T) {
 
 	
 
-	srv := New(cfg, db, templatesMap, mockCSRFMiddleware, i18nTranslator, &MockAPITranslator{}, debugLog, false) // Use the map directly
+	errorLogger := logger.NewInMemoryLogCollector(100)
+	startTime := time.Now()
+	srv := New(cfg, db, templatesMap, mockCSRFMiddleware, i18nTranslator, &MockAPITranslator{}, debugLog, false, errorLogger, startTime) // Use the map directly
 
 	
 
@@ -255,5 +260,5 @@ func TestNew_PanicOnNilConfig(t *testing.T) {
 	}()
 
 	// Call New, which should panic
-	New(nil, nil, nil, nil, nil, nil, nil, false) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
+	New(nil, nil, nil, nil, nil, nil, nil, false, nil, time.Time{}) // Pass nil for cfg, db, tmpl, csrfMiddleware, and translator
 }

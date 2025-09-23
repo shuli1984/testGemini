@@ -12,8 +12,8 @@ import (
 )
 
 func AutoMigrateAndSeed(db *gorm.DB) error {
-	log.Printf("Attempting AutoMigrate for Page, PageTranslation, Setting, and SettingTranslation...")
-	err := db.AutoMigrate(&Page{}, &PageTranslation{}, &Setting{}, &SettingTranslation{})
+	log.Printf("Attempting AutoMigrate for Page, PageTranslation, Setting, SettingTranslation and LoginLog...")
+	err := db.AutoMigrate(&Page{}, &PageTranslation{}, &Setting{}, &SettingTranslation{}, &LoginLog{})
 	if err != nil {
 		log.Printf("AutoMigrate failed: %v", err)
 		return err

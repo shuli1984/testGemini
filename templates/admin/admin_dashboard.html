@@ -10,32 +10,166 @@
             <h1 class="mb-4">{{T .CurrentLang "admin.dashboard_title"}}</h1>
             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+            <div class="row row-cols-1 row-cols-lg-2 g-4">
+                <!-- Left Column -->
                 <div class="col">
-                    <div class="p-4 border-start border-primary border-5 rounded shadow-sm">
-                        <h2 class="mb-3">{{T .CurrentLang "admin.system_overview"}}</h2>
-                        <p class="text-muted">{{T .CurrentLang "admin.total_pages"}}: {{.PageCount}}</p>
-                        <!-- Add more system info here -->
-                    </div>
-                </div>
+                    <div class="d-flex flex-column gap-4">
 
-                <div class="col">
-                    <div class="p-4 border-start border-primary border-5 rounded shadow-sm">
-                        <h2 class="mb-3">{{T .CurrentLang "admin.quick_actions"}}</h2>
-                        <div class="d-flex flex-wrap gap-3 mt-4">
-                            <a href="/admin/edit/home" class="btn btn-secondary">{{T .CurrentLang "admin.edit_home_page"}}</a>
-                            <a href="/admin/edit/about" class="btn btn-secondary">{{T .CurrentLang "admin.edit_about_page"}}</a>
-                            <a href="/admin/edit/contact" class="btn btn-secondary">{{T .CurrentLang "admin.edit_contact_page"}}</a>
-                            <!-- Add more admin links here -->
+                        <!-- Content Overview -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-content">
+                                <h2 class="mb-0 h5"><i class="bi bi-file-earmark-text me-2"></i>{{T .CurrentLang "admin.content_overview"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">{{T .CurrentLang "admin.total_pages"}}:</div>
+                                    <div class="col-6 text-end fw-bold">{{.PageCount}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">{{T .CurrentLang "admin.total_templates"}}:</div>
+                                    <div class="col-6 text-end fw-bold">{{.TemplateCount}}</div>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- System Information -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-system">
+                                <h2 class="mb-0 h5"><i class="bi bi-info-circle me-2"></i>{{T .CurrentLang "admin.system_information"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">Go Version:</div>
+                                    <div class="col-6 text-end">{{.GoVersion}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">OS / Arch:</div>
+                                    <div class="col-6 text-end">{{.OS}} / {{.Arch}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">Uptime:</div>
+                                    <div class="col-6 text-end">{{.Uptime}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">Memory Usage:</div>
+                                    <div class="col-6 text-end">{{.MemoryUsage}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">CPU Usage:</div>
+                                    <div class="col-6 text-end">{{.CPUUsage}}</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">Goroutines:</div>
+                                    <div class="col-6 text-end">{{.NumGoroutine}}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-actions">
+                                <h2 class="mb-0 h5"><i class="bi bi-lightning-fill me-2"></i>{{T .CurrentLang "admin.quick_actions"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="/admin/pages/new" class="btn btn-primary btn-sm">{{T .CurrentLang "admin.new_page"}}</a>
+                                    <a href="/admin/settings" class="btn btn-secondary btn-sm">{{T .CurrentLang "admin.site_settings"}}</a>
+                                    <a href="/admin/templates" class="btn btn-secondary btn-sm">{{T .CurrentLang "admin.edit_templates"}}</a>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
+                <!-- Right Column -->
                 <div class="col">
-                    <div class="p-4 border-start border-primary border-5 rounded shadow-sm">
-                        <h2 class="mb-3">{{T .CurrentLang "admin.recent_activity"}}</h2>
-                        <p class="text-muted">{{T .CurrentLang "admin.no_recent_activity"}}</p>
-                        <!-- Placeholder for recent activity -->
+                    <div class="d-flex flex-column gap-4">
+
+                        <!-- Login Log -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-login-log">
+                                <h2 class="mb-0 h5"><i class="bi bi-shield-check me-2"></i>{{T .CurrentLang "admin.login_log_title"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="overflow-auto" style="max-height: 200px;">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>{{T .CurrentLang "admin.login_log_username"}}</th>
+                                                <th>{{T .CurrentLang "admin.login_log_status"}}</th>
+                                                <th>{{T .CurrentLang "admin.login_log_ip"}}</th>
+                                                <th>{{T .CurrentLang "admin.login_log_time"}}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {{range .RecentLoginLogs}}
+                                            <tr>
+                                                <td>{{.Username}}</td>
+                                                <td>
+                                                    {{if .Success}}
+                                                        <span class="badge bg-success">{{T $.CurrentLang "admin.login_log_success"}}</span>
+                                                    {{else}}
+                                                        <span class="badge bg-danger">{{T $.CurrentLang "admin.login_log_failed"}}</span>
+                                                    {{end}}
+                                                </td>
+                                                <td>{{.IPAddress}}</td>
+                                                <td>{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                                            </tr>
+                                            {{else}}
+                                            <tr>
+                                                <td colspan="4" class="text-muted">{{T .CurrentLang "admin.no_recent_login_logs"}}</td>
+                                            </tr>
+                                            {{end}}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Pages -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-pages">
+                                <h2 class="mb-0 h5"><i class="bi bi-clock-history me-2"></i>{{T .CurrentLang "admin.recent_pages"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                {{if .RecentPages}}
+                                    <ul class="list-group list-group-flush">
+                                    {{range .RecentPages}}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <a href="/admin/pages/edit/{{.Name}}">{{.Content.Title}}</a>
+                                            <small class="text-muted">{{.UpdatedAt.Format "2006-01-02 15:04"}}</small>
+                                        </li>
+                                    {{end}}
+                                    </ul>
+                                {{else}}
+                                    <p class="text-muted">{{T .CurrentLang "admin.no_recent_pages"}}</p>
+                                {{end}}
+                            </div>
+                        </div>
+
+                        <!-- Recent Errors -->
+                        <div class="card shadow-sm">
+                            <div class="card-header card-header-errors">
+                                <h2 class="mb-0 h5"><i class="bi bi-exclamation-triangle me-2"></i>{{T .CurrentLang "admin.recent_errors"}}</h2>
+                            </div>
+                            <div class="card-body">
+                                {{if .RecentErrors}}
+                                    <div class="overflow-auto" style="max-height: 200px;">
+                                        <ul class="list-unstyled">
+                                        {{range .RecentErrors}}
+                                            <li class="font-monospace small text-danger mb-1">
+                                                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{.}}
+                                            </li>
+                                        {{end}}
+                                        </ul>
+                                    </div>
+                                {{else}}
+                                    <p class="text-muted">{{T .CurrentLang "admin.no_recent_errors"}}</p>
+                                {{end}}
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

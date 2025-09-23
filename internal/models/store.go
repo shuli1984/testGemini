@@ -19,6 +19,9 @@ type DataStore interface {
 	SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error
 	GetPageCount() (int64, error)
 	GetSettingValue(key, lang string) (string, error)
+	GetRecentPages(limit int, lang string, defaultLang string) ([]Page, error)
+	CreateLoginLog(log *LoginLog) error
+	GetRecentLoginLogs(limit int) ([]LoginLog, error)
 }
 
 // DBStore is a GORM implementation of the DataStore interface.
@@ -77,4 +80,18 @@ func (s *DBStore) SaveSiteConfig(siteConfig *config.SiteConfig, lang string) err
 
 func (s *DBStore) GetSettingValue(key, lang string) (string, error) {
 	return GetSettingValue(s.DB, key, lang)
+}
+
+func (s *DBStore) GetRecentPages(limit int, lang string, defaultLang string) ([]Page, error) {
+	return GetRecentPages(s.DB, limit, lang, defaultLang)
+}
+
+func (s *DBStore) CreateLoginLog(log *LoginLog) error {
+	return s.DB.Create(log).Error
+}
+
+func (s *DBStore) GetRecentLoginLogs(limit int) ([]LoginLog, error) {
+	var logs []LoginLog
+	err := s.DB.Order("created_at desc").Limit(limit).Find(&logs).Error
+	return logs, err
 }

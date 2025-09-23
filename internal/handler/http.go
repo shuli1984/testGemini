@@ -8,19 +8,24 @@ import (
 	"gemini-demo/internal/auth"
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/logger"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
 	"html/template"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/shirou/gopsutil/cpu"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +38,17 @@ type Handler struct {
 	I18n           *i18n.Translator
 	API_Translator translator.Translator
 	DebugMode      bool
+	ErrorLogger    *logger.InMemoryLogCollector
+	StartTime      time.Time
+}
+
+// LogError logs an error to the standard logger and the in-memory collector.
+func (h *Handler) LogError(format string, v ...interface{}) {
+	msg := fmt.Sprintf(format, v...)
+	log.Printf(msg)
+	if h.ErrorLogger != nil {
+		h.ErrorLogger.Add(msg)
+	}
 }
 
 // ContentTemplater defines an interface for data structures that can specify a content template name.
@@ -104,10 +120,21 @@ type LoginTemplateData struct {
 
 // DashboardTemplateData holds data for the dashboard page template.
 type DashboardTemplateData struct {
-	PageCount   int64
-	CSRFToken   string
-	CurrentPath string
-	CurrentLang string
+	CSRFToken     string
+	CurrentPath   string
+	CurrentLang   string
+	PageCount     int64
+	TemplateCount int
+	RecentPages   []models.Page
+	GoVersion     string
+	OS            string
+	Arch          string
+	Uptime        string
+	MemoryUsage   string
+	NumGoroutine  int
+	CPUUsage      string
+	RecentErrors  []string
+	RecentLoginLogs []models.LoginLog
 }
 
 // AdminEditPageTemplateData holds data for the admin edit page template.
@@ -431,7 +458,20 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Login attempt for user: %s", credentials.Username)
+
+	// Log the login attempt
+	logAttempt := &models.LoginLog{
+		Username:  credentials.Username,
+		IPAddress: getIPAddress(r),
+		UserAgent: r.UserAgent(),
+	}
+
 	if h.AuthService.Authenticate(credentials.Username, credentials.Password) {
+		logAttempt.Success = true
+		if err := h.Store.CreateLoginLog(logAttempt); err != nil {
+			h.LogError("failed to create login log: %v", err)
+		}
+
 		err := h.AuthService.Login(w, r)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -443,6 +483,11 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": h.I18n.GetTranslation(currentLang, "login_successful")})
 	} else {
+		logAttempt.Success = false
+		if err := h.Store.CreateLoginLog(logAttempt); err != nil {
+			h.LogError("failed to create login log: %v", err)
+		}
+
 		log.Printf("Login failed for user: %s", credentials.Username)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -454,18 +499,79 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DashboardHandler(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
+	// Page Count
 	pageCount, err := h.Store.GetPageCount()
 	if err != nil {
-		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf("Error getting page count for dashboard: %v", err)
-		return
+		h.LogError("Error getting page count for dashboard: %v", err)
+		// We can still proceed, just show 0 for page count
+		pageCount = 0
+	}
+
+	// Template Count
+	templateFiles, err := os.ReadDir("templates")
+	if err != nil {
+		h.LogError("Error reading templates directory: %v", err)
+	}
+	templateCount := 0
+	for _, file := range templateFiles {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".html") {
+			templateCount++
+		}
+	}
+
+	// Recent Pages
+	recentPages, err := h.Store.GetRecentPages(5, currentLang, h.I18n.DefaultLanguage())
+	if err != nil {
+		h.LogError("Error getting recent pages for dashboard: %v", err)
+	}
+
+	// System Info
+	goVersion := runtime.Version()
+	osName := runtime.GOOS
+	arch := runtime.GOARCH
+	uptime := time.Since(h.StartTime).Round(time.Second).String()
+	numGoroutine := runtime.NumGoroutine()
+
+	// Memory Usage
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	memoryUsage := fmt.Sprintf("%d MB", m.Alloc/1024/1024)
+
+	// CPU Usage
+	// Reduced the interval to 100ms to avoid blocking the request for a full second.
+	cpuUsage := "N/A"
+	percentages, err := cpu.Percent(100*time.Millisecond, false)
+	if err == nil && len(percentages) > 0 {
+		cpuUsage = fmt.Sprintf("%.2f%%", percentages[0])
+	} else if err != nil {
+		h.LogError("Error getting CPU usage: %v", err)
+	}
+
+	// Recent Errors
+	recentErrors := h.ErrorLogger.Get()
+
+	// Recent Login Logs
+	recentLoginLogs, err := h.Store.GetRecentLoginLogs(10)
+	if err != nil {
+		h.LogError("Error getting recent login logs for dashboard: %v", err)
 	}
 
 	templateData := DashboardTemplateData{
-		PageCount:   pageCount,
-		CSRFToken:   csrf.Token(r),
-		CurrentPath: r.URL.Path,
-		CurrentLang: currentLang,
+		CSRFToken:       csrf.Token(r),
+		CurrentPath:     r.URL.Path,
+		CurrentLang:     currentLang,
+		PageCount:       pageCount,
+		TemplateCount:   templateCount,
+		RecentPages:     recentPages,
+		GoVersion:       goVersion,
+		OS:              osName,
+		Arch:            arch,
+		Uptime:          uptime,
+		MemoryUsage:     memoryUsage,
+		NumGoroutine:    numGoroutine,
+		CPUUsage:        cpuUsage,
+		RecentErrors:    recentErrors,
+		RecentLoginLogs: recentLoginLogs,
 	}
 	h.renderTemplate(w, r, "admin/admin_dashboard.html", templateData)
 }
@@ -1063,6 +1169,25 @@ func getTemplateName(r *http.Request) string {
 	// Example: "/about" -> "about.html"
 	// Example: "/about" -> "about.html"
 	return strings.TrimPrefix(path, "/") + ".html"
+}
+
+// getIPAddress extracts the user's IP address from the request.
+func getIPAddress(r *http.Request) string {
+    // Check for X-Forwarded-For header first (for proxies)
+    forwarded := r.Header.Get("X-Forwarded-For")
+    if forwarded != "" {
+        // X-Forwarded-For can be a comma-separated list of IPs. The first one is the original client.
+        ips := strings.Split(forwarded, ",")
+        return strings.TrimSpace(ips[0])
+    }
+
+    // Fallback to RemoteAddr
+    ip, _, err := net.SplitHostPort(r.RemoteAddr)
+    if err != nil {
+        // If splitting fails, RemoteAddr might be just the IP, which is fine.
+        return r.RemoteAddr
+    }
+    return ip
 }
 
 // TemplateManagementData holds the data for the template management page.

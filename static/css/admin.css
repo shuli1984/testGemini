@@ -46,7 +46,7 @@ html[data-theme='dark'] {
     --sidebar-shadow: rgba(0,0,0,0.3);
     --sidebar-link-hover-bg: #3a3a3a;
     --info-card-bg: #2c2c2c;
-    --info-card-shadow: rgba(0,0,0,0.2);
+    --info-card-shadow: rgba(0, 0, 0, 0.1);
 }
 
 /* General Body */
@@ -339,4 +339,60 @@ html[data-theme='dark'] .list-group-item {
 
 html[data-theme='dark'] .card-header {
     color: var(--text-color);
+}
+
+/* Custom Card Header Styles for Theming */
+.card-header-content,
+.card-header-system,
+.card-header-actions,
+.card-header-pages,
+.card-header-errors {
+    color: #fff; /* Default to white text */
+}
+
+.card-header-content { background-color: #007bff; }
+.card-header-system  { background-color: #28a745; }
+.card-header-actions { background-color: #ffc107; color: #212529; } /* Yellow needs dark text */
+.card-header-pages   { background-color: #17a2b8; }
+.card-header-errors  { background-color: #dc3545; }
+
+/* Dark Mode Overrides */
+html[data-theme='dark'] .card-header-content { background-color: #004a99; }
+html[data-theme='dark'] .card-header-system  { background-color: #19692c; }
+html[data-theme='dark'] .card-header-actions { background-color: #997404; color: #fff; } /* Dark yellow can use white text */
+html[data-theme='dark'] .card-header-pages   { background-color: #0f626e; }
+html[data-theme='dark'] .card-header-errors  { background-color: #842029; }
+.card-header-login-log { background-color: #6f42c1; } /* Purple */
+html[data-theme='dark'] .card-header-login-log { background-color: #492b81; }
+
+/* Text color fixes for dark mode */
+html[data-theme='dark'] .text-muted {
+    color: #999 !important; /* A lighter muted color */
+}
+
+html[data-theme='dark'] .text-danger {
+    color: #ff8fa3 !important; /* A light, readable red */
+}
+
+html[data-theme='dark'] .card-body a {
+    color: var(--primary-color); /* Use the theme's primary (light blue) color for links */
+}
+
+html[data-theme='dark'] .card-body a:hover {
+    text-decoration: underline;
+    color: var(--primary-hover);
+}
+
+/* Final dark mode text color fix for card bodies */
+html[data-theme='dark'] .card-body {
+    color: var(--text-color);
+}
+
+/* Dark mode fix for primary button text */
+html[data-theme='dark'] .btn-primary {
+    color: #002b4d !important; /* Dark blue text for light blue button */
+}
+
+html[data-theme='dark'] .btn-primary:hover {
+    color: #002b4d !important; /* Keep text dark on hover */
 }
