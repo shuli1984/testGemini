@@ -40,7 +40,7 @@
                   data-i18n-all-fields-translated-success="{{T .CurrentLang "admin.all_fields_translated_success" | js}}"
                   data-i18n-some-fields-not-translated="{{T .CurrentLang "admin.some_fields_not_translated" | js}}"
                   data-i18n-save-successful="{{T .CurrentLang "admin.save_successful" | js}}">
-                <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                <input type="hidden" name="gorilla.csrf.Token" value="{{.CSRFToken}}">
                 <input type="hidden" id="editLang" value="{{.EditLang}}">
                 
                 <div class="mb-3">

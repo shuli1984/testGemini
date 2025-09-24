@@ -968,22 +968,42 @@ func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	// The request body should contain the page shell and the content for the first translation.
-	var newPage models.Page
-	if err := json.NewDecoder(r.Body).Decode(&newPage); err != nil {
+	var payload struct {
+		Name           string        `json:"Name"`
+		Title          string        `json:"Title"`
+		Description    string        `json:"Description"`
+		Message        template.HTML `json:"Message"`
+		IsCoreSolution bool          `json:"IsCoreSolution"`
+		Icon           string        `json:"Icon"`
+		LanguageCode   string        `json:"LanguageCode"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
 		return
 	}
 
 	// Basic validation
-	if strings.TrimSpace(newPage.Name) == "" || strings.TrimSpace(newPage.Content.Title) == "" {
+	if strings.TrimSpace(payload.Name) == "" || strings.TrimSpace(payload.Title) == "" {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "page_name_title_required"), http.StatusBadRequest)
 		return
 	}
 
-	// Set the language code for the first translation if not provided
-	if newPage.Content.LanguageCode == "" {
-		newPage.Content.LanguageCode = currentLang
+	langCode := payload.LanguageCode
+	if langCode == "" {
+		langCode = currentLang
+	}
+
+	newPage := &models.Page{
+		Name:           payload.Name,
+		IsCoreSolution: payload.IsCoreSolution,
+		Icon:           payload.Icon,
+		Content: models.PageTranslation{
+			Title:        payload.Title,
+			Description:  payload.Description,
+			Message:      payload.Message,
+			LanguageCode: langCode,
+		},
 	}
 
 	// Check if page with the same name already exists
@@ -1000,7 +1020,7 @@ func (h *Handler) createPagePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the page and its first translation
-	if err := h.Store.CreatePage(&newPage); err != nil {
+	if err := h.Store.CreatePage(newPage); err != nil {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
 		log.Printf("Error creating page: %v", err)
 		return
