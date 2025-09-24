@@ -826,8 +826,8 @@ func (h *Handler) MaintenanceMiddleware(next http.Handler) http.Handler {
 		isLoginRoute := r.URL.Path == "/login"
 		isStatic := strings.HasPrefix(r.URL.Path, h.Cfg.Static.URLPrefix)
 
-		// Check if maintenance mode is enabled and the route is not exempt
-		if h.Cfg.Site.MaintenanceMode && !isAdminRoute && !isLoginRoute && !isStatic {
+		// Check if maintenance mode is enabled, the user is not logged in, and the route is not exempt
+		if h.Cfg.Site.MaintenanceMode && !h.AuthService.IsLoggedIn(r) && !isAdminRoute && !isLoginRoute && !isStatic {
 
 			// Prepare data for the maintenance template
 			data := struct {

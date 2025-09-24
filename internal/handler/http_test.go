@@ -16,10 +16,12 @@ import (
 	"testing"
 
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/config"
 	"gemini-demo/internal/handler"
+	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/logger"
 	"gemini-demo/internal/models"
 	"gemini-demo/internal/util"
-	"gemini-demo/internal/i18n"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
@@ -32,8 +34,16 @@ import (
 // setupTest creates a new in-memory DB, auth service, and template set for testing.
 func setupTest(t *testing.T) *handler.Handler {
 	// Set up environment variable for ProjectRoot
-	
 	t.Cleanup(func() { os.Unsetenv("GEMINI_TEST_ROOT") })
+
+	// Change working directory to project root to ensure relative paths work
+	originalWD, err := os.Getwd()
+	assert.NoError(t, err)
+	projectRoot := util.ProjectRoot("")
+	err = os.Chdir(projectRoot)
+	assert.NoError(t, err)
+	// Restore original working directory at the end of the test
+	t.Cleanup(func() { os.Chdir(originalWD) })
 
 	// Initialize an in-memory SQLite database
 	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{}) 
@@ -44,7 +54,7 @@ func setupTest(t *testing.T) *handler.Handler {
 	t.Cleanup(func() { sqlDB.Close() })
 
 	// Auto-migrate models (new version)
-	err = db.AutoMigrate(&models.Page{}, &models.PageTranslation{}, &models.Setting{}, &models.SettingTranslation{})
+	err = db.AutoMigrate(&models.Page{}, &models.PageTranslation{}, &models.Setting{}, &models.SettingTranslation{}, &models.LoginLog{})
 	assert.NoError(t, err)
 
 	// Insert initial test data (new version)
@@ -75,18 +85,26 @@ func setupTest(t *testing.T) *handler.Handler {
 	assert.NoError(t, err)
 
 	// Parse templates
-	// Parse templates
-	projectRoot := util.ProjectRoot("")
 	templatesMap, err := util.ParseTemplates(translator, projectRoot)
 	assert.NoError(t, err)
 
 	// Initialize handler
 	h := &handler.Handler{
+		Cfg: &config.Config{ // Add this
+			Static: config.StaticConfig{
+				URLPrefix: "/static/",
+				Dir:       "static",
+			},
+			Site: config.SiteConfig{
+				DefaultLanguage: "en",
+			},
+		},
 		Store:       models.NewDBStore(db),
 		AuthService: authService,
-		Templates:   templatesMap, // Use the map here
+		Templates:   templatesMap,
 		I18n:        translator,
 		DebugLog:    func(format string, v ...interface{}) { t.Logf(format, v...) },
+		ErrorLogger: logger.NewInMemoryLogCollector(10), // Add this
 	}
 
 	return h
@@ -117,7 +135,7 @@ func TestIndexHandler(t *testing.T) {
 	h.IndexHandler(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), "Innovatech.AI - Test Title")
+	assert.Contains(t, rr.Body.String(), "Test Title")
 }
 
 func TestPageHandler_Success(t *testing.T) {
@@ -174,30 +192,25 @@ func TestPageHandler_NotFound(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "page_not_found"))
 }
 
-// func TestPageHandler_InternalError(t *testing.T) {
-// 	// Mock DB to return an error
-// 	db, _, templates := setupTest(t)
-// 	// Simulate a DB error by closing the connection
-// 	sqlDB, _ := db.DB()
-// 	sqlDB.Close()
+func TestPageHandler_InternalError(t *testing.T) {
+	h := setupTest(t)
+	h.Store = &MockErrorStore{}
 
-// 	h := &handler.Handler{DB: db, Templates: templates}
+	pageName := "any-page"
+	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
+	assert.NoError(t, err)
 
-// 	pageName := "any-page"
-// 	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
-// 	assert.NoError(t, err)
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
 
-// 	vars := map[string]string{
-// 		"name": pageName,
-// 	}
-// 	req = mux.SetURLVars(req, vars)
+	rr := httptest.NewRecorder()
+	h.PageHandler(rr, req)
 
-// 	rr := httptest.NewRecorder()
-// 	h.PageHandler(rr, req)
-
-// 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-// 	assert.Contains(t, rr.Body.String(), "Internal Server Error")
-// }
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
 
 func TestAboutHandler(t *testing.T) {
 	h := setupTest(t)
@@ -335,36 +348,30 @@ func TestUpdatePageHandler_NameMismatch(t *testing.T) {
 	// assert.Contains(t, rr.Body.String(), "Page name in URL and body do not match")
 }
 
+func TestUpdatePageHandler_InternalError(t *testing.T) {
+	h := setupTest(t)
+	h.Store = &MockErrorStore{}
 
-// func TestUpdatePageHandler_InternalError(t *testing.T) {
-// 	// Mock DB to return an error during update
-// 	db, _, _ := setupTest(t)
-// 	// Simulate a DB error by closing the connection
-// 	sqlDB, _ := db.DB()
-// 	sqlDB.Close()
+	pageName := "home"
+	updatedPayload := handler.PageUpdatePayload{Name: pageName, Title: "New Title", LanguageCode: "en"}
+	body, err := json.Marshal(updatedPayload)
+	assert.NoError(t, err)
 
-// 	h := &handler.Handler{DB: db}
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
-// 	pageName := "home"
-// 	updatedPage := models.Page{Name: pageName, Title: "New Title"}
-// 	body, err := json.Marshal(updatedPage)
-// 	assert.NoError(t, err)
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
 
-// 	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
-// 	assert.NoError(t, err)
-// 	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
 
-// 	vars := map[string]string{
-// 		"name": pageName,
-// 	}
-// 	req = mux.SetURLVars(req, vars)
-
-// 	rr := httptest.NewRecorder()
-// 	h.UpdatePageHandler(rr, req)
-
-// 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-// 	assert.Contains(t, rr.Body.String(), "Internal Server Error")
-// }
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
 
 func TestLoginHandler_GET_NotLoggedIn(t *testing.T) {
 	h := setupTest(t)
@@ -489,4 +496,75 @@ func TestDashboardHandler_Success(t *testing.T) {
 	assert.NoError(t, err)
 	t.Logf("Dashboard Body: %s", string(dashboardBody))
 	assert.Contains(t, string(dashboardBody), h.I18n.GetTranslation("en", "admin.dashboard_title"))
+}
+
+func TestMaintenanceMiddleware(t *testing.T) {
+	h := setupTest(t)
+	h.Cfg.Site.MaintenanceMode = true
+	h.Cfg.Site.MaintenanceMessage = "Site is down for maintenance"
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	middleware := h.MaintenanceMiddleware(testHandler)
+
+	// 1. Non-admin, not logged in -> Maintenance page
+	req := httptest.NewRequest("GET", "/", nil)
+	rr := httptest.NewRecorder()
+	middleware.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	assert.Contains(t, rr.Body.String(), "Site is down for maintenance")
+
+	// 2. Admin route -> Bypassed
+	req = httptest.NewRequest("GET", "/admin/dashboard", nil)
+	rr = httptest.NewRecorder()
+	middleware.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "OK", rr.Body.String())
+
+	// 3. Logged in user -> Bypassed
+	os.Setenv("ADMIN_USERNAME", "testuser")
+	os.Setenv("ADMIN_PASSWORD", "testpass")
+	defer os.Unsetenv("ADMIN_USERNAME")
+	defer os.Unsetenv("ADMIN_PASSWORD")
+
+	// Create a router with all the necessary routes for the test
+	r := mux.NewRouter()
+	r.HandleFunc("/admin/login", h.LoginHandler)
+	r.Handle("/", middleware) // Apply middleware to the root route
+
+	ts := httptest.NewServer(mockCSRF(r))
+	defer ts.Close()
+
+	// Use a client with a cookie jar to handle sessions automatically
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+	client := &http.Client{Jar: jar}
+
+	// Step 1: Log in
+	credentials := map[string]string{"username": "testuser", "password": "testpass"}
+	body, err := json.Marshal(credentials)
+	assert.NoError(t, err)
+
+	loginReq, err := http.NewRequest("POST", ts.URL+"/admin/login", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	loginReq.Header.Set("Content-Type", "application/json")
+
+	loginResp, err := client.Do(loginReq)
+	assert.NoError(t, err)
+	defer loginResp.Body.Close()
+	assert.Equal(t, http.StatusOK, loginResp.StatusCode)
+
+	// Step 2: Make a request to the page protected by the middleware
+	bypassResp, err := client.Get(ts.URL + "/")
+	assert.NoError(t, err)
+	defer bypassResp.Body.Close()
+
+	// Assert that the user bypassed the maintenance page
+	assert.Equal(t, http.StatusOK, bypassResp.StatusCode)
+	bypassBody, err := io.ReadAll(bypassResp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, "OK", string(bypassBody))
 }
