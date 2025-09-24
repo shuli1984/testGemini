@@ -8,7 +8,7 @@
         </div>
         <div class="p-4 shadow-sm flex-grow-1">
             <h1 class="mb-4">{{T .CurrentLang "admin.dashboard_title"}}</h1>
-            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="gorilla.csrf.Token" value="{{.CSRFToken}}">
 
             <div class="row row-cols-1 row-cols-lg-2 g-4">
                 <!-- Left Column -->

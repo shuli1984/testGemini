@@ -7,7 +7,7 @@
             {{template "admin/admin_nav.html" .}}
         </div>
         <div class="p-4 shadow-sm flex-grow-1">
-            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="gorilla.csrf.Token" value="{{.CSRFToken}}">
             <h1 class="mb-4">{{T .CurrentLang "menu.pages_menu"}}</h1>
 
             <div class="d-flex justify-content-end mb-3">
@@ -57,7 +57,7 @@
                 button.addEventListener('click', function () {
                     const pageName = this.dataset.pageName;
                     if (confirm('{{T $.CurrentLang "admin.confirm_delete_page"}}' + pageName + '?')) {
-                        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                        const csrfToken = document.querySelector('input[name="gorilla.csrf.Token"]').value;
                         fetch(`/admin/pages/delete/${pageName}`, {
                             method: 'DELETE',
                             headers: {
