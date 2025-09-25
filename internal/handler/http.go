@@ -168,6 +168,9 @@ type AdminSettingsTemplateData struct {
 	CurrentLang        string // UI language
 	CurrentPath        string
 	NavigationJSON     string
+	CarouselPagesJSON  string
+	AllPages           []models.Page
+	AllPagesJSON       string
 	SupportedLanguages []string // For language switcher
 	EditLang           string   // Language being edited
 }
@@ -210,30 +213,50 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 	siteConfigJSON, _ := json.Marshal(siteConfig)
 	h.DebugLog("IndexHandler: siteConfig = %s", string(siteConfigJSON))
 
-	// Dummy Carousel Items for demonstration
-	carouselItems := []models.CarouselItem{
-		{
-			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_1")),
-			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_1")),
-			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_1"),
-			ButtonLink:    "#contact",
-			BackgroundImage: "/static/images/hero-bg-1.jpg", // Placeholder image
-			Active:        true,
-		},
-		{
-			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_2")),
-			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_2")),
-			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_2"),
-			ButtonLink:    "#services",
-			BackgroundImage: "/static/images/hero-2.jpg", // Placeholder image
-		},
-		{
-			Title:         template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_title_3")),
-			Description:   template.HTML(h.I18n.GetTranslation(currentLang, "common.carousel_description_3")),
-			ButtonText:    h.I18n.GetTranslation(currentLang, "common.carousel_button_text_3"),
-			ButtonLink:    "#about",
-			BackgroundImage: "/static/images/hero-3.jpg", // Placeholder image
-		},
+	// Fetch and prepare carousel items
+	var carouselItems []models.CarouselItem
+	carouselPagesJSON, err := h.Store.GetSettingValue("homepage_carousel_pages", "global")
+	if err != nil {
+		log.Printf("Error getting carousel pages setting: %v", err)
+	}
+
+	if carouselPagesJSON != "" {
+		var carouselPageIDs []struct {
+			PageID uint `json:"page_id"`
+		}
+		if err := json.Unmarshal([]byte(carouselPagesJSON), &carouselPageIDs); err != nil {
+			log.Printf("Error unmarshalling carousel pages JSON: %v", err)
+		} else {
+			pageIDs := make([]uint, len(carouselPageIDs))
+			for i, item := range carouselPageIDs {
+				pageIDs[i] = item.PageID
+			}
+
+			pages, err := h.Store.GetPagesByIDs(pageIDs, currentLang, h.I18n.DefaultLanguage())
+			if err != nil {
+				log.Printf("Error getting carousel pages by IDs: %v", err)
+			} else {
+				// Create a map for quick lookup
+				pagesMap := make(map[uint]models.Page)
+				for _, p := range pages {
+					pagesMap[p.ID] = p
+				}
+
+				// Build carouselItems in the correct order
+				for i, item := range carouselPageIDs {
+					if page, ok := pagesMap[item.PageID]; ok {
+						carouselItems = append(carouselItems, models.CarouselItem{
+							Title:         template.HTML(page.Content.Title),
+							Description:   template.HTML(page.Content.Description),
+							ButtonText:    h.I18n.GetTranslation(currentLang, "common.read_more"),
+							ButtonLink:    "/page/" + page.Name,
+							BackgroundImage: page.FeaturedImage,
+							Active:        i == 0, // Set first item as active
+						})
+					}
+				}
+			}
+		}
 	}
 
 	coreSolutions, err := h.Store.GetCoreSolutions(currentLang, h.I18n.DefaultLanguage())
@@ -345,6 +368,7 @@ type PageUpdatePayload struct {
 	Message        template.HTML `json:"Message"`
 	IsCoreSolution bool          `json:"IsCoreSolution"`
 	Icon           string        `json:"Icon"`
+	FeaturedImage  string        `json:"FeaturedImage"`
 	LanguageCode   string        `json:"LanguageCode"` // Add LanguageCode to the payload
 }
 
@@ -391,6 +415,7 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	// Update only the fields that belong to the Page struct
 	existingPage.IsCoreSolution = payload.IsCoreSolution
 	existingPage.Icon = payload.Icon
+	existingPage.FeaturedImage = payload.FeaturedImage
 
 	// Save the updated Page (excluding its Content field which is not persisted directly)
 	if err := h.Store.UpdatePage(existingPage); err != nil { // Assuming an UpdatePage method exists or will be created
@@ -676,12 +701,43 @@ func (h *Handler) AdminSettingsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch all pages for the carousel selector
+	allPages, err := h.Store.GetAllPages(h.I18n.DefaultLanguage(), h.I18n.DefaultLanguage())
+	if err != nil {
+		log.Printf("Error getting all pages for settings: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Create a map of page IDs to titles for the frontend
+	pageIDToTitle := make(map[uint]string)
+	for _, p := range allPages {
+		pageIDToTitle[p.ID] = p.Content.Title
+	}
+	allPagesJSON, err := json.Marshal(pageIDToTitle)
+	if err != nil {
+		log.Printf("Error marshalling all pages map: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch carousel pages setting
+	carouselPagesJSON, err := h.Store.GetSettingValue("homepage_carousel_pages", "global")
+	if err != nil {
+		log.Printf("Error getting carousel pages setting: %v", err)
+		// Not a fatal error, can proceed with an empty value
+		carouselPagesJSON = "[]"
+	}
+
 	data := AdminSettingsTemplateData{
 		CSRFToken:          csrf.Token(r),
 		Settings:           siteConfig,
 		CurrentLang:        h.getLanguage(r), // UI language
 		CurrentPath:        r.URL.Path,
 		NavigationJSON:     string(navJSON),
+		CarouselPagesJSON:  carouselPagesJSON,
+		AllPages:           allPages,
+		AllPagesJSON:       string(allPagesJSON),
 		SupportedLanguages: h.I18n.GetAvailableLanguages(),
 		EditLang:           editLang,
 	}
@@ -720,6 +776,7 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 		MaintenanceMessage: r.FormValue("maintenanceMessage"),
 	}
 	navJSON := r.FormValue("navigationJson")
+	carouselPagesJSON := r.FormValue("homepageCarouselPagesJson")
 
 	// --- Validation ---
 	var validationErrors []string
@@ -760,6 +817,7 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 		CurrentLang:        currentLang,
 		CurrentPath:        r.URL.Path,
 		NavigationJSON:     navJSON, // Use the raw JSON string from the form
+		CarouselPagesJSON:  carouselPagesJSON,
 		SupportedLanguages: h.I18n.GetAvailableLanguages(),
 		EditLang:           editLang,
 	}
@@ -779,6 +837,13 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		h.renderTemplate(w, r, "admin/admin_settings.html", data)
 		return
+	}
+
+	// Save the carousel pages setting
+	if err := h.Store.SaveSetting("homepage_carousel_pages", carouselPagesJSON, "global"); err != nil {
+		log.Printf("Error saving carousel pages setting: %v", err)
+		// Not returning a hard error to the user, but logging it.
+		// The main settings were saved, this is an add-on.
 	}
 
 	// --- Success Path ---

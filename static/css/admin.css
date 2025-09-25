@@ -335,6 +335,7 @@ html[data-theme='dark'] .form-select:focus {
 html[data-theme='dark'] .list-group-item {
     background-color: var(--header-bg);
     border-color: var(--header-border);
+    color: var(--text-color);
 }
 
 html[data-theme='dark'] .card-header {
@@ -395,4 +396,10 @@ html[data-theme='dark'] .btn-primary {
 
 html[data-theme='dark'] .btn-primary:hover {
     color: #002b4d !important; /* Keep text dark on hover */
+}
+.carousel-list {
+    min-height: 100px;
+    border: 1px dashed #ccc;
+    padding: 10px;
+    border-radius: 5px;
 }

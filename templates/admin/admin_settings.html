@@ -85,6 +85,32 @@
                         <input type="hidden" id="navigation-json" name="navigationJson" value="">
                     </div>
                 </div>
+
+                <!-- Homepage Carousel Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_carousel_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>{{ T .CurrentLang "admin.settings_carousel_available_pages" }}</h6>
+                                <ul id="available-pages-list" class="list-group carousel-list">
+                                    {{range .AllPages}}
+                                    <li class="list-group-item" data-page-id="{{.ID}}">{{.Content.Title}}</li>
+                                    {{end}}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>{{ T .CurrentLang "admin.settings_carousel_selected_pages" }}</h6>
+                                <ul id="carousel-pages-list" class="list-group carousel-list">
+                                    <!-- Selected pages will be dynamically added here -->
+                                </ul>
+                            </div>
+                        </div>
+                        <input type="hidden" id="homepage-carousel-pages-json" name="homepageCarouselPagesJson" value="">
+                    </div>
+                </div>
                 
                 <!-- Content & SEO -->
                 <div class="card mb-4">
@@ -179,6 +205,8 @@
 
 <script>
     window.initialNavData = JSON.parse('{{ printf "%s" .NavigationJSON }}');
+    window.initialCarouselData = JSON.parse('{{ printf "%s" .CarouselPagesJSON }}');
+    window.allPagesForCarousel = JSON.parse('{{ printf "%s" .AllPagesJSON }}');
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 <script src="/static/js/admin_settings.js"></script>

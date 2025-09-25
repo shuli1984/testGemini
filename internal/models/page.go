@@ -11,6 +11,7 @@ import (
 type Page struct {
 	gorm.Model
 	Name           string `gorm:"uniqueIndex"` // Unique slug for the page group
+	FeaturedImage  string
 	IsCoreSolution bool
 	Icon           string
 	// Content is a temporary field to hold the content of a specific language for display.
@@ -213,7 +214,7 @@ func DeletePage(db *gorm.DB, name string) error {
 
 // UpdatePage updates the non-translation fields of a Page.
 func UpdatePage(db *gorm.DB, page *Page) error {
-	return db.Model(page).Select("IsCoreSolution", "Icon").Updates(Page{IsCoreSolution: page.IsCoreSolution, Icon: page.Icon}).Error
+	return db.Model(page).Select("IsCoreSolution", "Icon", "FeaturedImage").Updates(Page{IsCoreSolution: page.IsCoreSolution, Icon: page.Icon, FeaturedImage: page.FeaturedImage}).Error
 }
 
 // GetRecentPages retrieves the most recently updated pages.
@@ -252,6 +253,47 @@ func GetRecentPages(db *gorm.DB, limit int, lang string, defaultLang string) ([]
 				pages[i].Content = translation
 			} else if translation, ok := pageTranslations[defaultLang]; ok {
 				// Fallback to the default language
+				pages[i].Content = translation
+			}
+		}
+	}
+
+	return pages, nil
+}
+
+// GetPagesByIDs retrieves a list of pages by their IDs.
+func GetPagesByIDs(db *gorm.DB, ids []uint, lang string, defaultLang string) ([]Page, error) {
+	var pages []Page
+	if err := db.Where("id IN ?", ids).Find(&pages).Error; err != nil {
+		return nil, err
+	}
+
+	if len(pages) == 0 {
+		return []Page{}, nil
+	}
+
+	// The rest of the logic is identical to GetAllPages for fetching translations
+	pageIDs := make([]uint, len(pages))
+	for i, p := range pages {
+		pageIDs[i] = p.ID
+	}
+
+	var translations []PageTranslation
+	db.Where("page_id IN ? AND language_code IN ?", pageIDs, []string{lang, defaultLang}).Find(&translations)
+
+	transMap := make(map[uint]map[string]PageTranslation)
+	for _, t := range translations {
+		if _, ok := transMap[t.PageID]; !ok {
+			transMap[t.PageID] = make(map[string]PageTranslation)
+		}
+		transMap[t.PageID][t.LanguageCode] = t
+	}
+
+	for i := range pages {
+		if pageTranslations, ok := transMap[pages[i].ID]; ok {
+			if translation, ok := pageTranslations[lang]; ok {
+				pages[i].Content = translation
+			} else if translation, ok := pageTranslations[defaultLang]; ok {
 				pages[i].Content = translation
 			}
 		}

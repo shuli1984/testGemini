@@ -10,6 +10,7 @@ import (
 type DataStore interface {
 	GetPageData(name string, lang string, defaultLang string) (*Page, error)
 	GetAllPages(lang string, defaultLang string) ([]Page, error)
+	GetPagesByIDs(ids []uint, lang string, defaultLang string) ([]Page, error)
 	CreatePage(page *Page) error
 	UpdatePage(page *Page) error // Add this line
 	UpdatePageTranslation(pageID uint, translation *PageTranslation) error
@@ -19,6 +20,7 @@ type DataStore interface {
 	SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error
 	GetPageCount() (int64, error)
 	GetSettingValue(key, lang string) (string, error)
+	SaveSetting(key, value, lang string) error
 	GetRecentPages(limit int, lang string, defaultLang string) ([]Page, error)
 	CreateLoginLog(log *LoginLog) error
 	GetRecentLoginLogs(limit int) ([]LoginLog, error)
@@ -42,6 +44,10 @@ func (s *DBStore) GetPageData(name string, lang string, defaultLang string) (*Pa
 
 func (s *DBStore) GetAllPages(lang string, defaultLang string) ([]Page, error) {
 	return GetAllPages(s.DB, lang, defaultLang)
+}
+
+func (s *DBStore) GetPagesByIDs(ids []uint, lang string, defaultLang string) ([]Page, error) {
+	return GetPagesByIDs(s.DB, ids, lang, defaultLang)
 }
 
 func (s *DBStore) CreatePage(page *Page) error {
@@ -80,6 +86,10 @@ func (s *DBStore) SaveSiteConfig(siteConfig *config.SiteConfig, lang string) err
 
 func (s *DBStore) GetSettingValue(key, lang string) (string, error) {
 	return GetSettingValue(s.DB, key, lang)
+}
+
+func (s *DBStore) SaveSetting(key, value, lang string) error {
+	return SaveSetting(s.DB, key, value, lang)
 }
 
 func (s *DBStore) GetRecentPages(limit int, lang string, defaultLang string) ([]Page, error) {

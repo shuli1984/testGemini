@@ -65,6 +65,71 @@ document.addEventListener('DOMContentLoaded', function () {
 
     renderNavItems();
 
+    // --- Carousel Settings Logic ---
+    const availablePagesList = document.getElementById('available-pages-list');
+    const carouselPagesList = document.getElementById('carousel-pages-list');
+    const carouselJsonInput = document.getElementById('homepage-carousel-pages-json');
+    let initialCarouselData = window.initialCarouselData || [];
+    let allPagesMap = window.allPagesForCarousel || {};
+
+    // Initialize the lists
+    const initialCarouselPageIds = initialCarouselData.map(item => item.page_id);
+    
+    // Populate selected list
+    initialCarouselData.forEach(item => {
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+        listItem.dataset.pageId = item.page_id;
+        listItem.textContent = allPagesMap[String(item.page_id)] || 'Unknown Page';
+        carouselPagesList.appendChild(listItem);
+    });
+
+    // Hide items in available list that are already selected
+    Array.from(availablePagesList.children).forEach(item => {
+        const pageId = parseInt(item.dataset.pageId, 10);
+        if (initialCarouselPageIds.includes(pageId)) {
+            item.style.display = 'none';
+        }
+    });
+
+    function updateAvailableList() {
+        const selectedIds = Array.from(carouselPagesList.children).map(item => parseInt(item.dataset.pageId, 10));
+        Array.from(availablePagesList.children).forEach(item => {
+            const pageId = parseInt(item.dataset.pageId, 10);
+            if (selectedIds.includes(pageId)) {
+                item.style.display = 'none';
+            } else {
+                item.style.display = 'block';
+            }
+        });
+    }
+
+    new Sortable(availablePagesList, {
+        group: 'carousel-pages',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: updateAvailableList
+    });
+
+    new Sortable(carouselPagesList, {
+        group: 'carousel-pages',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: updateAvailableList
+    });
+
+    // Serialize carousel data before form submission
+    form.addEventListener('submit', function (e) {
+        const carouselItems = [];
+        carouselPagesList.querySelectorAll('.list-group-item').forEach((item, index) => {
+            carouselItems.push({
+                page_id: parseInt(item.dataset.pageId, 10),
+                order: index + 1
+            });
+        });
+        carouselJsonInput.value = JSON.stringify(carouselItems);
+    });
+
     // --- Translation Logic ---
     const editLang = form.dataset.editLang;
     const csrfToken = form.dataset.csrfToken;

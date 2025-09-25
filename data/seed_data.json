@@ -320,6 +320,11 @@
       "Key": "maintenance_message",
       "LanguageCode": "zh",
       "Value": "我们很快就回来。感谢您的耐心等待。"
+    },
+    {
+      "Key": "homepage_carousel_pages",
+      "LanguageCode": "global",
+      "Value": "[{\"page_id\":4},{\"page_id\":5},{\"page_id\":6}]"
     }
   ]
 }
