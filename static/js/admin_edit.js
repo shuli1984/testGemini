@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('description').addEventListener('input', markFormDirty);
     document.getElementById('isCoreSolution').addEventListener('change', markFormDirty);
     document.getElementById('icon').addEventListener('input', markFormDirty);
+    document.getElementById('featuredImage').addEventListener('input', markFormDirty);
     quill.on('text-change', markFormDirty);
 
     // --- Translation Logic ---
@@ -282,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const description = document.getElementById('description').value;
         const isCoreSolution = document.getElementById('isCoreSolution').checked;
         const icon = document.getElementById('icon').value;
+        const featuredImage = document.getElementById('featuredImage').value;
         const message = quill.root.innerHTML;
         const editLang = document.getElementById('editLang').value;
 
@@ -301,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Message: message,
                 IsCoreSolution: isCoreSolution,
                 Icon: icon,
+                FeaturedImage: featuredImage,
                 LanguageCode: editLang
             })
         });

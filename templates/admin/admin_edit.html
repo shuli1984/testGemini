@@ -74,6 +74,11 @@
                     <input type="text" id="icon" value="{{.Page.Icon}}" class="form-control">
                 </div>
 
+                <div class="mb-3">
+                    <label for="featuredImage" class="form-label">{{T .CurrentLang "admin.featured_image_label"}}</label>
+                    <input type="text" id="featuredImage" value="{{.Page.FeaturedImage}}" class="form-control">
+                </div>
+
                 <div class="mb-3 d-flex flex-column flex-grow-1">
                     <label for="message" class="form-label">{{T .CurrentLang "admin.message_label"}} {{if not .IsNew}}<button class="btn btn-outline-secondary btn-sm translate-btn" type="button" data-field="message">{{T .CurrentLang "admin.translate_button"}}</button>{{end}}</label>
                     <div id="message" class="flex-grow-1">{{.Page.Content.Message}}</div>

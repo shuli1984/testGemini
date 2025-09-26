@@ -141,3 +141,12 @@ func GetSettingValue(db *gorm.DB, key, lang string) (string, error) {
 	}
 	return translation.Value, nil
 }
+
+// SaveSetting saves a single translated setting value.
+func SaveSetting(db *gorm.DB, key, value, lang string) error {
+	translation := SettingTranslation{Key: key, LanguageCode: lang, Value: value}
+	return db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "key"}, {Name: "language_code"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value"}),
+	}).Create(&translation).Error
+}
