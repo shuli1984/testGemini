@@ -64,14 +64,17 @@ type SiteConfig struct {
 	MaintenanceMessage string           `yaml:"maintenance_message" mapstructure:"maintenance_message"`
 }
 
+// DatabaseConfig defines the structure for database configuration.
+type DatabaseConfig struct {
+	Type string `mapstructure:"type"`
+	DSN  string `mapstructure:"dsn"`
+}
+
 type Config struct {
 	Server struct {
 		Address string `mapstructure:"address"`
 	} `mapstructure:"server"`
-	Database struct {
-		Type string `mapstructure:"type"`
-		DSN  string `mapstructure:"dsn"`
-	} `mapstructure:"database"`
+	Database   DatabaseConfig   `mapstructure:"database"`
 	Auth       AuthConfig       `mapstructure:"auth"`
 	Static     StaticConfig     `mapstructure:"static"`
 	Translator TranslatorConfig `mapstructure:"translator"`

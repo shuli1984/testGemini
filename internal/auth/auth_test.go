@@ -12,8 +12,10 @@ import (
 	"testing"
 
 	"gemini-demo/internal/auth"
+	"gemini-demo/internal/config"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/models"
 	"gemini-demo/internal/util"
 	"gemini-demo/internal/translator"
 )
@@ -31,6 +33,54 @@ func (m *MockTranslator) Close() error {
 }
 
 var _ translator.Translator = (*MockTranslator)(nil)
+
+// MockStore is a mock implementation of the models.DataStore interface for testing.
+type MockStore struct{}
+
+func (m *MockStore) GetPageData(name string, lang string, defaultLang string) (*models.Page, error) {
+	return nil, nil
+}
+func (m *MockStore) GetAllPages(lang string, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+func (m *MockStore) CreatePage(page *models.Page) error {
+	return nil
+}
+func (m *MockStore) UpdatePage(page *models.Page) error {
+	return nil
+}
+func (m *MockStore) UpdatePageTranslation(pageID uint, translation *models.PageTranslation) error {
+	return nil
+}
+func (m *MockStore) DeletePage(name string) error {
+	return nil
+}
+func (m *MockStore) GetCoreSolutions(lang string, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+func (m *MockStore) GetSiteConfig(lang string, defaultLang string) (*config.SiteConfig, error) {
+	return &config.SiteConfig{}, nil
+}
+func (m *MockStore) SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error {
+	return nil
+}
+func (m *MockStore) GetPageCount() (int64, error) {
+	return 0, nil
+}
+func (m *MockStore) GetSettingValue(key, lang string) (string, error) {
+	return "", nil
+}
+func (m *MockStore) GetRecentPages(limit int, lang string, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+func (m *MockStore) CreateLoginLog(log *models.LoginLog) error {
+	return nil
+}
+func (m *MockStore) GetRecentLoginLogs(limit int) ([]models.LoginLog, error) {
+	return nil, nil
+}
+
+var _ models.DataStore = (*MockStore)(nil)
 
 
 func TestNewAuthService(t *testing.T) {
@@ -255,6 +305,7 @@ func TestMiddleware(t *testing.T) {
             I18n:           translator,
             API_Translator: &MockTranslator{}, // Initialize API_Translator with mock
             DebugLog:       debugLog,
+			Store:          &MockStore{},
         }
         h.LoginHandler(loginRr, loginReq)
 

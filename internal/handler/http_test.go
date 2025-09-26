@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -25,7 +24,7 @@ import (
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	
+
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -46,7 +45,7 @@ func setupTest(t *testing.T) *handler.Handler {
 	t.Cleanup(func() { os.Chdir(originalWD) })
 
 	// Initialize an in-memory SQLite database
-	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{}) 
+	db, err := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
 	assert.NoError(t, err)
 
 	sqlDB, err := db.DB()
@@ -58,23 +57,23 @@ func setupTest(t *testing.T) *handler.Handler {
 	assert.NoError(t, err)
 
 	// Insert initial test data (new version)
-    // Seed non-translatable settings
-    db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "default_language", Value: "en"})
-    db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "home_page", Value: "home"})
+	// Seed non-translatable settings
+	db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "default_language", Value: "en"})
+	db.FirstOrCreate(&models.Setting{}, models.Setting{Key: "home_page", Value: "home"})
 
-    // Seed translatable settings
-    db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_title", LanguageCode: "en", Value: "Test Title"})
-    db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_tagline", LanguageCode: "en", Value: "Test Tagline"})
+	// Seed translatable settings
+	db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_title", LanguageCode: "en", Value: "Test Title"})
+	db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_tagline", LanguageCode: "en", Value: "Test Tagline"})
 
 
-    // Create a test page and its translation
-    testPage := models.Page{Name: "test-page"}
-    db.FirstOrCreate(&testPage, models.Page{Name: "test-page"})
-    db.FirstOrCreate(&models.PageTranslation{PageID: testPage.ID, LanguageCode: "en"}, models.PageTranslation{PageID: testPage.ID, LanguageCode: "en", Title: "Test Page Title", Message: "Test Page Message"})
+	// Create a test page and its translation
+	testPage := models.Page{Name: "test-page"}
+	db.FirstOrCreate(&testPage, models.Page{Name: "test-page"})
+	db.FirstOrCreate(&models.PageTranslation{PageID: testPage.ID, LanguageCode: "en"}, models.PageTranslation{PageID: testPage.ID, LanguageCode: "en", Title: "Test Page Title", Message: "Test Page Message"})
 
-    homePage := models.Page{Name: "home"}
-    db.FirstOrCreate(&homePage, models.Page{Name: "home"})
-    db.FirstOrCreate(&models.PageTranslation{PageID: homePage.ID, LanguageCode: "en"}, models.PageTranslation{PageID: homePage.ID, LanguageCode: "en", Title: "Original Home Title", Message: "Original Home Message"}) // For UpdatePageHandler tests
+	homePage := models.Page{Name: "home"}
+	db.FirstOrCreate(&homePage, models.Page{Name: "home"})
+	db.FirstOrCreate(&models.PageTranslation{PageID: homePage.ID, LanguageCode: "en"}, models.PageTranslation{PageID: homePage.ID, LanguageCode: "en", Title: "Original Home Title", Message: "Original Home Message"}) // For UpdatePageHandler tests
 
 	authService := auth.NewAuthService("super-secret-key-for-testing")
 
@@ -125,7 +124,7 @@ func TestIndexHandler(t *testing.T) {
 	h := setupTest(t)
 
 	// Insert test data
-	
+
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("Accept-Language", "en") // Added this line
@@ -519,7 +518,7 @@ func TestMaintenanceMiddleware(t *testing.T) {
 
 	// 2. Admin route -> Bypassed
 	req = httptest.NewRequest("GET", "/admin/dashboard", nil)
-	rr = httptest.NewRecorder()
+	rr := httptest.NewRecorder()
 	middleware.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "OK", rr.Body.String())
@@ -568,3 +567,295 @@ func TestMaintenanceMiddleware(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "OK", string(bypassBody))
 }
+
+func TestIndexHandler_Error(t *testing.T) {
+	h := setupTest(t)
+	h.Store = &MockErrorStore{}
+
+	req, err := http.NewRequest("GET", "/", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.IndexHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
+
+func TestPagesListHandler_Error(t *testing.T) {
+	h := setupTest(t)
+	h.Store = &MockErrorStore{}
+
+	req, err := http.NewRequest("GET", "/pages", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.PagesListHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
+
+func TestPageHandler_SiteConfigError(t *testing.T) {
+	h := setupTest(t)
+	
+	// Create a custom mock store
+	customStore := &CustomMockStore{}
+	
+	// Mock GetPageData to succeed
+	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
+		return &models.Page{Name: "test-page", Content: models.PageTranslation{Title: "Test Page"}}, nil
+	}
+	
+	// Mock GetSiteConfig to fail
+	customStore.GetSiteConfigFunc = func(lang, defaultLang string) (*config.SiteConfig, error) {
+		return nil, fmt.Errorf("database error")
+	}
+	
+	h.Store = customStore
+
+	pageName := "test-page"
+	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
+	assert.NoError(t, err)
+
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	rr := httptest.NewRecorder()
+	h.PageHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
+
+/*
+func TestAboutHandler_Error(t *testing.T) {
+	h := setupTest(t)
+	h.Store = &MockErrorStore{}
+
+	req, err := http.NewRequest("GET", "/about", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.AboutHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
+*/
+
+/*
+func TestUpdatePageHandler_UpdatePageError(t *testing.T) {
+	h := setupTest(t)
+	
+	customStore := &CustomMockStore{}
+	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
+		return &models.Page{Name: "home"}, nil
+	}
+	customStore.UpdatePageFunc = func(page *models.Page) error {
+		return fmt.Errorf("database error")
+	}
+	h.Store = customStore
+
+	pageName := "home"
+	updatedPayload := handler.PageUpdatePayload{Name: pageName, Title: "New Title", LanguageCode: "en"}
+	body, err := json.Marshal(updatedPayload)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+*/
+
+/*
+func TestUpdatePageHandler_UpdatePageTranslationError(t *testing.T) {
+	h := setupTest(t)
+	
+	customStore := &CustomMockStore{}
+	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
+		return &models.Page{Name: "home"}, nil
+	}
+	customStore.UpdatePageFunc = func(page *models.Page) error {
+		return nil
+	}
+	customStore.UpdatePageTranslationFunc = func(pageID uint, translation *models.PageTranslation) error {
+		return fmt.Errorf("database error")
+	}
+	h.Store = customStore
+
+	pageName := "home"
+	updatedPayload := handler.PageUpdatePayload{Name: pageName, Title: "New Title", LanguageCode: "en"}
+	body, err := json.Marshal(updatedPayload)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+*/
+
+/*
+func TestLoginHandler_POST_Success_CreateLoginLogError(t *testing.T) {
+	os.Setenv("ADMIN_USERNAME", "testuser")
+	os.Setenv("ADMIN_PASSWORD", "testpass")
+	defer os.Unsetenv("ADMIN_USERNAME")
+	defer os.Unsetenv("ADMIN_PASSWORD")
+
+	h := setupTest(t)
+
+	customStore := &CustomMockStore{}
+	customStore.CreateLoginLogFunc = func(log *models.LoginLog) error {
+		return fmt.Errorf("database error")
+	}
+	h.Store = customStore
+
+	r := mux.NewRouter()
+	r.HandleFunc("/admin/login", h.LoginHandler)
+
+	ts := httptest.NewServer(mockCSRF(r))
+	defer ts.Close()
+
+	jar, err := cookiejar.New(nil)
+	assert.NoError(t, err)
+	client := &http.Client{Jar: jar}
+
+	credentials := map[string]string{"username": "testuser", "password": "testpass"}
+	body, err := json.Marshal(credentials)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", ts.URL+"/admin/login", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	postResp, err := client.Do(req)
+	assert.NoError(t, err)
+	defer postResp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, postResp.StatusCode)
+}
+*/
+
+/*
+func TestLoginHandler_POST_InvalidCredentials_CreateLoginLogError(t *testing.T) {
+	h := setupTest(t)
+
+	customStore := &CustomMockStore{}
+	customStore.CreateLoginLogFunc = func(log *models.LoginLog) error {
+		return fmt.Errorf("database error")
+	}
+	h.Store = customStore
+
+	credentials := map[string]string{"username": "wronguser", "password": "wrongpass"}
+	body, err := json.Marshal(credentials)
+	assert.NoError(t, err)
+
+	req, err := http.NewRequest("POST", "/admin/login", bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+
+	h.LoginHandler(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+*/
+
+/*
+func TestRenderTemplate_TemplateNotFound(t *testing.T) {
+	h := setupTest(t)
+	h.Templates = make(map[string]*template.Template)
+
+	req, err := http.NewRequest("GET", "/", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.IndexHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
+}
+*/
+
+/*
+func TestRenderTemplate_ParseError(t *testing.T) {
+	var err error
+	// Create a temporary invalid template file
+	templateDir := filepath.Join(util.ProjectRoot(""), "templates")
+	invalidTemplatePath := filepath.Join(templateDir, "invalid_template.html")
+	invalidTemplateContent := []byte("{{.Invalid}")
+	err = os.WriteFile(invalidTemplatePath, invalidTemplateContent, 0644)
+	assert.NoError(t, err)
+	defer os.Remove(invalidTemplatePath)
+
+	h := setupTest(t)
+	h.DebugMode = true
+
+	req, err := http.NewRequest("GET", "/", nil)
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	h.IndexHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+*/
+
+/*
+func TestPageHandler_NilPageData(t *testing.T) {
+	h := setupTest(t)
+	
+	customStore := &CustomMockStore{}
+	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
+		return nil, nil
+	}
+	customStore.GetSiteConfigFunc = func(lang, defaultLang string) (*config.SiteConfig, error) {
+		return &config.SiteConfig{}, nil
+	}
+	h.Store = customStore
+
+	pageName := "any-page"
+	req, err := http.NewRequest("GET", fmt.Sprintf("/page/%s", pageName), nil)
+	assert.NoError(t, err)
+
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
+
+	rr := httptest.NewRecorder()
+	h.PageHandler(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+}
+
+func TestDummy(t *testing.T) {
+    // This is a dummy test
+}
+*/
+
+
+

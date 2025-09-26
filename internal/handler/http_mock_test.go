@@ -160,3 +160,84 @@ func (m *MockSuccessStore) CreateLoginLog(log *models.LoginLog) error {
 func (m *MockSuccessStore) GetRecentLoginLogs(limit int) ([]models.LoginLog, error) {
 	return []models.LoginLog{}, nil
 }
+
+// CustomMockStore allows for custom mock behavior
+type CustomMockStore struct {
+	GetPageDataFunc           func(name, lang, defaultLang string) (*models.Page, error)
+	GetSiteConfigFunc         func(lang, defaultLang string) (*config.SiteConfig, error)
+	UpdatePageFunc            func(page *models.Page) error
+	UpdatePageTranslationFunc func(pageID uint, translation *models.PageTranslation) error
+	CreateLoginLogFunc        func(log *models.LoginLog) error
+    // Add other methods as needed
+}
+
+func (m *CustomMockStore) GetPageData(name, lang, defaultLang string) (*models.Page, error) {
+	if m.GetPageDataFunc != nil {
+		return m.GetPageDataFunc(name, lang, defaultLang)
+	}
+	return nil, fmt.Errorf("GetPageDataFunc not implemented")
+}
+
+func (m *CustomMockStore) GetAllPages(lang, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+
+func (m *CustomMockStore) CreatePage(page *models.Page) error {
+	return nil
+}
+
+func (m *CustomMockStore) UpdatePage(page *models.Page) error {
+	if m.UpdatePageFunc != nil {
+		return m.UpdatePageFunc(page)
+	}
+	return fmt.Errorf("UpdatePageFunc not implemented")
+}
+
+func (m *CustomMockStore) UpdatePageTranslation(pageID uint, translation *models.PageTranslation) error {
+	if m.UpdatePageTranslationFunc != nil {
+		return m.UpdatePageTranslationFunc(pageID, translation)
+	}
+	return fmt.Errorf("UpdatePageTranslationFunc not implemented")
+}
+
+func (m *CustomMockStore) DeletePage(name string) error {
+	return nil
+}
+
+func (m *CustomMockStore) GetCoreSolutions(lang, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+
+func (m *CustomMockStore) GetSiteConfig(lang, defaultLang string) (*config.SiteConfig, error) {
+	if m.GetSiteConfigFunc != nil {
+		return m.GetSiteConfigFunc(lang, defaultLang)
+	}
+	return nil, fmt.Errorf("GetSiteConfigFunc not implemented")
+}
+
+func (m *CustomMockStore) SaveSiteConfig(siteConfig *config.SiteConfig, lang string) error {
+	return nil
+}
+
+func (m *CustomMockStore) GetPageCount() (int64, error) {
+	return 0, nil
+}
+
+func (m *CustomMockStore) GetSettingValue(key, lang string) (string, error) {
+	return "", nil
+}
+
+func (m *CustomMockStore) GetRecentPages(limit int, lang, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
+
+func (m *CustomMockStore) CreateLoginLog(log *models.LoginLog) error {
+	if m.CreateLoginLogFunc != nil {
+		return m.CreateLoginLogFunc(log)
+	}
+	return fmt.Errorf("CreateLoginLogFunc not implemented")
+}
+
+func (m *CustomMockStore) GetRecentLoginLogs(limit int) ([]models.LoginLog, error) {
+	return nil, nil
+}
