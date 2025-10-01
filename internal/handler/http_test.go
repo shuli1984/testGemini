@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -65,7 +66,6 @@ func setupTest(t *testing.T) *handler.Handler {
 	db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_title", LanguageCode: "en", Value: "Test Title"})
 	db.FirstOrCreate(&models.SettingTranslation{}, models.SettingTranslation{Key: "site_tagline", LanguageCode: "en", Value: "Test Tagline"})
 
-
 	// Create a test page and its translation
 	testPage := models.Page{Name: "test-page"}
 	db.FirstOrCreate(&testPage, models.Page{Name: "test-page"})
@@ -109,8 +109,6 @@ func setupTest(t *testing.T) *handler.Handler {
 	return h
 }
 
-
-
 // mockCSRF is a mock CSRF middleware that does nothing.
 func mockCSRF(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +122,6 @@ func TestIndexHandler(t *testing.T) {
 	h := setupTest(t)
 
 	// Insert test data
-
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.Header.Set("Accept-Language", "en") // Added this line
@@ -232,10 +229,10 @@ func TestUpdatePageHandler_Success(t *testing.T) {
 	// Mock data
 	pageName := "home"
 	updatedPayload := handler.PageUpdatePayload{
-		Name:        pageName,
-		Title:       "Updated Home Title",
-		Description: "Updated Home Description",
-		Message:     "Updated Home Message",
+		Name:         pageName,
+		Title:        "Updated Home Title",
+		Description:  "Updated Home Description",
+		Message:      "Updated Home Message",
 		LanguageCode: "en",
 	}
 
@@ -322,29 +319,27 @@ func TestUpdatePageHandler_InvalidBody(t *testing.T) {
 }
 
 func TestUpdatePageHandler_NameMismatch(t *testing.T) {
-	// Commenting out this test as the handler does not currently implement this specific validation.
-	// If this validation is added to the handler, this test should be uncommented and adjusted.
-	// h := setupTest(t)
+	h := setupTest(t)
 
-	// pageName := "home"
-	// updatedPayload := handler.PageUpdatePayload{Name: "mismatch-name", Title: "New Title", LanguageCode: "en"}
-	// body, err := json.Marshal(updatedPayload)
-	// assert.NoError(t, err)
+	pageName := "home"
+	updatedPayload := handler.PageUpdatePayload{Name: "mismatch-name", Title: "New Title", LanguageCode: "en"}
+	body, err := json.Marshal(updatedPayload)
+	assert.NoError(t, err)
 
-	// req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
-	// assert.NoError(t, err)
-	// req.Header.Set("Content-Type", "application/json")
+	req, err := http.NewRequest("PUT", fmt.Sprintf("/pages/%s", pageName), bytes.NewBuffer(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
-	// vars := map[string]string{
-	// 	"name": pageName,
-	// }
-	// req = mux.SetURLVars(req, vars)
+	vars := map[string]string{
+		"name": pageName,
+	}
+	req = mux.SetURLVars(req, vars)
 
-	// rr := httptest.NewRecorder()
-	// h.UpdatePageHandler(rr, req)
+	rr := httptest.NewRecorder()
+	h.UpdatePageHandler(rr, req)
 
-	// assert.Equal(t, http.StatusBadRequest, rr.Code)
-	// assert.Contains(t, rr.Body.String(), "Page name in URL and body do not match")
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "page_name_mismatch"))
 }
 
 func TestUpdatePageHandler_InternalError(t *testing.T) {
@@ -491,7 +486,8 @@ func TestDashboardHandler_Success(t *testing.T) {
 	defer dashboardResp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, dashboardResp.StatusCode)
-	dashboardBody, err := io.ReadAll(dashboardResp.Body)
+	var dashboardBody []byte
+	dashboardBody, err = io.ReadAll(dashboardResp.Body)
 	assert.NoError(t, err)
 	t.Logf("Dashboard Body: %s", string(dashboardBody))
 	assert.Contains(t, string(dashboardBody), h.I18n.GetTranslation("en", "admin.dashboard_title"))
@@ -518,7 +514,7 @@ func TestMaintenanceMiddleware(t *testing.T) {
 
 	// 2. Admin route -> Bypassed
 	req = httptest.NewRequest("GET", "/admin/dashboard", nil)
-	rr := httptest.NewRecorder()
+	rr = httptest.NewRecorder()
 	middleware.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, "OK", rr.Body.String())
@@ -598,20 +594,20 @@ func TestPagesListHandler_Error(t *testing.T) {
 
 func TestPageHandler_SiteConfigError(t *testing.T) {
 	h := setupTest(t)
-	
+
 	// Create a custom mock store
 	customStore := &CustomMockStore{}
-	
+
 	// Mock GetPageData to succeed
 	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
 		return &models.Page{Name: "test-page", Content: models.PageTranslation{Title: "Test Page"}}, nil
 	}
-	
+
 	// Mock GetSiteConfig to fail
 	customStore.GetSiteConfigFunc = func(lang, defaultLang string) (*config.SiteConfig, error) {
 		return nil, fmt.Errorf("database error")
 	}
-	
+
 	h.Store = customStore
 
 	pageName := "test-page"
@@ -630,7 +626,6 @@ func TestPageHandler_SiteConfigError(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
 }
 
-/*
 func TestAboutHandler_Error(t *testing.T) {
 	h := setupTest(t)
 	h.Store = &MockErrorStore{}
@@ -644,12 +639,10 @@ func TestAboutHandler_Error(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
 }
-*/
 
-/*
 func TestUpdatePageHandler_UpdatePageError(t *testing.T) {
 	h := setupTest(t)
-	
+
 	customStore := &CustomMockStore{}
 	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
 		return &models.Page{Name: "home"}, nil
@@ -678,12 +671,10 @@ func TestUpdatePageHandler_UpdatePageError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
-*/
 
-/*
 func TestUpdatePageHandler_UpdatePageTranslationError(t *testing.T) {
 	h := setupTest(t)
-	
+
 	customStore := &CustomMockStore{}
 	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
 		return &models.Page{Name: "home"}, nil
@@ -715,9 +706,7 @@ func TestUpdatePageHandler_UpdatePageTranslationError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
-*/
 
-/*
 func TestLoginHandler_POST_Success_CreateLoginLogError(t *testing.T) {
 	os.Setenv("ADMIN_USERNAME", "testuser")
 	os.Setenv("ADMIN_PASSWORD", "testpass")
@@ -756,9 +745,7 @@ func TestLoginHandler_POST_Success_CreateLoginLogError(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, postResp.StatusCode)
 }
-*/
 
-/*
 func TestLoginHandler_POST_InvalidCredentials_CreateLoginLogError(t *testing.T) {
 	h := setupTest(t)
 
@@ -782,9 +769,7 @@ func TestLoginHandler_POST_InvalidCredentials_CreateLoginLogError(t *testing.T) 
 
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
-*/
 
-/*
 func TestRenderTemplate_TemplateNotFound(t *testing.T) {
 	h := setupTest(t)
 	h.Templates = make(map[string]*template.Template)
@@ -798,9 +783,7 @@ func TestRenderTemplate_TemplateNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Contains(t, rr.Body.String(), h.I18n.GetTranslation("en", "internal_server_error"))
 }
-*/
 
-/*
 func TestRenderTemplate_ParseError(t *testing.T) {
 	var err error
 	// Create a temporary invalid template file
@@ -822,12 +805,10 @@ func TestRenderTemplate_ParseError(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
-*/
 
-/*
 func TestPageHandler_NilPageData(t *testing.T) {
 	h := setupTest(t)
-	
+
 	customStore := &CustomMockStore{}
 	customStore.GetPageDataFunc = func(name, lang, defaultLang string) (*models.Page, error) {
 		return nil, nil
@@ -851,11 +832,3 @@ func TestPageHandler_NilPageData(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
-
-func TestDummy(t *testing.T) {
-    // This is a dummy test
-}
-*/
-
-
-

@@ -120,20 +120,20 @@ type LoginTemplateData struct {
 
 // DashboardTemplateData holds data for the dashboard page template.
 type DashboardTemplateData struct {
-	CSRFToken     string
-	CurrentPath   string
-	CurrentLang   string
-	PageCount     int64
-	TemplateCount int
-	RecentPages   []models.Page
-	GoVersion     string
-	OS            string
-	Arch          string
-	Uptime        string
-	MemoryUsage   string
-	NumGoroutine  int
-	CPUUsage      string
-	RecentErrors  []string
+	CSRFToken       string
+	CurrentPath     string
+	CurrentLang     string
+	PageCount       int64
+	TemplateCount   int
+	RecentPages     []models.Page
+	GoVersion       string
+	OS              string
+	Arch            string
+	Uptime          string
+	MemoryUsage     string
+	NumGoroutine    int
+	CPUUsage        string
+	RecentErrors    []string
 	RecentLoginLogs []models.LoginLog
 }
 
@@ -177,8 +177,8 @@ type AdminSettingsTemplateData struct {
 
 // PageCombinedData holds data for a page template, combining page and site data.
 type PageCombinedData struct {
-	Page       *models.Page
-	SiteConfig *config.SiteConfig
+	Page        *models.Page
+	SiteConfig  *config.SiteConfig
 	CurrentLang string
 }
 
@@ -193,10 +193,10 @@ type IndexTemplateData struct {
 
 // PagesListTemplateData holds data for the pages list page template.
 type PagesListTemplateData struct {
-	Page       *models.Page // Add Page field for header compatibility
-	Pages      []models.Page
-	SiteConfig *config.SiteConfig
-	CurrentLang string
+	Page                *models.Page // Add Page field for header compatibility
+	Pages               []models.Page
+	SiteConfig          *config.SiteConfig
+	CurrentLang         string
 	ContentTemplateName string
 }
 
@@ -246,12 +246,12 @@ func (h *Handler) IndexHandler(w http.ResponseWriter, r *http.Request) {
 				for i, item := range carouselPageIDs {
 					if page, ok := pagesMap[item.PageID]; ok {
 						carouselItems = append(carouselItems, models.CarouselItem{
-							Title:         template.HTML(page.Content.Title),
-							Description:   template.HTML(page.Content.Description),
-							ButtonText:    h.I18n.GetTranslation(currentLang, "common.read_more"),
-							ButtonLink:    "/page/" + page.Name,
+							Title:           template.HTML(page.Content.Title),
+							Description:     template.HTML(page.Content.Description),
+							ButtonText:      h.I18n.GetTranslation(currentLang, "common.read_more"),
+							ButtonLink:      "/page/" + page.Name,
 							BackgroundImage: page.FeaturedImage,
-							Active:        i == 0, // Set first item as active
+							Active:          i == 0, // Set first item as active
 						})
 					}
 				}
@@ -296,8 +296,8 @@ func (h *Handler) PagesListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := PagesListTemplateData{
-		Pages:      pages,
-		SiteConfig: siteConfig,
+		Pages:       pages,
+		SiteConfig:  siteConfig,
 		CurrentLang: currentLang,
 	}
 
@@ -323,13 +323,13 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 	siteConfig, err := h.Store.GetSiteConfig(currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError) // Translated
-		log.Printf("error getting site data: %v", err) // Translated
+		log.Printf("error getting site data: %v", err)                                                             // Translated
 		return
 	}
 
 	combinedData := PageCombinedData{
-		Page:       pageData,
-		SiteConfig: siteConfig,
+		Page:        pageData,
+		SiteConfig:  siteConfig,
 		CurrentLang: currentLang,
 	}
 
@@ -458,7 +458,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		token := csrf.Token(r)
 		h.DebugLog("LoginHandler(GET): Generated CSRF token: %s", token)
 		data := LoginTemplateData{
-			CSRFToken: token,
+			CSRFToken:   token,
 			CurrentLang: currentLang,
 		}
 		h.renderTemplate(w, r, getTemplateName(r), data)
@@ -626,7 +626,7 @@ func (h *Handler) PagesHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	pageName := vars["name"]
-	
+
 	// The language to edit can be passed as a query param, e.g., /admin/pages/edit/about?lang=ja
 	// If not provided, it defaults to the user's current language preference.
 	editLang := r.URL.Query().Get("lang")
@@ -664,7 +664,7 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:                   csrf.Token(r),
 		CurrentPath:                 r.URL.Path,
 		CurrentLang:                 h.getLanguage(r), // This is for the UI, not the content language
-		Message:                     "", // No message on initial load
+		Message:                     "",               // No message on initial load
 		IsNew:                       false,
 		SupportedLanguages:          h.I18n.GetAvailableLanguages(),
 		EditLang:                    editLang,
@@ -674,7 +674,6 @@ func (h *Handler) AdminEditPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	h.renderTemplate(w, r, "admin/admin_edit.html", data)
 }
-
 
 // AdminSettingsHandler displays the settings page.
 func (h *Handler) AdminSettingsHandler(w http.ResponseWriter, r *http.Request) {
@@ -762,17 +761,17 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 
 	// Populate a new config object from the form.
 	formConfig := &config.SiteConfig{
-		Title:             r.FormValue("siteTitle"),
-		Tagline:           r.FormValue("siteTagline"),
-		Logo:              r.FormValue("siteLogo"),
-		Favicon:           r.FormValue("favicon"),
-		DefaultLanguage:   r.FormValue("defaultLanguage"),
-		Timezone:          r.FormValue("timezone"),
-		HomePage:          r.FormValue("homePage"),
-		MetaDescription:   r.FormValue("metaDescription"),
-		MetaKeywords:      r.FormValue("metaKeywords"),
-		GoogleAnalyticsID: r.FormValue("googleAnalyticsID"),
-		MaintenanceMode:   r.FormValue("maintenanceMode") == "on",
+		Title:              r.FormValue("siteTitle"),
+		Tagline:            r.FormValue("siteTagline"),
+		Logo:               r.FormValue("siteLogo"),
+		Favicon:            r.FormValue("favicon"),
+		DefaultLanguage:    r.FormValue("defaultLanguage"),
+		Timezone:           r.FormValue("timezone"),
+		HomePage:           r.FormValue("homePage"),
+		MetaDescription:    r.FormValue("metaDescription"),
+		MetaKeywords:       r.FormValue("metaKeywords"),
+		GoogleAnalyticsID:  r.FormValue("googleAnalyticsID"),
+		MaintenanceMode:    r.FormValue("maintenanceMode") == "on",
 		MaintenanceMessage: r.FormValue("maintenanceMessage"),
 	}
 	navJSON := r.FormValue("navigationJson")
@@ -881,8 +880,6 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 	h.renderTemplate(w, r, "admin/admin_settings.html", data)
 }
 
-
-
 // MaintenanceMiddleware checks if the site is in maintenance mode.
 func (h *Handler) MaintenanceMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -958,7 +955,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("image")
 	if err != nil {
-					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_get_image_from_form"), http.StatusBadRequest)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_get_image_from_form"), http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -966,7 +963,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Generate a random filename
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
-					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "failed_to_generate_random_filename"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "failed_to_generate_random_filename"), http.StatusInternalServerError)
 		return
 	}
 	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
@@ -983,7 +980,7 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Create the file
 	dst, err := os.Create(filepath.Join(uploadDir, filename))
 	if err != nil {
-					http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_file_for_writing"), http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
@@ -1017,12 +1014,12 @@ func (h *Handler) showNewPageForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := AdminEditPageTemplateData{
-		Page:        &models.Page{Content: models.PageTranslation{LanguageCode: editLang}},
-		CSRFToken:   csrf.Token(r),
-		CurrentPath: r.URL.Path,
-		CurrentLang: currentLang,
-		Message:     "",
-		IsNew:       true,
+		Page:               &models.Page{Content: models.PageTranslation{LanguageCode: editLang}},
+		CSRFToken:          csrf.Token(r),
+		CurrentPath:        r.URL.Path,
+		CurrentLang:        currentLang,
+		Message:            "",
+		IsNew:              true,
 		SupportedLanguages: h.I18n.GetAvailableLanguages(),
 		EditLang:           editLang,
 	}
@@ -1258,30 +1255,30 @@ func getTemplateName(r *http.Request) string {
 
 // getIPAddress extracts the user's IP address from the request.
 func getIPAddress(r *http.Request) string {
-    // Check for X-Forwarded-For header first (for proxies)
-    forwarded := r.Header.Get("X-Forwarded-For")
-    if forwarded != "" {
-        // X-Forwarded-For can be a comma-separated list of IPs. The first one is the original client.
-        ips := strings.Split(forwarded, ",")
-        return strings.TrimSpace(ips[0])
-    }
+	// Check for X-Forwarded-For header first (for proxies)
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		// X-Forwarded-For can be a comma-separated list of IPs. The first one is the original client.
+		ips := strings.Split(forwarded, ",")
+		return strings.TrimSpace(ips[0])
+	}
 
-    // Fallback to RemoteAddr
-    ip, _, err := net.SplitHostPort(r.RemoteAddr)
-    if err != nil {
-        // If splitting fails, RemoteAddr might be just the IP, which is fine.
-        return r.RemoteAddr
-    }
-    return ip
+	// Fallback to RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		// If splitting fails, RemoteAddr might be just the IP, which is fine.
+		return r.RemoteAddr
+	}
+	return ip
 }
 
 // TemplateManagementData holds the data for the template management page.
 type TemplateManagementData struct {
-	CSRFToken     string
-	CurrentPath   string
-	CurrentLang   string
-	Templates     []string
-	StaticFiles   []string
+	CSRFToken   string
+	CurrentPath string
+	CurrentLang string
+	Templates   []string
+	StaticFiles []string
 }
 
 // TemplateEditorData holds the data for the template editor page.
@@ -1292,9 +1289,9 @@ type TemplateEditorData struct {
 	Title       string
 	FilePath    string
 	FileContent string
-	FileType    string // "template" or "static"
+	FileType    string        // "template" or "static"
 	Message     template.HTML // Message for success/error feedback
-	MessageType string // "success" or "error"
+	MessageType string        // "success" or "error"
 }
 
 // TemplatePreviewData holds data for the template preview page.
@@ -1346,7 +1343,7 @@ func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-		data := TemplateManagementData{
+	data := TemplateManagementData{
 		CSRFToken:   csrf.Token(r),
 		CurrentPath: r.URL.Path,
 		CurrentLang: currentLang,
@@ -1378,11 +1375,11 @@ func (h *Handler) AdminTemplateEditView(w http.ResponseWriter, r *http.Request) 
 	// Security check: Ensure the path is clean and within the allowed directories.
 	cleanPath := filepath.Clean(fullPath)
 	if (fileType == "template" && !strings.HasPrefix(cleanPath, "templates"+string(filepath.Separator))) ||
-	   (fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
+		(fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
 		http.Error(w, "Access denied: Path is outside of the allowed directories.", http.StatusForbidden)
 		return
 	}
-	
+
 	// Security check 2: Prevent reading directories
 	info, err := os.Stat(cleanPath)
 	if err != nil {
@@ -1397,7 +1394,6 @@ func (h *Handler) AdminTemplateEditView(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Cannot edit a directory.", http.StatusBadRequest)
 		return
 	}
-
 
 	content, err := os.ReadFile(cleanPath)
 	if err != nil {
@@ -1449,11 +1445,11 @@ func (h *Handler) AdminTemplateUpdate(w http.ResponseWriter, r *http.Request) {
 	// Security check: Ensure the path is clean and within the allowed directories.
 	cleanPath := filepath.Clean(fullPath)
 	if (fileType == "template" && !strings.HasPrefix(cleanPath, "templates"+string(filepath.Separator))) ||
-	   (fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
+		(fileType == "static" && !strings.HasPrefix(cleanPath, "static"+string(filepath.Separator))) {
 		http.Error(w, "Access denied: Path is outside of the allowed directories.", http.StatusForbidden)
 		return
 	}
-	
+
 	// Security check 2: Prevent writing to directories
 	info, err := os.Stat(cleanPath)
 	if err != nil && !os.IsNotExist(err) { // If file doesn't exist, it's fine, but other errors are bad
@@ -1489,13 +1485,13 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Access denied: Template is outside of the allowed directory.", http.StatusForbidden)
 		return
 	}
-	
+
 	// This is a simplified preview. It parses the requested template along with the base layouts.
 	// It won't have access to the full context of other templates, but it's good for a direct preview.
 	// It uses a nil data object, so templates expecting data may show errors.
-	
+
 	currentLang := h.getLanguage(r)
-	
+
 	// We need to parse the base templates along with the specific template file.
 	// This mimics how the main renderTemplate function works but for a single, dynamic file.
 	funcMap := template.FuncMap{
@@ -1520,7 +1516,7 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 
 	// We execute "base" which should in turn call our specific template's content block.
 	// We pass a nil data object.
-	
+
 	siteData, err := h.Store.GetSiteConfig(currentLang, h.I18n.DefaultLanguage())
 	if err != nil {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
