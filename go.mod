@@ -17,6 +17,7 @@ require (
 	cloud.google.com/go/translate v1.12.6
 	github.com/joho/godotenv v1.5.1
 	github.com/lkretschmer/deepl-go v0.3.0
+	github.com/otiai10/copy v1.14.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	google.golang.org/api v0.237.0
 )
@@ -34,6 +35,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.2 // indirect
+	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
@@ -45,6 +47,7 @@ require (
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect

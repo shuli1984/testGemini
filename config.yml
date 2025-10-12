@@ -6,11 +6,6 @@ routes:
     methods:
       - "GET"
     auth_required: false
-  - path: "/about"
-    handler: "AboutHandler"
-    methods:
-      - "GET"
-    auth_required: false
   - path: "/page/{name}"
     handler: "PageHandler"
     methods:

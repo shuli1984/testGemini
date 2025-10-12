@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -15,6 +14,7 @@ import (
 	"gemini-demo/internal/server"
 	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -29,6 +29,7 @@ import (
 var projectRootFlag string
 var debugFlag bool
 var loadConfig = config.LoadConfig
+var godotenvLoad = godotenv.Load
 
 func debugLog(format string, v ...interface{}) {
 	if debugFlag {
@@ -36,11 +37,18 @@ func debugLog(format string, v ...interface{}) {
 	}
 }
 
+func logRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
+		next.ServeHTTP(w, r)
+	})
+}
+
 // generateRandomKey creates a random key of the specified length (in bytes)
 // and returns it as a hex-encoded string.
-func generateRandomKey(length int) (string, error) {
+func generateRandomKey(length int, reader io.Reader) (string, error) {
 	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
+	if _, err := reader.Read(bytes); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
@@ -52,7 +60,9 @@ func main() {
 	}
 }
 
-func run(args []string) error {
+var listenAndServe = (*http.Server).ListenAndServe
+
+var run = func(args []string) error {
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
@@ -67,9 +77,9 @@ func run(args []string) error {
 	}
 	log.Printf("Debug mode enabled: %t", debugFlag) // Add this line
 
-	cfg, err := loadConfig()
+	cfg, err := loadConfig("config.yml")
 	if err != nil {
-		return fmt.Errorf("Error reading config file, %s", err)
+		return fmt.Errorf("Error loading config file, %s", err)
 	}
 
 	// In debug mode, if keys are not set, generate temporary ones.
@@ -141,13 +151,6 @@ func run(args []string) error {
 	}
 	debugLog("Configured Trusted Origins: %v", cfg.Auth.TrustedOrigins)
 
-	logRequestMiddleware := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
-			next.ServeHTTP(w, r)
-		})
-	}
-
 	csrfMiddleware := csrf.Protect(
 		[]byte(cfg.Auth.CSRFKey),
 		csrf.HttpOnly(true),
@@ -184,9 +187,9 @@ func run(args []string) error {
 			})
 		}
 		return wrappedHandler
-	}, i18nTranslator, apiTranslator, debugLog, debugFlag, inMemoryLogger, startTime) // Pass the translator and debug flag
+	}, i18nTranslator, apiTranslator, debugLog, inMemoryLogger, startTime)
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)
-	return srv.ListenAndServe()
+	return listenAndServe(srv)
 }

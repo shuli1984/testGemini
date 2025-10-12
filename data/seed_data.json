@@ -167,6 +167,34 @@
           "Message": ""
         }
       ]
+    },
+    {
+      "Name": "test-page",
+      "IsCoreSolution": false,
+      "Icon": "fa-star",
+      "Translations": [
+        {
+          "LanguageCode": "en",
+          "Title": "Test Page Title",
+          "Description": "Test Page Description",
+          "Keywords": "test, page",
+          "Message": "Test Page Message"
+        },
+        {
+          "LanguageCode": "ja",
+          "Title": "テストページ",
+          "Description": "Test Page Description",
+          "Keywords": "test, page",
+          "Message": "Test Page Message"
+        },
+        {
+          "LanguageCode": "zh",
+          "Title": "测试页面",
+          "Description": "Test Page Description",
+          "Keywords": "test, page",
+          "Message": "Test Page Message"
+        }
+      ]
     }
   ],
   "Settings": [

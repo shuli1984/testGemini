@@ -16,8 +16,10 @@ import (
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
 	"gemini-demo/internal/models"
-	"gemini-demo/internal/util"
 	"gemini-demo/internal/translator"
+	"gemini-demo/internal/util"
+
+	"github.com/gorilla/sessions"
 )
 
 // MockTranslator is a mock implementation of the translator.Translator interface for testing.
@@ -80,8 +82,15 @@ func (m *MockStore) GetRecentLoginLogs(limit int) ([]models.LoginLog, error) {
 	return nil, nil
 }
 
-var _ models.DataStore = (*MockStore)(nil)
+func (m *MockStore) GetPagesByIDs(ids []uint, lang string, defaultLang string) ([]models.Page, error) {
+	return nil, nil
+}
 
+func (m *MockStore) SaveSetting(key, value, lang string) error {
+	return nil
+}
+
+var _ models.DataStore = (*MockStore)(nil)
 
 func TestNewAuthService(t *testing.T) {
 	t.Run("successful creation with valid key", func(t *testing.T) {
@@ -138,6 +147,15 @@ func TestAuthenticate(t *testing.T) {
 		}
 	})
 
+	t.Run("successful authentication with fallback values", func(t *testing.T) {
+		os.Unsetenv("ADMIN_USERNAME")
+		os.Unsetenv("ADMIN_PASSWORD")
+
+		if !authService.Authenticate("admin", "password") {
+			t.Error("Authenticate failed for valid credentials with fallback values")
+		}
+	})
+
 	t.Run("failed authentication - incorrect username", func(t *testing.T) {
 		os.Setenv("ADMIN_USERNAME", "testuser")
 		os.Setenv("ADMIN_PASSWORD", "testpass")
@@ -153,6 +171,28 @@ func TestAuthenticate(t *testing.T) {
 			t.Error("Authenticate succeeded for incorrect password")
 		}
 	})
+}
+
+// MockSessionStore is a mock implementation of the sessions.Store interface.
+type MockSessionStore struct {
+	GetFunc  func(r *http.Request, name string) (*sessions.Session, error)
+	SaveFunc func(r *http.Request, w http.ResponseWriter, s *sessions.Session) error
+	NewFunc  func(r *http.Request, name string) (*sessions.Session, error)
+}
+
+func (m *MockSessionStore) Get(r *http.Request, name string) (*sessions.Session, error) {
+	return m.GetFunc(r, name)
+}
+
+func (m *MockSessionStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	if m.NewFunc != nil {
+		return m.NewFunc(r, name)
+	}
+	return sessions.NewSession(m, name), nil
+}
+
+func (m *MockSessionStore) Save(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
+	return m.SaveFunc(r, w, s)
 }
 
 func TestLoginLogoutIsLoggedIn(t *testing.T) {
@@ -177,6 +217,40 @@ func TestLoginLogoutIsLoggedIn(t *testing.T) {
 		}
 		if !authService.IsLoggedIn(loggedInReq) {
 			t.Error("IsLoggedIn returned false after successful login")
+		}
+	})
+
+	t.Run("login fails on session get error", func(t *testing.T) {
+		mockStore := &MockSessionStore{
+			GetFunc: func(r *http.Request, name string) (*sessions.Session, error) {
+				return nil, fmt.Errorf("session get error")
+			},
+		}
+
+		service := auth.NewAuthServiceWithStore(mockStore)
+		rr := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/", nil)
+		err := service.Login(rr, req)
+		if err == nil {
+			t.Error("Expected an error when session get fails, but got nil")
+		}
+	})
+
+	t.Run("login fails on session save error", func(t *testing.T) {
+		mockStore := &MockSessionStore{}
+		session := sessions.NewSession(mockStore, "test-session")
+		mockStore.GetFunc = func(r *http.Request, name string) (*sessions.Session, error) {
+			return session, nil
+		}
+		mockStore.SaveFunc = func(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
+			return fmt.Errorf("session save error")
+		}
+		service := auth.NewAuthServiceWithStore(mockStore)
+		rr := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/", nil)
+		err := service.Login(rr, req)
+		if err == nil {
+			t.Error("Expected an error when session save fails, but got nil")
 		}
 	})
 
@@ -228,11 +302,39 @@ func TestLoginLogoutIsLoggedIn(t *testing.T) {
 		}
 	})
 
+	t.Run("logout fails on session get error", func(t *testing.T) {
+		mockStore := &MockSessionStore{
+			GetFunc: func(r *http.Request, name string) (*sessions.Session, error) {
+				return nil, fmt.Errorf("session get error")
+			},
+		}
+		service := auth.NewAuthServiceWithStore(mockStore)
+		rr := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/", nil)
+		err := service.Logout(rr, req)
+		if err == nil {
+			t.Error("Expected an error when session get fails, but got nil")
+		}
+	})
+
 	// Test IsLoggedIn with no session cookie
 	t.Run("IsLoggedIn returns false with no session cookie", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/", nil)
 		if authService.IsLoggedIn(req) {
 			t.Error("IsLoggedIn returned true with no session cookie")
+		}
+	})
+
+	t.Run("IsLoggedIn returns false on session get error", func(t *testing.T) {
+		mockStore := &MockSessionStore{
+			GetFunc: func(r *http.Request, name string) (*sessions.Session, error) {
+				return nil, fmt.Errorf("session get error")
+			},
+		}
+		service := auth.NewAuthServiceWithStore(mockStore)
+		req, _ := http.NewRequest("GET", "/", nil)
+		if service.IsLoggedIn(req) {
+			t.Error("Expected IsLoggedIn to return false on session get error")
 		}
 	})
 
@@ -280,34 +382,34 @@ func TestMiddleware(t *testing.T) {
 		defer os.Unsetenv("ADMIN_USERNAME")
 		defer os.Unsetenv("ADMIN_PASSWORD")
 
-		        // Create a dummy template.Template
-        tmpl := template.New("test")
+		// Create a dummy template.Template
+		tmpl := template.New("test")
 
-        // Construct absolute path to i18n directory
-        i18nPath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
+		// Construct absolute path to i18n directory
+		i18nPath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
 
-        // Create a simple Translator
-        translator := i18n.NewTranslator(i18nPath, "en")
-        // Load translations (handle error if necessary)
-        if err := translator.LoadTranslations(); err != nil {
-            t.Fatalf("Failed to load translations: %v", err)
-        }
+		// Create a simple Translator
+		translator := i18n.NewTranslator(i18nPath, "en")
+		// Load translations (handle error if necessary)
+		if err := translator.LoadTranslations(); err != nil {
+			t.Fatalf("Failed to load translations: %v", err)
+		}
 
-        // Create a dummy DebugLog function
-        debugLog := func(format string, v ...interface{}) {
-            // Do nothing or print to console for debugging
-            // fmt.Printf(format+"\n", v...)
-        }
+		// Create a dummy DebugLog function
+		debugLog := func(format string, v ...interface{}) {
+			// Do nothing or print to console for debugging
+			// fmt.Printf(format+"\n", v...)
+		}
 
-        h := &handler.Handler{
-            AuthService:    authService,
-            Templates:      map[string]*template.Template{"default": tmpl},
-            I18n:           translator,
-            API_Translator: &MockTranslator{}, // Initialize API_Translator with mock
-            DebugLog:       debugLog,
+		h := &handler.Handler{
+			AuthService:    authService,
+			Templates:      map[string]*template.Template{"default": tmpl},
+			I18n:           translator,
+			API_Translator: &MockTranslator{}, // Initialize API_Translator with mock
+			DebugLog:       debugLog,
 			Store:          &MockStore{},
-        }
-        h.LoginHandler(loginRr, loginReq)
+		}
+		h.LoginHandler(loginRr, loginReq)
 
 		var sessionCookie *http.Cookie
 		for _, cookie := range loginRr.Result().Cookies() {

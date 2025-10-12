@@ -29,10 +29,19 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	// RandRead is a variable that holds the rand.Read function.
+	// This is used to allow mocking of the rand.Read function in tests.
+	RandRead = rand.Read
+	// OsStat is a variable that holds the os.Stat function.
+	// This is used to allow mocking of the os.Stat function in tests.
+	OsStat = os.Stat
+)
+
 type Handler struct {
 	Cfg            *config.Config
 	Store          models.DataStore
-	AuthService    *auth.AuthService
+	AuthService    auth.AuthServiceInterface
 	Templates      map[string]*template.Template // Changed to map
 	DebugLog       func(format string, v ...interface{})
 	I18n           *i18n.Translator
@@ -336,29 +345,7 @@ func (h *Handler) PageHandler(w http.ResponseWriter, r *http.Request) {
 	h.renderTemplate(w, r, getTemplateName(r), combinedData)
 }
 
-func (h *Handler) AboutHandler(w http.ResponseWriter, r *http.Request) {
-	currentLang := h.getLanguage(r)
-	h.DebugLog("AboutHandler: currentLang = %s", currentLang) // Add this line
 
-	siteConfig, err := h.Store.GetSiteConfig(currentLang, h.I18n.DefaultLanguage())
-	if err != nil {
-		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		h.DebugLog("Error getting site data for about page: %v", err)
-		return
-	}
-
-	data := struct {
-		SiteConfig  *config.SiteConfig
-		CurrentLang string
-		Page        *models.Page // Add Page field for header compatibility
-	}{
-		SiteConfig:  siteConfig,
-		CurrentLang: currentLang,
-		Page:        nil, // Initialize Page to nil for about page
-	}
-
-	h.renderTemplate(w, r, "about.html", data)
-}
 
 // PageUpdatePayload mirrors the structure of the JSON payload sent from the frontend for page updates.
 type PageUpdatePayload struct {
@@ -382,6 +369,12 @@ func (h *Handler) UpdatePageHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		log.Printf("UpdatePageHandler: Error decoding payload for page %s: %v", pageName, err)
 		http.Error(w, h.I18n.GetTranslation(currentLang, "invalid_request_body"), http.StatusBadRequest)
+		return
+	}
+
+	// Validate that the page name from the URL matches the one in the payload.
+	if payload.Name != pageName {
+		http.Error(w, h.I18n.GetTranslation(currentLang, "page_name_mismatch"), http.StatusBadRequest)
 		return
 	}
 
@@ -788,7 +781,7 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 	// Rule 2: Default Language must be a valid language
 	if !h.I18n.IsValidLanguage(formConfig.DefaultLanguage) {
 		availableLangs := strings.Join(h.I18n.GetAvailableLanguages(), ", ")
-		errorMsg := fmt.Sprintf(h.I18n.GetTranslation(currentLang, "settings.error.invalid_language_format"), formConfig.DefaultLanguage, availableLangs)
+		errorMsg := fmt.Sprintf(h.I18n.GetTranslation(currentLang, "admin.settings.error.invalid_language_format"), formConfig.DefaultLanguage, availableLangs)
 		validationErrors = append(validationErrors, errorMsg)
 	}
 
@@ -872,10 +865,36 @@ func (h *Handler) UpdateSettingsHandler(w http.ResponseWriter, r *http.Request) 
 		reloadedNavJSON = []byte(navJSON) // Fallback to original form submission
 	}
 
+    // Re-fetch all pages for the carousel selector to ensure the UI is up-to-date.
+	allPages, err := h.Store.GetAllPages(h.I18n.DefaultLanguage(), h.I18n.DefaultLanguage())
+	if err != nil {
+		log.Printf("Error getting all pages for settings after update: %v", err)
+		allPages = []models.Page{}
+	}
+	pageIDToTitle := make(map[uint]string)
+	for _, p := range allPages {
+		pageIDToTitle[p.ID] = p.Content.Title
+	}
+	allPagesJSON, err := json.Marshal(pageIDToTitle)
+	if err != nil {
+		log.Printf("Error marshalling all pages map after update: %v", err)
+		allPagesJSON = []byte("{}")
+	}
+
+	// Re-fetch carousel pages setting to ensure UI is up-to-date
+	reloadedCarouselPagesJSON, err := h.Store.GetSettingValue("homepage_carousel_pages", "global")
+	if err != nil {
+		log.Printf("Error getting carousel pages setting after update: %v", err)
+		reloadedCarouselPagesJSON = "[]"
+	}
+
 	// Update data for successful render
 	data.Settings = displayConfig
 	data.Message = h.I18n.GetTranslation(currentLang, "admin.settings_saved_successfully")
 	data.NavigationJSON = string(reloadedNavJSON)
+	data.AllPages = allPages
+	data.AllPagesJSON = string(allPagesJSON)
+	data.CarouselPagesJSON = reloadedCarouselPagesJSON
 
 	h.renderTemplate(w, r, "admin/admin_settings.html", data)
 }
@@ -885,7 +904,7 @@ func (h *Handler) MaintenanceMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Bypass maintenance mode for admin, login, and static assets
 		isAdminRoute := strings.HasPrefix(r.URL.Path, "/admin")
-		isLoginRoute := r.URL.Path == "/login"
+		isLoginRoute := r.URL.Path == "/admin/login"
 		isStatic := strings.HasPrefix(r.URL.Path, h.Cfg.Static.URLPrefix)
 
 		// Check if maintenance mode is enabled, the user is not logged in, and the route is not exempt
@@ -962,19 +981,26 @@ func (h *Handler) ImageUploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate a random filename
 	randomBytes := make([]byte, 8)
-	if _, err := rand.Read(randomBytes); err != nil {
+	if _, err := RandRead(randomBytes); err != nil {
 		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "failed_to_generate_random_filename"), http.StatusInternalServerError)
 		return
 	}
 	filename := fmt.Sprintf("%x%s", randomBytes, filepath.Ext(handler.Filename))
 
 	uploadDir := filepath.Join("data", "uploads")
-	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
+	info, err := OsStat(uploadDir)
+	if os.IsNotExist(err) {
 		err = os.MkdirAll(uploadDir, 0755) // Create directory with read/write/execute permissions for owner, read/execute for others
 		if err != nil {
 			http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
 			return
 		}
+	} else if err != nil {
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
+		return
+	} else if !info.IsDir() {
+		http.Error(w, h.I18n.GetTranslation(h.getLanguage(r), "unable_to_create_upload_directory"), http.StatusInternalServerError)
+		return
 	}
 
 	// Create the file
@@ -1246,10 +1272,8 @@ func getTemplateName(r *http.Request) string {
 		}
 		return strings.TrimPrefix(path, "/") + ".html" // Fallback for other admin paths
 	}
-	// For other top-level paths like /pages, /about
+	// For other top-level paths like /pages
 	// Example: "/pages" -> "pages.html"
-	// Example: "/about" -> "about.html"
-	// Example: "/about" -> "about.html"
 	return strings.TrimPrefix(path, "/") + ".html"
 }
 
@@ -1298,26 +1322,34 @@ type TemplateEditorData struct {
 type TemplatePreviewData struct {
 	CSRFToken   string
 	CurrentLang string
-	Site        *config.SiteConfig
+	SiteConfig  *config.SiteConfig
+	Page        *models.Page // Add Page field for header compatibility
 }
 
 // AdminTemplatesView handles the display of the template and static file editor.
 func (h *Handler) AdminTemplatesView(w http.ResponseWriter, r *http.Request) {
 	currentLang := h.getLanguage(r)
 
-	// --- List Template Files (non-recursive) ---
+	// --- List Template Files (recursive) ---
 	templatesDir := "templates"
 	templateFiles := []string{}
-	entries, err := os.ReadDir(templatesDir)
+	err := filepath.Walk(templatesDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			relPath, err := filepath.Rel(templatesDir, path)
+			if err != nil {
+				return err
+			}
+			templateFiles = append(templateFiles, filepath.ToSlash(relPath))
+		}
+		return nil
+	})
 	if err != nil {
 		http.Error(w, h.I18n.GetTranslation(currentLang, "internal_server_error"), http.StatusInternalServerError)
-		log.Printf("Error reading templates directory: %v", err)
+		log.Printf("Error walking templates directory: %v", err)
 		return
-	}
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			templateFiles = append(templateFiles, entry.Name())
-		}
 	}
 
 	// --- List Static Files (recursive) ---
@@ -1381,7 +1413,7 @@ func (h *Handler) AdminTemplateEditView(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Security check 2: Prevent reading directories
-	info, err := os.Stat(cleanPath)
+	info, err := OsStat(cleanPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.NotFound(w, r)
@@ -1451,7 +1483,7 @@ func (h *Handler) AdminTemplateUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Security check 2: Prevent writing to directories
-	info, err := os.Stat(cleanPath)
+	info, err := OsStat(cleanPath)
 	if err != nil && !os.IsNotExist(err) { // If file doesn't exist, it's fine, but other errors are bad
 		http.Error(w, "Error accessing file.", http.StatusInternalServerError)
 		log.Printf("Error statting file before write %s: %v", cleanPath, err)
@@ -1495,9 +1527,7 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 	// We need to parse the base templates along with the specific template file.
 	// This mimics how the main renderTemplate function works but for a single, dynamic file.
 	funcMap := template.FuncMap{
-		"T": func(key string) string {
-			return h.I18n.GetTranslation(currentLang, key)
-		},
+		"T": h.I18n.GetTranslation,
 	}
 
 	tmpl, err := template.New("preview").Funcs(funcMap).ParseFiles(
@@ -1527,7 +1557,8 @@ func (h *Handler) AdminTemplatePreview(w http.ResponseWriter, r *http.Request) {
 	data := TemplatePreviewData{
 		CSRFToken:   csrf.Token(r),
 		CurrentLang: currentLang,
-		Site:        siteData,
+		SiteConfig:  siteData,
+		Page:        nil, // Initialize Page to nil for header compatibility
 	}
 
 	err = tmpl.ExecuteTemplate(w, "base", data)

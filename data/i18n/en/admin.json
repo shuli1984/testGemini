@@ -25,6 +25,7 @@
   "new_page_title": "Create New Page",
   "page_name_title_required": "Page Name and Title are required.",
   "page_exists": "A page with this name already exists.",
+  "page_name_mismatch": "Page name in URL does not match page name in payload.",
   "error_deleting_page": "Error deleting page.",
   "page_name_label": "Page Name (e.g., home, about, contact):",
   "title_label": "Title:",
