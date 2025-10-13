@@ -13,21 +13,42 @@ const (
 	sessionKey  = "user_logged_in"
 )
 
+// AuthServiceInterface defines the interface for authentication services.
+type AuthServiceInterface interface {
+	Authenticate(username, password string) bool
+	Login(w http.ResponseWriter, r *http.Request) error
+	Logout(w http.ResponseWriter, r *http.Request) error
+	IsLoggedIn(r *http.Request) bool
+	Middleware(next http.Handler) http.Handler
+}
+
 // AuthService provides authentication services.
 type AuthService struct {
-	store sessions.Store
+	Store sessions.Store
 }
 
 var OsExit = os.Exit
 var FatalLogger = log.Fatal
 
 // NewAuthService creates a new AuthService with the given session key.
-func NewAuthService(sessionKey string) *AuthService {
+func NewAuthService(sessionKey string) AuthServiceInterface {
 	if sessionKey == "" {
 		FatalLogger("Session key not provided")
 	}
 	store := sessions.NewCookieStore([]byte(sessionKey))
-	return &AuthService{store: store}
+	store.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 7, // 7 days
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	}
+	return &AuthService{Store: store}
+}
+
+// NewAuthServiceWithStore creates a new AuthService with the given session store.
+func NewAuthServiceWithStore(store sessions.Store) AuthServiceInterface {
+	return &AuthService{Store: store}
 }
 
 // Authenticate checks user credentials.
@@ -50,7 +71,7 @@ func (s *AuthService) Authenticate(username, password string) bool {
 
 // Login sets the user session to logged in.
 func (s *AuthService) Login(w http.ResponseWriter, r *http.Request) error {
-	session, err := s.store.Get(r, sessionName)
+	session, err := s.Store.Get(r, sessionName)
 	if err != nil {
 		log.Printf("AuthService.Login: Error getting session: %v", err)
 		return err
@@ -65,7 +86,7 @@ func (s *AuthService) Login(w http.ResponseWriter, r *http.Request) error {
 
 // Logout sets the user session to logged out.
 func (s *AuthService) Logout(w http.ResponseWriter, r *http.Request) error {
-	session, err := s.store.Get(r, sessionName)
+	session, err := s.Store.Get(r, sessionName)
 	if err != nil {
 		return err
 	}
@@ -76,7 +97,7 @@ func (s *AuthService) Logout(w http.ResponseWriter, r *http.Request) error {
 
 // IsLoggedIn checks if the user is currently logged in.
 func (s *AuthService) IsLoggedIn(r *http.Request) bool {
-	session, err := s.store.Get(r, sessionName)
+	session, err := s.Store.Get(r, sessionName)
 	if err != nil {
 		return false
 	}

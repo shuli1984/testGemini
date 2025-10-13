@@ -27,35 +27,55 @@ func NewTranslator(basePath, defaultLang string) *Translator {
 
 // LoadTranslations loads translation files from the specified base path.
 func (t *Translator) LoadTranslations() error {
-	files, err := ioutil.ReadDir(t.basePath)
-	if err != nil {
-		return fmt.Errorf("failed to read i18n directory: %w", err)
-	}
-
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		lang := file.Name()
-		if filepath.Ext(lang) != ".json" {
-			continue
-		}
-		lang = lang[:len(lang)-len(filepath.Ext(lang))] // Remove .json extension
+	// Clear existing translations before reloading
+	t.translations = make(map[string]map[string]string)
 
-		filePath := filepath.Join(t.basePath, file.Name())
-		content, err := ioutil.ReadFile(filePath)
+	langDirs, err := ioutil.ReadDir(t.basePath)
+	if err != nil {
+		return fmt.Errorf("failed to read i18n base directory: %w", err)
+	}
+
+	for _, langDir := range langDirs {
+		if !langDir.IsDir() {
+			continue // Skip files directly in basePath, only process language directories
+		}
+
+		langCode := langDir.Name()
+		langPath := filepath.Join(t.basePath, langCode)
+
+		moduleFiles, err := ioutil.ReadDir(langPath)
 		if err != nil {
-			return fmt.Errorf("failed to read translation file %s: %w", filePath, err)
+			return fmt.Errorf("failed to read language directory %s: %w", langPath, err)
 		}
 
-		var langMap map[string]string
-		if err := json.Unmarshal(content, &langMap); err != nil {
-			return fmt.Errorf("failed to unmarshal translation file %s: %w", filePath, err)
+		t.translations[langCode] = make(map[string]string) // Initialize map for this language
+
+		for _, moduleFile := range moduleFiles {
+			if moduleFile.IsDir() || filepath.Ext(moduleFile.Name()) != ".json" {
+				continue // Skip subdirectories and non-JSON files
+			}
+
+			moduleName := moduleFile.Name()[:len(moduleFile.Name())-len(filepath.Ext(moduleFile.Name()))] // e.g., "common"
+			filePath := filepath.Join(langPath, moduleFile.Name())
+			content, err := ioutil.ReadFile(filePath)
+			if err != nil {
+				return fmt.Errorf("failed to read translation file %s: %w", filePath, err)
+			}
+
+			var moduleMap map[string]string
+			if err := json.Unmarshal(content, &moduleMap); err != nil {
+				return fmt.Errorf("failed to unmarshal translation file %s: %w", filePath, err)
+			}
+
+			// Merge module translations into the language map with a prefix
+			for key, value := range moduleMap {
+				// Use "moduleName.key" as the new key to avoid conflicts and provide structure
+				t.translations[langCode][fmt.Sprintf("%s.%s", moduleName, key)] = value
+			}
 		}
-		t.translations[lang] = langMap
 	}
 	return nil
 }

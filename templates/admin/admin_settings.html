@@ -1,0 +1,226 @@
+{{template "admin/admin_header.html" .}}
+<body>
+    <div class="d-flex flex-column flex-md-row min-vh-100">
+        <div class="border-end">
+            {{template "admin/admin_nav.html" .}}
+        </div>
+        <main class="p-4 shadow-sm flex-grow-1">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">{{ T .CurrentLang "admin.settings_title" }}</h1>
+                <div class="btn-toolbar mb-2 mb-md-0">
+                    <div class="d-flex align-items-center">
+                        <label for="languageSelector" class="form-label me-2">{{T .CurrentLang "admin.edit_language_label"}}</label>
+                        <select id="languageSelector" class="form-select form-select-sm" style="width: auto;">
+                            {{range .SupportedLanguages}}
+                            <option value="{{.}}" {{if eq . $.EditLang}}selected{{end}}>{{.}}</option>
+                            {{end}}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {{if .Message}}
+            <div id="settings-message-alert" class="alert alert-info" role="alert">
+                {{.Message}}
+            </div>
+            {{end}}
+
+            <form id="settingsForm" action="/admin/settings" method="POST"
+                data-edit-lang="{{.EditLang}}"
+                data-csrf-token="{{.CSRFToken}}"
+                data-i18n-confirm-overwrite-translation="{{T .CurrentLang "admin.confirm_overwrite_translation" | js}}"
+                data-i18n-translation-error="{{T .CurrentLang "admin.translation_error" | js}}"
+                data-i18n-unknown-error="{{T .CurrentLang "common.unknown_error" | js}}"
+                data-i18n-network-error="{{T .CurrentLang "admin.network_error" | js}}">
+                <input type="hidden" name="gorilla.csrf.Token" value="{{.CSRFToken}}">
+                <input type="hidden" name="editLang" value="{{.EditLang}}">
+
+                <!-- General Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_general_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="siteTitle" class="form-label">{{ T .CurrentLang "admin.settings_site_title" }} <span style="color:red;">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="siteTitle" name="siteTitle" value="{{.Settings.Title}}">
+                                <button class="btn btn-outline-secondary translate-btn" type="button" data-field="site_title">{{T .CurrentLang "admin.translate_button"}}</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="siteTagline" class="form-label">{{ T .CurrentLang "admin.settings_site_tagline" }}</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="siteTagline" name="siteTagline" value="{{.Settings.Tagline}}">
+                                <button class="btn btn-outline-secondary translate-btn" type="button" data-field="site_tagline">{{T .CurrentLang "admin.translate_button"}}</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="siteLogo" class="form-label">{{ T .CurrentLang "admin.settings_site_logo" }}</label>
+                            <input type="text" class="form-control" id="siteLogo" name="siteLogo" value="{{.Settings.Logo}}" placeholder="e.g., /static/images/logo.png">
+                        </div>
+                        <div class="mb-3">
+                            <label for="favicon" class="form-label">{{ T .CurrentLang "admin.settings_favicon" }}</label>
+                            <input type="text" class="form-control" id="favicon" name="favicon" value="{{.Settings.Favicon}}" placeholder="e.g., /static/images/favicon.ico">
+                        </div>
+                         <div class="mb-3">
+                            <label for="defaultLanguage" class="form-label">{{ T .CurrentLang "admin.settings_default_language" }} <span style="color:red;">*</span></label>
+                            <input type="text" class="form-control" id="defaultLanguage" name="defaultLanguage" value="{{.Settings.DefaultLanguage}}" placeholder="e.g., en, ja, zh">
+                        </div>
+                        <div class="mb-3">
+                            <label for="timezone" class="form-label">{{ T .CurrentLang "admin.settings_timezone" }}</label>
+                            <input type="text" class="form-control" id="timezone" name="timezone" value="{{.Settings.Timezone}}" placeholder="e.g., UTC, America/New_York">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_navigation_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="navigation-list" class="list-group mb-3"></ul>
+                        <button type="button" id="add-nav-item" class="btn btn-secondary">{{ T .CurrentLang "admin.add_nav_item_button" }}</button>
+                        <input type="hidden" id="navigation-json" name="navigationJson" value="">
+                    </div>
+                </div>
+
+                <!-- Homepage Carousel Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_carousel_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>{{ T .CurrentLang "admin.settings_carousel_available_pages" }}</h6>
+                                <ul id="available-pages-list" class="list-group carousel-list">
+                                    {{range .AllPages}}
+                                    <li class="list-group-item" data-page-id="{{.ID}}">{{.Content.Title}}</li>
+                                    {{end}}
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>{{ T .CurrentLang "admin.settings_carousel_selected_pages" }}</h6>
+                                <ul id="carousel-pages-list" class="list-group carousel-list">
+                                    <!-- Selected pages will be dynamically added here -->
+                                </ul>
+                            </div>
+                        </div>
+                        <input type="hidden" id="homepage-carousel-pages-json" name="homepageCarouselPagesJson" value="">
+                    </div>
+                </div>
+                
+                <!-- Content & SEO -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_seo_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="homePage" class="form-label">{{ T .CurrentLang "admin.settings_homepage_display" }}</label>
+                            <input type="text" class="form-control" id="homePage" name="homePage" value="{{.Settings.HomePage}}" placeholder="{{ T .CurrentLang `admin.settings_homepage_placeholder` }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="metaDescription" class="form-label">{{ T .CurrentLang "admin.settings_meta_description" }}</label>
+                            <div class="input-group">
+                                <textarea class="form-control" id="metaDescription" name="metaDescription" rows="3">{{.Settings.MetaDescription}}</textarea>
+                                <button class="btn btn-outline-secondary translate-btn" type="button" data-field="meta_description">{{T .CurrentLang "admin.translate_button"}}</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="metaKeywords" class="form-label">{{ T .CurrentLang "admin.settings_meta_keywords" }}</label>
+                            <div class="input-group">
+                                <textarea class="form-control" id="metaKeywords" name="metaKeywords" rows="2">{{.Settings.MetaKeywords}}</textarea>
+                                <button class="btn btn-outline-secondary translate-btn" type="button" data-field="meta_keywords">{{T .CurrentLang "admin.translate_button"}}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integrations -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_integrations_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="googleAnalyticsID" class="form-label">{{ T .CurrentLang "admin.settings_ga_id" }}</label>
+                            <input type="text" class="form-control" id="googleAnalyticsID" name="googleAnalyticsID" value="{{.Settings.GoogleAnalyticsID}}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>{{ T .CurrentLang "admin.settings_advanced_section" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="maintenanceMode" name="maintenanceMode" {{if .Settings.MaintenanceMode}}checked{{end}}>
+                            <label class="form-check-label" for="maintenanceMode">{{ T .CurrentLang "admin.settings_maintenance_mode" }}</label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="maintenanceMessage" class="form-label">{{ T .CurrentLang "admin.settings_maintenance_message" }}</label>
+                            <div class="input-group">
+                                <textarea class="form-control" id="maintenanceMessage" name="maintenanceMessage" rows="3">{{.Settings.MaintenanceMessage}}</textarea>
+                                <button class="btn btn-outline-secondary translate-btn" type="button" data-field="maintenance_message">{{T .CurrentLang "admin.translate_button"}}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">{{ T .CurrentLang "admin.save_settings_button" }}</button>
+                <button type="button" id="translateAllBtn" class="btn btn-info">{{T .CurrentLang "admin.translate_all_button"}}</button>
+            </form>
+        </main>
+    </div>
+
+{{template "admin/admin_footer.html" .}}
+
+<template id="nav-item-template">
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div class="flex-grow-1 me-3">
+            <div class="input-group mb-2">
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_label" }}</span>
+                <input type="text" class="form-control nav-label" value="">
+            </div>
+            <div class="input-group">
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_type" }}</span>
+                <select class="form-select nav-type">
+                    <option value="page">Page</option>
+                    <option value="internal">Internal Path</option>
+                    <option value="custom">Custom URL</option>
+                </select>
+                <span class="input-group-text">{{ T .CurrentLang "admin.nav_item_value" }}</span>
+                <input type="text" class="form-control nav-value" value="">
+            </div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm remove-nav-item">{{ T .CurrentLang "admin.remove_nav_item_button" }}</button>
+    </li>
+</template>
+
+<script>
+    window.initialNavData = JSON.parse('{{ printf "%s" .NavigationJSON }}');
+    window.initialCarouselData = JSON.parse('{{ printf "%s" .CarouselPagesJSON }}');
+    window.allPagesForCarousel = JSON.parse('{{ printf "%s" .AllPagesJSON }}');
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="/static/js/admin_settings.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const languageSelector = document.getElementById('languageSelector');
+        if (languageSelector) {
+            languageSelector.addEventListener('change', function() {
+                const selectedLang = this.value;
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('lang', selectedLang);
+                window.location.href = currentUrl.toString();
+            });
+        }
+    });
+</script>
+</body>

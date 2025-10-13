@@ -14,6 +14,15 @@ func createTempLangFiles(t *testing.T) (string, func()) {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 
+	enLangDir := filepath.Join(tempDir, "en")
+	if err := os.Mkdir(enLangDir, 0755); err != nil {
+		t.Fatalf("Failed to create en lang dir: %v", err)
+	}
+	zhLangDir := filepath.Join(tempDir, "zh")
+	if err := os.Mkdir(zhLangDir, 0755); err != nil {
+		t.Fatalf("Failed to create zh lang dir: %v", err)
+	}
+
 	enContent := []byte(`{
 		"hello": "Hello",
 		"world": "World",
@@ -26,11 +35,11 @@ func createTempLangFiles(t *testing.T) (string, func()) {
 		"only_zh": "仅中文"
 	}`)
 
-	if err := ioutil.WriteFile(filepath.Join(tempDir, "en.json"), enContent, 0644); err != nil {
-		t.Fatalf("Failed to write en.json: %v", err)
+	if err := ioutil.WriteFile(filepath.Join(enLangDir, "common.json"), enContent, 0644); err != nil {
+		t.Fatalf("Failed to write en/common.json: %v", err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(tempDir, "zh.json"), zhContent, 0644); err != nil {
-		t.Fatalf("Failed to write zh.json: %v", err)
+	if err := ioutil.WriteFile(filepath.Join(zhLangDir, "common.json"), zhContent, 0644); err != nil {
+		t.Fatalf("Failed to write zh/common.json: %v", err)
 	}
 
 	return tempDir, func() {
@@ -78,16 +87,16 @@ func TestGetTranslation(t *testing.T) {
 	}
 
 	// Test existing translation in requested language
-	if trans := translator.GetTranslation("en", "hello"); trans != "Hello" {
-		t.Errorf("Expected 'Hello', got '%s' for en/hello", trans)
+	if trans := translator.GetTranslation("en", "common.hello"); trans != "Hello" {
+		t.Errorf("Expected 'Hello', got '%s' for en/common.hello", trans)
 	}
-	if trans := translator.GetTranslation("zh", "hello"); trans != "你好" {
-		t.Errorf("Expected '你好', got '%s' for zh/hello", trans)
+	if trans := translator.GetTranslation("zh", "common.hello"); trans != "你好" {
+		t.Errorf("Expected '你好', got '%s' for zh/common.hello", trans)
 	}
 
 	// Test fallback to default language
-	if trans := translator.GetTranslation("zh", "only_en"); trans != "English Only" {
-		t.Errorf("Expected 'English Only', got '%s' for zh/only_en (fallback)", trans)
+	if trans := translator.GetTranslation("zh", "common.only_en"); trans != "English Only" {
+		t.Errorf("Expected 'English Only', got '%s' for zh/common.only_en (fallback)", trans)
 	}
 
 	// Test key not found in any language
@@ -96,8 +105,8 @@ func TestGetTranslation(t *testing.T) {
 	}
 
 	// Test invalid language, should fallback to default
-	if trans := translator.GetTranslation("fr", "hello"); trans != "Hello" {
-		t.Errorf("Expected 'Hello', got '%s' for fr/hello (invalid lang fallback)", trans)
+	if trans := translator.GetTranslation("fr", "common.hello"); trans != "Hello" {
+		t.Errorf("Expected 'Hello', got '%s' for fr/common.hello (invalid lang fallback)", trans)
 	}
 }
 

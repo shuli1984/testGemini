@@ -5,9 +5,12 @@ import (
 	"gemini-demo/internal/config"
 	"gemini-demo/internal/handler"
 	"gemini-demo/internal/i18n"
+	"gemini-demo/internal/logger"
 	"gemini-demo/internal/models"
+	"gemini-demo/internal/translator"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"gorm.io/gorm"
@@ -15,8 +18,7 @@ import (
 
 // DebugLog is a placeholder for the debug logging function from main.go
 // New creates a new HTTP server with configured routes and handlers.
-// This function is the entry point for the server.
-func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, csrfMiddleware func(http.Handler) http.Handler, translator *i18n.Translator, debugLog func(format string, v ...interface{}), debugMode bool) *http.Server {
+func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, csrfMiddleware func(http.Handler) http.Handler, i18nTranslator *i18n.Translator, apiTranslator translator.Translator, debugLog func(format string, v ...interface{}), errorLogger *logger.InMemoryLogCollector, startTime time.Time) *http.Server {
 	r := mux.NewRouter()
 
 	// Serve static files
@@ -33,23 +35,30 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 	dbStore := &models.DBStore{DB: db}
 
 	// Pass the parsed templates to the handler
-	h := &handler.Handler{Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, Translator: translator, DebugMode: debugMode}
+	h := &handler.Handler{Cfg: cfg, Store: dbStore, AuthService: authService, Templates: tmpl, DebugLog: debugLog, I18n: i18nTranslator, API_Translator: apiTranslator, DebugMode: cfg.DebugMode, ErrorLogger: errorLogger, StartTime: startTime}
 
 	handlers := map[string]http.HandlerFunc{
-		"IndexHandler":         h.IndexHandler,
-		"AboutHandler":         h.AboutHandler,
-		"PageHandler":          h.PageHandler,
-		"PagesListHandler":     h.PagesListHandler,
-		"UpdatePageHandler":    h.UpdatePageHandler,
-		"LoginHandler":         h.LoginHandler,
-		"DashboardHandler":     h.DashboardHandler,
-		"AdminRedirectHandler": h.AdminRedirectHandler,
-		"LogoutHandler":        h.LogoutHandler,
-		"PagesHandler":         h.PagesHandler,
-		"AdminEditPageHandler": h.AdminEditPageHandler,
-		"AdminNewPageHandler":  h.AdminNewPageHandler,
-		"DeletePageHandler":    h.DeletePageHandler,
-		"ImageUploadHandler":   h.ImageUploadHandler,
+		"IndexHandler":          h.IndexHandler,
+
+		"PageHandler":           h.PageHandler,
+		"PagesListHandler":      h.PagesListHandler,
+		"UpdatePageHandler":     h.UpdatePageHandler,
+		"LoginHandler":          h.LoginHandler,
+		"DashboardHandler":      h.DashboardHandler,
+		"AdminRedirectHandler":  h.AdminRedirectHandler,
+		"LogoutHandler":         h.LogoutHandler,
+		"PagesHandler":          h.PagesHandler,
+		"AdminEditPageHandler":  h.AdminEditPageHandler,
+		"AdminNewPageHandler":   h.AdminNewPageHandler,
+		"DeletePageHandler":     h.DeletePageHandler,
+		"TranslateHandler":      h.TranslateHandler,
+		"ImageUploadHandler":    h.ImageUploadHandler,
+		"AdminTemplatesView":    h.AdminTemplatesView,
+		"AdminTemplateEditView": h.AdminTemplateEditView,
+		"AdminTemplateUpdate":   h.AdminTemplateUpdate,
+		"AdminTemplatePreview":  h.AdminTemplatePreview,
+		"AdminSettingsHandler":  h.AdminSettingsHandler,
+		"UpdateSettingsHandler": h.UpdateSettingsHandler,
 	}
 
 	for _, route := range cfg.Routes {
@@ -71,6 +80,8 @@ func New(cfg *config.Config, db *gorm.DB, tmpl map[string]*template.Template, cs
 			debugLog("Server: After CSRF - Request processed for URL: %s", req.URL.Path)
 		})
 	}
+
+	finalHandler = h.MaintenanceMiddleware(finalHandler)
 
 	return &http.Server{
 		Handler: finalHandler,

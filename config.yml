@@ -6,11 +6,6 @@ routes:
     methods:
       - "GET"
     auth_required: false
-  - path: "/about"
-    handler: "AboutHandler"
-    methods:
-      - "GET"
-    auth_required: false
   - path: "/page/{name}"
     handler: "PageHandler"
     methods:
@@ -37,11 +32,11 @@ routes:
     methods:
       - "GET"
     auth_required: true
-  - path: /admin/pages/new
-    handler: AdminNewPageHandler
+  - path: "/admin/pages/new"
+    handler: "AdminNewPageHandler"
     methods: 
-      - GET
-      - POST
+      - "GET"
+      - "POST"
     auth_required: true
   - path: "/admin/pages/edit/{name}"
     handler: "AdminEditPageHandler"
@@ -53,12 +48,48 @@ routes:
     methods:
       - "PUT"
     auth_required: true
-  - path: /admin/pages/delete/{name}
-    handler: DeletePageHandler
-    methods: [DELETE]
+  - path: "/admin/pages/delete/{name}"
+    handler: "DeletePageHandler"
+    methods:
+      - "DELETE"
+    auth_required: true
+  - path: "/admin/templates"
+    handler: "AdminTemplatesView"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin/templates/edit"
+    handler: "AdminTemplateEditView"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin/templates/edit"
+    handler: "AdminTemplateUpdate"
+    methods:
+      - "POST"
+    auth_required: true
+  - path: "/admin/templates/preview"
+    handler: "AdminTemplatePreview"
+    methods:
+      - "GET"
     auth_required: true
   - path: "/admin/upload"
     handler: "ImageUploadHandler"
+    methods:
+      - "POST"
+    auth_required: true
+  - path: "/admin/api/translate"
+    handler: "TranslateHandler"
+    methods:
+      - "POST"
+    auth_required: true
+  - path: "/admin/settings"
+    handler: "AdminSettingsHandler"
+    methods:
+      - "GET"
+    auth_required: true
+  - path: "/admin/settings"
+    handler: "UpdateSettingsHandler"
     methods:
       - "POST"
     auth_required: true
@@ -88,3 +119,8 @@ auth:
 static:
   url_prefix: "/static/"
   dir: "static"
+translator:
+  type: "mock"
+  api_key: ""
+i18n:
+  default_language: "en"

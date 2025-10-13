@@ -1,45 +1,45 @@
-<div class="d-flex flex-column flex-shrink-0 p-3 vh-100 admin-sidebar" style="width: 280px;">
+<div class="d-flex flex-column flex-shrink-0 p-3 h-100 admin-sidebar" style="width: 280px;">
     <a href="/admin/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
-        <span class="fs-4">{{T .CurrentLang "admin_panel"}}</span>
+        <span class="fs-4">{{T .CurrentLang "admin.admin_panel"}}</span>
     </a>
     <hr>
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
             <a href="/admin/dashboard" class="nav-link {{if or (eq .CurrentPath "/admin/dashboard") (hasPrefix .CurrentPath "/admin/dashboard/")}}active{{end}}">
-                {{T .CurrentLang "dashboard_menu"}}
+                {{T .CurrentLang "menu.dashboard_menu"}}
             </a>
         </li>
         <li>
             <a href="/admin/pages" class="nav-link {{if or (eq .CurrentPath "/admin/pages") (hasPrefix .CurrentPath "/admin/pages/")}}active{{end}}">
-                {{T .CurrentLang "pages_menu"}}
+                {{T .CurrentLang "menu.pages_menu"}}
             </a>
         </li>
         <li>
             <a href="/admin/templates" class="nav-link {{if or (eq .CurrentPath "/admin/templates") (hasPrefix .CurrentPath "/admin/templates/")}}active{{end}}">
-                {{T .CurrentLang "templates_menu"}}
+                {{T .CurrentLang "menu.templates_menu"}}
             </a>
         </li>
         <li>
             <a href="/admin/settings" class="nav-link {{if or (eq .CurrentPath "/admin/settings") (hasPrefix .CurrentPath "/admin/settings/")}}active{{end}}">
-                {{T .CurrentLang "site_settings_menu"}}
+                {{T .CurrentLang "menu.site_settings_menu"}}
             </a>
         </li>
         <li>
             <a href="/admin/logout" class="nav-link link-dark">
-                {{T .CurrentLang "logout_menu"}}
+                {{T .CurrentLang "menu.logout_menu"}}
             </a>
         </li>
     </ul>
     <div class="theme-switcher form-check form-switch my-2 mx-1">
         <input class="form-check-input" type="checkbox" id="theme-switch">
-        <label class="form-check-label" for="theme-switch">Dark Mode</label>
+        <label class="form-check-label" for="theme-switch">{{T .CurrentLang "common.dark_mode_toggle"}}</label>
     </div>
     <hr>
     <div class="language-switcher">
         <select id="lang-select" class="form-select">
-            <option value="en">{{T .CurrentLang "lang_en"}}</option>
-            <option value="zh">{{T .CurrentLang "lang_zh"}}</option>
-            <option value="ja">{{T .CurrentLang "lang_ja"}}</option>
+            <option value="en">{{T .CurrentLang "common.lang_en"}}</option>
+            <option value="zh">{{T .CurrentLang "common.lang_zh"}}</option>
+            <option value="ja">{{T .CurrentLang "common.lang_ja"}}</option>
         </select>
     </div>
 </div>

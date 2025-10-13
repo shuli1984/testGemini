@@ -71,6 +71,12 @@ footer {
     color: var(--accent-cyan);
 }
 
+.navbar-brand .text-muted {
+    color: var(--text-slate-dark) !important;
+    font-weight: 400;
+    font-size: 0.8em;
+}
+
 .nav-link {
     color: var(--text-slate-dark);
     font-weight: 400;

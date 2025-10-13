@@ -8,66 +8,53 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
-)
-
-var (
-	projectRootCache string
-	once             sync.Once
 )
 
 // ProjectRoot returns the project's root directory.
-// If testExecutablePath is provided, it's used instead of os.Executable() for testing.
+// It is designed to be safe for concurrent use.
 func ProjectRoot(testExecutablePath string) string {
-	once.Do(func() {
-		if testRoot := os.Getenv("GEMINI_TEST_ROOT"); testRoot != "" {
-			projectRootCache = testRoot
-			return
-		}
+	if testRoot := os.Getenv("GEMINI_TEST_ROOT"); testRoot != "" {
+		return testRoot
+	}
 
-		var startDir string
-		var err error
+	var startDir string
+	var err error
 
-		if testExecutablePath != "" {
-			startDir = filepath.Dir(testExecutablePath) // For testing, use the directory of the provided executable path
-		} else {
-			// Use current working directory as the starting point
-			startDir, err = os.Getwd()
-			if err != nil {
-				panic(err) // Or handle error more gracefully
-			}
+	if testExecutablePath != "" {
+		startDir = filepath.Dir(testExecutablePath) // For testing, use the directory of the provided executable path
+	} else {
+		// Use current working directory as the starting point
+		startDir, err = os.Getwd()
+		if err != nil {
+			panic(err) // Or handle error more gracefully
 		}
+	}
 
-		// Search upwards from the starting directory for a known project root marker (e.g., go.mod)
-		currentDir := startDir
-		// Look for go.mod file, if not found, search parent directory
-		for {
-			if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
-				projectRootCache = currentDir
-				return
-			}
-			parent := filepath.Dir(currentDir)
-			if parent == currentDir {
-				break // Reached root directory, go.mod not found
-			}
-			currentDir = parent
+	// Search upwards from the starting directory for a known project root marker (e.g., go.mod)
+	currentDir := startDir
+	for {
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir
 		}
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			break // Reached root directory, go.mod not found
+		}
+		currentDir = parent
+	}
 
-		// Fallback if go.mod is not found, with special handling for 'bin' directory
-		if strings.HasSuffix(filepath.ToSlash(startDir), "/bin") {
-			projectRootCache = filepath.Dir(startDir)
-		} else {
-			projectRootCache = startDir // Fallback to the starting directory
-		}
-	})
-	return projectRootCache
+	// Fallback if go.mod is not found, with special handling for 'bin' directory
+	if strings.HasSuffix(filepath.ToSlash(startDir), "/bin") {
+		return filepath.Dir(startDir)
+	}
+
+	return startDir // Fallback to the starting directory
 }
 
-// ResetProjectRootCacheForTesting resets the cached project root for testing purposes.
-// This function should only be called in test code.
+// ResetProjectRootCacheForTesting is now a no-op because the cache has been removed.
+// This function is kept for backward compatibility with existing test code.
 func ResetProjectRootCacheForTesting() {
-	once = sync.Once{}
-	projectRootCache = ""
+	// No-op
 }
 
 func ParseTemplates(translator *i18n.Translator, projectRoot ...string) (map[string]*template.Template, error) {
@@ -87,10 +74,16 @@ func ParseTemplates(translator *i18n.Translator, projectRoot ...string) (map[str
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".html") {
+		if strings.HasSuffix(info.Name(), ".html") {
+			if info.IsDir() {
+				return fmt.Errorf("template entry is a directory: %s", path)
+			}
 			relPath, _ := filepath.Rel(templateDir, path)
 			relPath = strings.ReplaceAll(relPath, "\\", "/")
-			content, _ := os.ReadFile(path)
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err // Propagate the error
+			}
 			rawTemplates[relPath] = string(content)
 		}
 		return nil
@@ -99,9 +92,9 @@ func ParseTemplates(translator *i18n.Translator, projectRoot ...string) (map[str
 		return nil, fmt.Errorf("error walking templates: %w", err)
 	}
 
-	funcMap := template.FuncMap{
-		"T": func(lang, key string) string {
-			return translator.GetTranslation(lang, key)
+		funcMap := template.FuncMap{
+		"T": func(lang, key string) template.HTML {
+			return template.HTML(translator.GetTranslation(lang, key))
 		},
 		"hasPrefix": strings.HasPrefix,
 	}
