@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     form.addEventListener('submit', function (e) {
+        // Serialize navigation data
         const navItems = [];
         navList.querySelectorAll('.list-group-item').forEach(item => {
             navItems.push({
@@ -61,6 +62,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
         }
+
+        // Serialize carousel data
+        const carouselItems = [];
+        carouselPagesList.querySelectorAll('.list-group-item').forEach((item, index) => {
+            carouselItems.push({
+                page_id: parseInt(item.dataset.pageId, 10),
+                order: index + 1
+            });
+        });
+        carouselJsonInput.value = JSON.stringify(carouselItems);
     });
 
     renderNavItems();
@@ -116,18 +127,6 @@ document.addEventListener('DOMContentLoaded', function () {
         animation: 150,
         ghostClass: 'sortable-ghost',
         onEnd: updateAvailableList
-    });
-
-    // Serialize carousel data before form submission
-    form.addEventListener('submit', function (e) {
-        const carouselItems = [];
-        carouselPagesList.querySelectorAll('.list-group-item').forEach((item, index) => {
-            carouselItems.push({
-                page_id: parseInt(item.dataset.pageId, 10),
-                order: index + 1
-            });
-        });
-        carouselJsonInput.value = JSON.stringify(carouselItems);
     });
 
     // --- Translation Logic ---

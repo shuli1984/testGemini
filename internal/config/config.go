@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -17,6 +18,8 @@ type Route struct {
 // AuthConfig defines the structure for authentication configuration.
 // AuthConfig defines the structure for authentication configuration.
 type AuthConfig struct {
+	Username       string   `mapstructure:"username"`
+	Password       string   `mapstructure:"password"`
 	SessionKey     string   `mapstructure:"session_key"`
 	CSRFKey        string   `mapstructure:"csrf_key"`
 	TrustedOrigins []string `mapstructure:"trusted_origins"`
@@ -64,49 +67,70 @@ type SiteConfig struct {
 	MaintenanceMessage string           `yaml:"maintenance_message" mapstructure:"maintenance_message"`
 }
 
+// DatabaseConfig defines the structure for database configuration.
+type DatabaseConfig struct {
+	Type string `mapstructure:"type"`
+	DSN  string `mapstructure:"dsn"`
+}
+
 type Config struct {
 	Server struct {
 		Address string `mapstructure:"address"`
 	} `mapstructure:"server"`
-	Database struct {
-		Type string `mapstructure:"type"`
-		DSN  string `mapstructure:"dsn"`
-	} `mapstructure:"database"`
+	Database   DatabaseConfig   `mapstructure:"database"`
 	Auth       AuthConfig       `mapstructure:"auth"`
 	Static     StaticConfig     `mapstructure:"static"`
 	Translator TranslatorConfig `mapstructure:"translator"`
 	I18n       I18nConfig       `mapstructure:"i18n"`
 	Site       SiteConfig       `mapstructure:"site"`
 	Routes     []Route          `mapstructure:"routes"`
+	DebugMode  bool             `mapstructure:"debug"`
 }
 
-// LoadConfig reads configuration from file or environment variables.
-func LoadConfig() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	viper.SetConfigType("yml")
+// LoadConfig reads configuration from a byte slice or environment variables.
+func LoadConfig(filePath string) (*Config, error) {
+	v := viper.New()
+	v.SetConfigType("yml")
 
-	// Enable Viper to read environment variables
-	viper.AutomaticEnv()
-	// Replace . with _ in environment variable names (e.g., auth.session_key -> AUTH_SESSION_KEY)
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	// If a file path is provided, tell Viper to use it.
+	if filePath != "" {
+		v.SetConfigFile(filePath)
 
-	// Explicitly bind environment variables to config keys
-	viper.BindEnv("auth.session_key", "SESSION_KEY")
-	viper.BindEnv("auth.csrf_key", "CSRF_KEY")
-	viper.BindEnv("auth.username", "ADMIN_USERNAME") // Bind username/password too for consistency
-	viper.BindEnv("auth.password", "ADMIN_PASSWORD")
-	viper.BindEnv("translator.api_key", "TRANSLATOR_API_KEY")
-	viper.BindEnv("translator.type", "TRANSLATOR_TYPE")
-	viper.BindEnv("i18n.default_language", "I18N_DEFAULT_LANGUAGE")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, err
+		// Attempt to read the config file. We can ignore a "file not found" error
+		// because the config can be provided entirely by environment variables.
+		if err := v.ReadInConfig(); err != nil {
+			// We expect a "file not found" error. On different OSes or under different
+			// conditions, this can be either a specific viper error type or a generic path error.
+			// We check for both and ignore them, but treat any other error as a real problem.
+			_, isViperError := err.(viper.ConfigFileNotFoundError)
+			_, isPathError := err.(*os.PathError)
+			if !isViperError && !isPathError {
+				return nil, err
+			}
+		}
 	}
 
+	// Enable Viper to read environment variables, which will override any existing keys.
+	v.AutomaticEnv()
+	// Replace . with _ in environment variable names (e.g., auth.session_key -> AUTH_SESSION_KEY)
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Explicitly bind environment variables to config keys
+	v.BindEnv("auth.session_key", "SESSION_KEY")
+	v.BindEnv("auth.csrf_key", "CSRF_KEY")
+	v.BindEnv("auth.username", "ADMIN_USERNAME")
+	v.BindEnv("auth.password", "ADMIN_PASSWORD")
+	v.BindEnv("translator.api_key", "TRANSLATOR_API_KEY")
+	v.BindEnv("translator.type", "TRANSLATOR_TYPE")
+	v.BindEnv("i18n.default_language", "I18N_DEFAULT_LANGUAGE")
+	v.BindEnv("database.dsn", "DATABASE_DSN")
+	v.BindEnv("server.address")
+	v.BindEnv("database.type")
+
 	var config Config
-	if err := viper.Unmarshal(&config); err != nil {
-		return nil, err	}
+	if err := v.Unmarshal(&config); err != nil {
+		return nil, err
+	}
 
 	return &config, nil
 }

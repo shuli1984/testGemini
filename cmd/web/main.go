@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -15,8 +14,10 @@ import (
 	"gemini-demo/internal/server"
 	"gemini-demo/internal/translator"
 	"gemini-demo/internal/util"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,6 +28,8 @@ import (
 
 var projectRootFlag string
 var debugFlag bool
+var loadConfig = config.LoadConfig
+var godotenvLoad = godotenv.Load
 
 func debugLog(format string, v ...interface{}) {
 	if debugFlag {
@@ -34,31 +37,49 @@ func debugLog(format string, v ...interface{}) {
 	}
 }
 
+func logRequestMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
+		next.ServeHTTP(w, r)
+	})
+}
+
 // generateRandomKey creates a random key of the specified length (in bytes)
 // and returns it as a hex-encoded string.
-func generateRandomKey(length int) (string, error) {
+func generateRandomKey(length int, reader io.Reader) (string, error) {
 	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
+	if _, err := reader.Read(bytes); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
 }
 
 func main() {
+	if err := run(os.Args[1:]); err != nil {
+		log.Fatalf("application returned an error: %v", err)
+	}
+}
+
+var listenAndServe = (*http.Server).ListenAndServe
+
+var run = func(args []string) error {
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
 		log.Printf("Error loading .env file, using system environment variables: %v", err)
 	}
 
-	flag.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
-	flag.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
-	flag.Parse()
+	fs := flag.NewFlagSet("gemini-demo", flag.ContinueOnError)
+	fs.StringVar(&projectRootFlag, "project-root", "", "Absolute path to the project root directory")
+	fs.BoolVar(&debugFlag, "debug", false, "Enable debug logging")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 	log.Printf("Debug mode enabled: %t", debugFlag) // Add this line
 
-	cfg, err := config.LoadConfig()
+	cfg, err := loadConfig("config.yml")
 	if err != nil {
-		log.Fatalf("Error reading config file, %s", err)
+		return fmt.Errorf("Error loading config file, %s", err)
 	}
 
 	// In debug mode, if keys are not set, generate temporary ones.
@@ -68,11 +89,11 @@ func main() {
 
 		// Ensure SessionKey is set
 		if cfg.Auth.SessionKey == "" {
-			log.Fatalf("Session key not found in config or environment. Please set auth.session_key or SESSION_KEY environment variable.")
+			return fmt.Errorf("Session key not found in config or environment. Please set auth.session_key or SESSION_KEY environment variable.")
 		}
 		// Ensure CSRFKey is set
 		if cfg.Auth.CSRFKey == "" {
-			log.Fatalf("CSRF key not found in config or environment. Please set auth.csrf_key or CSRF_KEY environment variable.")
+			return fmt.Errorf("CSRF key not found in config or environment. Please set auth.csrf_key or CSRF_KEY environment variable.")
 		}
 
 		debugLog("Using session key: %s", cfg.Auth.SessionKey)
@@ -81,17 +102,17 @@ func main() {
 	i18nBasePath := filepath.Join(util.ProjectRoot(""), "data", "i18n")
 	i18nTranslator := i18n.NewTranslator(i18nBasePath, cfg.I18n.DefaultLanguage)
 	if err := i18nTranslator.LoadTranslations(); err != nil {
-		log.Fatalf("Failed to load translations: %v", err)
+		return fmt.Errorf("Failed to load translations: %v", err)
 	}
 
 	apiTranslator, err := translator.New(context.Background(), cfg.Translator.Type, cfg.Translator.APIKey)
 	if err != nil {
-		log.Fatalf("Failed to create translator: %v", err)
+		return fmt.Errorf("Failed to create translator: %v", err)
 	}
 
 	db, sqlDB, err := database.InitDB(cfg.Database.Type, cfg.Database.DSN)
 	if err != nil {
-		log.Fatalf("failed to initialize database: %v", err)
+		return fmt.Errorf("failed to initialize database: %v", err)
 	}
 	defer func() {
 		if sqlDB != nil {
@@ -99,29 +120,29 @@ func main() {
 		}
 	}()
 
-		err = models.AutoMigrateAndSeed(db)
+	err = models.AutoMigrateAndSeed(db)
 	if err != nil {
-		log.Fatalf("failed to auto migrate and seed models: %v", err)
+		return fmt.Errorf("failed to auto migrate and seed models: %v", err)
 	}
 
 	// Load dynamic site settings from the database
 	siteConfigFromDB, err := models.GetSiteConfig(db, cfg.I18n.DefaultLanguage, cfg.I18n.DefaultLanguage)
 	if err != nil {
-		log.Fatalf("failed to load site settings from database: %v", err)
+		return fmt.Errorf("failed to load site settings from database: %v", err)
 	}
 	// Merge DB settings into the main config struct
 	cfg.Site = *siteConfigFromDB
 
 	parsedTemplates, err := util.ParseTemplates(i18nTranslator, projectRootFlag)
 	if err != nil {
-		log.Fatalf("failed to parse templates: %v", err)
+		return fmt.Errorf("failed to parse templates: %v", err)
 	}
 
 	if cfg.Auth.CSRFKey == "" {
-		log.Fatalf("CSRF key not found in config. Please set auth.csrf_key")
+		return fmt.Errorf("CSRF key not found in config. Please set auth.csrf_key")
 	}
 	if len(cfg.Auth.CSRFKey) < 32 {
-		log.Fatalf("CSRF key must be at least 32 bytes long")
+		return fmt.Errorf("CSRF key must be at least 32 bytes long")
 	}
 	debugLog("CSRF Key used: %s", cfg.Auth.CSRFKey)
 
@@ -129,13 +150,6 @@ func main() {
 		log.Printf("Warning: No CSRF trusted origins configured. This may lead to 'origin invalid' errors.")
 	}
 	debugLog("Configured Trusted Origins: %v", cfg.Auth.TrustedOrigins)
-
-	logRequestMiddleware := func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			debugLog("Request before CSRF: URL: %s, Host: %s, Origin: %s, Referer: %s", r.URL.String(), r.Host, r.Header.Get("Origin"), r.Header.Get("Referer"))
-			next.ServeHTTP(w, r)
-		})
-	}
 
 	csrfMiddleware := csrf.Protect(
 		[]byte(cfg.Auth.CSRFKey),
@@ -173,9 +187,9 @@ func main() {
 			})
 		}
 		return wrappedHandler
-	}, i18nTranslator, apiTranslator, debugLog, debugFlag, inMemoryLogger, startTime) // Pass the translator and debug flag
+	}, i18nTranslator, apiTranslator, debugLog, inMemoryLogger, startTime)
 	srv.Addr = cfg.Server.Address
 
 	fmt.Printf("Server is listening on %s\n", srv.Addr)
-	log.Fatal(srv.ListenAndServe())
+	return listenAndServe(srv)
 }

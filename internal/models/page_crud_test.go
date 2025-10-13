@@ -4,6 +4,7 @@ import (
 	"gemini-demo/internal/models"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
 
@@ -87,5 +88,25 @@ func TestPageCRUD(t *testing.T) {
 		if err != gorm.ErrRecordNotFound {
 			t.Errorf("expected record not found after delete, got %v", err)
 		}
+	})
+
+	t.Run("Create Page without content", func(t *testing.T) {
+		newPage := &models.Page{
+			Name:           "test_page_no_content",
+			IsCoreSolution: false,
+			Icon:           "test-icon-no-content",
+		}
+		err := models.CreatePage(db, newPage)
+		assert.NoError(t, err)
+
+		_, err = models.GetPageData(db, "test_page_no_content", "en", "en")
+		assert.Error(t, err)
+		assert.Equal(t, gorm.ErrRecordNotFound, err)
+
+		// Verify the page was created, even without translation
+		var p models.Page
+		err = db.Where("name = ?", "test_page_no_content").First(&p).Error
+		assert.NoError(t, err)
+		assert.Equal(t, "test_page_no_content", p.Name)
 	})
 }
